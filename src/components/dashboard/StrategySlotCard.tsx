@@ -10,6 +10,7 @@ import {
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { formatMoney, formatPercent, formatTime } from "@/lib/format";
 import type { StrategySlot } from "@/mocks/dashboardMocks";
+import { ChevronDown } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
 
 const chartConfig = {
@@ -26,15 +27,16 @@ const ranges = [
   { label: "ALL", value: null },
 ] as const;
 
+const TABLE_PAGE_SIZE = 10;
+
 function formatDateLabel(dateString: string) {
-  return new Date(dateString).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-  });
+  return formatTime(dateString);
 }
 
 export function StrategySlotCard({ slot, index }: { slot: StrategySlot; index: number }) {
   const [selectedRange, setSelectedRange] = useState<(typeof ranges)[number]["label"]>("30D");
+  const [visibleTradeRows, setVisibleTradeRows] = useState(TABLE_PAGE_SIZE);
+  const [highlightFromRow, setHighlightFromRow] = useState<number | null>(null);
   const modeTone =
     slot.mode === "LIVE" ? "text-emerald-300 border-emerald-400/40" : slot.mode === "SHADOW" ? "text-sky-300 border-sky-400/40" : "text-amber-300 border-amber-400/40";
 
@@ -42,6 +44,14 @@ export function StrategySlotCard({ slot, index }: { slot: StrategySlot; index: n
     () => [...slot.positions].sort((a, b) => new Date(a.closedAt).getTime() - new Date(b.closedAt).getTime()),
     [slot.positions],
   );
+
+  const newestTrades = useMemo(
+    () => [...slot.positions].sort((a, b) => new Date(b.closedAt).getTime() - new Date(a.closedAt).getTime()),
+    [slot.positions],
+  );
+  const visibleTrades = newestTrades.slice(0, visibleTradeRows);
+  const hasMoreTrades = visibleTradeRows < newestTrades.length;
+  const remainingTrades = Math.max(newestTrades.length - visibleTradeRows, 0);
 
   const chartData = useMemo(() => {
     const latestTradeTime = sortedTrades.length
@@ -74,7 +84,7 @@ export function StrategySlotCard({ slot, index }: { slot: StrategySlot; index: n
   }, [selectedRange, slot.startBalance, sortedTrades]);
 
   return (
-    <article className="rounded-3xl border border-border bg-card p-5">
+    <article className="min-w-0 overflow-hidden rounded-3xl border border-border bg-card p-5">
       <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
           <Badge variant="outline" className={modeTone}>
@@ -109,8 +119,8 @@ export function StrategySlotCard({ slot, index }: { slot: StrategySlot; index: n
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.65fr_0.85fr]">
-        <div className="rounded-2xl border border-white/10 bg-muted/70 p-4">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[1.65fr_0.85fr]">
+        <div className="min-w-0 rounded-2xl border border-white/10 bg-muted/70 p-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Equity Curve (Closed Trades)</div>
             <div className="flex flex-wrap gap-2">
@@ -137,8 +147,7 @@ export function StrategySlotCard({ slot, index }: { slot: StrategySlot; index: n
                 dataKey="dateLabel"
                 tickLine={false}
                 axisLine={false}
-                tickMargin={8}
-                minTickGap={18}
+                tick={false}
               />
               <ChartTooltip
                 cursor={false}
@@ -174,7 +183,7 @@ export function StrategySlotCard({ slot, index }: { slot: StrategySlot; index: n
             </LineChart>
           </ChartContainer>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-muted/70 p-4">
+        <div className="min-w-0 rounded-2xl border border-white/10 bg-muted/70 p-4">
           <div className="mb-3 text-xs uppercase tracking-[0.12em] text-muted-foreground">Status Table</div>
           <table className="w-full text-sm">
             <tbody>
@@ -192,7 +201,7 @@ export function StrategySlotCard({ slot, index }: { slot: StrategySlot; index: n
 
       <div className="mt-4 rounded-2xl border border-white/10 bg-muted/70 p-4">
         <div className="mb-3 text-xs uppercase tracking-[0.12em] text-muted-foreground">Weekly Equity Table</div>
-        <ScrollArea className="w-full whitespace-nowrap">
+        <ScrollArea className="max-w-full overflow-hidden whitespace-nowrap">
           <table className="min-w-[640px] text-sm">
             <thead>
               <tr className="text-left text-muted-foreground">
@@ -218,8 +227,16 @@ export function StrategySlotCard({ slot, index }: { slot: StrategySlot; index: n
       </div>
 
       <div className="mt-4 rounded-2xl border border-white/10 bg-muted/70 p-4">
-        <div className="mb-3 text-xs uppercase tracking-[0.12em] text-muted-foreground">Closed Positions</div>
-        <ScrollArea className="w-full whitespace-nowrap">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Closed Positions</div>
+            <div className="mt-1 text-xs text-muted-foreground">Newest trades first</div>
+          </div>
+          <div className="rounded-full border border-white/10 bg-background/60 px-3 py-1 text-xs text-muted-foreground">
+            Showing {Math.min(visibleTradeRows, newestTrades.length)} of {newestTrades.length}
+          </div>
+        </div>
+        <ScrollArea className="max-w-full overflow-hidden whitespace-nowrap">
           <table className="min-w-[700px] text-sm">
             <thead>
               <tr className="text-left text-muted-foreground">
@@ -232,8 +249,15 @@ export function StrategySlotCard({ slot, index }: { slot: StrategySlot; index: n
               </tr>
             </thead>
             <tbody>
-              {slot.positions.map((row, rowIndex) => (
-                <tr key={`${slot.key}-${rowIndex}`}>
+              {visibleTrades.map((row, rowIndex) => (
+                <tr
+                  key={`${slot.key}-${row.closedAt}-${rowIndex}`}
+                  className={
+                    highlightFromRow != null && rowIndex >= highlightFromRow
+                      ? "animate-in fade-in slide-in-from-top-1 duration-300"
+                      : undefined
+                  }
+                >
                   <td className="py-1 pr-3">{formatTime(row.closedAt)}</td>
                   <td className="py-1 pr-3">{row.side}</td>
                   <td className="py-1 pr-3">{row.duration}</td>
@@ -246,6 +270,26 @@ export function StrategySlotCard({ slot, index }: { slot: StrategySlot; index: n
           </table>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
+        {hasMoreTrades ? (
+          <div className="mt-4 flex flex-col items-center gap-2 border-t border-white/10 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setHighlightFromRow(visibleTradeRows);
+                setVisibleTradeRows((value) => value + TABLE_PAGE_SIZE);
+              }}
+              className="group h-10 gap-3 border-sky-400/30 bg-sky-400/10 px-5 text-sky-100 shadow-[0_10px_30px_rgba(56,189,248,0.18)] hover:border-sky-300/60 hover:bg-sky-400/20 hover:shadow-[0_12px_36px_rgba(56,189,248,0.28)]"
+            >
+              <ChevronDown className="h-4 w-4 group-hover:animate-bounce" />
+              Load more
+              <span className="rounded-full bg-sky-300/15 px-2.5 py-1 text-[11px] text-sky-100">
+                +{Math.min(TABLE_PAGE_SIZE, remainingTrades)}
+              </span>
+            </Button>
+          </div>
+        ) : null}
       </div>
     </article>
   );

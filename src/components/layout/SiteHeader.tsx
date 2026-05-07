@@ -1,7 +1,9 @@
 import { Menu } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
+import { isSignupEnabled } from "@/lib/features";
 import {
   Drawer,
   DrawerClose,
@@ -11,15 +13,14 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 
-const navLinks = [
-  { to: "/", label: "Home" },
-  { to: "/platform", label: "Platform" },
-  { to: "/dashboard", label: "Dashboard" },
-];
+const publicLinks = [{ to: "/", label: "Home" }];
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const { isAuthenticated, name, logout } = useAuth();
+  const signupEnabled = isSignupEnabled();
+  const navLinks = isAuthenticated ? [...publicLinks, { to: "/simulations", label: "Simulations" }] : publicLinks;
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-[#060d18]/80 backdrop-blur-xl">
@@ -38,9 +39,25 @@ export function SiteHeader() {
               {link.label}
             </Link>
           ))}
-          <a href="mailto:enri@praxionresearch.com" className="hover:text-foreground">
-            Contact
-          </a>
+          {isAuthenticated ? (
+            <>
+              <span className="text-xs uppercase tracking-[0.12em] text-slate-400">{name}</span>
+              <Button type="button" variant="outline" size="sm" onClick={logout}>
+                Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className={location.pathname === "/login" ? "text-foreground" : "hover:text-foreground"}>
+                Login
+              </Link>
+              {signupEnabled ? (
+                <Link to="/signup" className={location.pathname === "/signup" ? "text-foreground" : "hover:text-foreground"}>
+                  Sign up
+                </Link>
+              ) : null}
+            </>
+          )}
         </nav>
 
         <Drawer open={open} onOpenChange={setOpen}>
@@ -64,12 +81,32 @@ export function SiteHeader() {
                   </Link>
                 </DrawerClose>
               ))}
-              <a
-                href="mailto:enri@praxionresearch.com"
-                className="rounded-md border border-transparent px-3 py-2 text-sm text-muted-foreground hover:border-border hover:text-foreground"
-              >
-                Contact
-              </a>
+              {isAuthenticated ? (
+                <Button type="button" variant="outline" size="sm" onClick={logout} className="mt-2">
+                  Logout
+                </Button>
+              ) : (
+                <>
+                  <DrawerClose asChild>
+                    <Link
+                      to="/login"
+                      className="rounded-md border border-transparent px-3 py-2 text-sm text-muted-foreground hover:border-border hover:text-foreground"
+                    >
+                      Login
+                    </Link>
+                  </DrawerClose>
+                  {signupEnabled ? (
+                    <DrawerClose asChild>
+                      <Link
+                        to="/signup"
+                        className="rounded-md border border-transparent px-3 py-2 text-sm text-muted-foreground hover:border-border hover:text-foreground"
+                      >
+                        Sign up
+                      </Link>
+                    </DrawerClose>
+                  ) : null}
+                </>
+              )}
             </div>
           </DrawerContent>
         </Drawer>

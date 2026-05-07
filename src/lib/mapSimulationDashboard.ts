@@ -1,4 +1,5 @@
 import type { PositionRow, StrategyMode, StrategySlot, WeeklyRow } from "@/mocks/dashboardMocks";
+import { formatDate, formatTime } from "@/lib/format";
 
 export type DashboardOverviewData = {
   strategyName: string;
@@ -44,6 +45,7 @@ type ApiSlot = {
     size?: number;
     is_open?: boolean;
   }>;
+  all_trades?: ApiSlot["recent_trades"];
 };
 
 type ApiDashboard = {
@@ -145,7 +147,7 @@ function mapSlot(api: ApiSlot): StrategySlot {
     profitFactor: typeof m.profit_factor === "number" ? m.profit_factor : 0,
     maxDrawdown: typeof m.max_drawdown === "number" ? m.max_drawdown : 0,
     weeklyRows: mapWeekly(api.weekly_rows),
-    positions: mapPositions(api.recent_trades),
+    positions: mapPositions(api.all_trades ?? api.recent_trades),
   };
 }
 
@@ -170,19 +172,19 @@ export function mapSimulationDashboard(payload: unknown): {
   const regime = market.regime ? ` · regime ${market.regime}` : "";
   const days =
     totals.covered_from && totals.covered_to
-      ? `${totals.covered_from} → ${totals.covered_to}`
+      ? `${formatDate(totals.covered_from)} → ${formatDate(totals.covered_to)}`
       : typeof totals.days_covered === "number"
-        ? `${totals.days_covered} dia(s)`
+        ? `${totals.days_covered} day(s)`
         : "—";
 
   const overview: DashboardOverviewData = {
     strategyName: "Bar-core simulation (StrategySimulator)",
-    strategySubtitle: `${market.last_bar_time || "—"}${regime} · ${days}`,
+    strategySubtitle: `${formatTime(market.last_bar_time)}${regime} · ${days}`,
     accountBalance: account.balance ?? account.running_balance ?? null,
     accountStatus:
       account.balance != null || account.running_balance != null
         ? `Balance ${account.balance ?? "—"} · running ${account.running_balance ?? "—"} · open P&L ${account.open_pnl ?? "—"} · ${account.position ?? "—"}`
-        : "Conta live não ligada a este modo (apenas simulação em bars persistidos).",
+        : "Live account not wired to this mode (bar simulation from persisted data only).",
     totalSimPnl: typeof totals.continuous_pnl_dollars === "number" ? totals.continuous_pnl_dollars : 0,
     barsProcessed: totals.bars_processed,
     closedTrades: totals.closed_trades,

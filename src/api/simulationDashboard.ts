@@ -1,9 +1,7 @@
-import { apiUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 
 export async function fetchSimulationDashboard(): Promise<unknown> {
-  const res = await fetch(apiUrl("/api/v1/simulation/dashboard"), {
-    headers: { Accept: "application/json" },
-  });
+  const res = await apiFetch("/api/v1/simulation/dashboard");
   if (!res.ok) {
     const text = await res.text();
     let detail = text;
