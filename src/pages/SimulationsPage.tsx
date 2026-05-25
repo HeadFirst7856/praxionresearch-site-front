@@ -1,6 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardOverview } from "@/components/dashboard/DashboardOverview";
-import { StrategyBoard } from "@/components/dashboard/StrategyBoard";
+import { StrategyAccordion } from "@/components/dashboard/StrategyAccordion";
+import {
+  SimulationDateRangeFilter,
+  type AppliedDateRange,
+} from "@/components/dashboard/SimulationDateRangeFilter";
 import { fetchSimulationDashboard } from "@/api/simulationDashboard";
 import { mapSimulationDashboard } from "@/lib/mapSimulationDashboard";
 import type { StrategySlot } from "@/mocks/dashboardMocks";
@@ -17,43 +21,48 @@ const emptyOverview: DashboardOverviewData = {
 export function SimulationsPage() {
   const [slots, setSlots] = useState<StrategySlot[] | null>(null);
   const [overview, setOverview] = useState<DashboardOverviewData>(emptyOverview);
+  const [appliedRange, setAppliedRange] = useState<AppliedDateRange | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadDashboard = useCallback(async (range?: AppliedDateRange | null) => {
     setLoading(true);
     setError(null);
-    fetchSimulationDashboard()
-      .then((payload) => {
-        if (cancelled) {
-          return;
-        }
-        const mapped = mapSimulationDashboard(payload);
-        setSlots(mapped.slots);
-        setOverview(mapped.overview);
-      })
-      .catch((e: unknown) => {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : String(e));
-          setSlots([]);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
+    try {
+      const payload = await fetchSimulationDashboard(
+        range ? { from: range.from, to: range.to } : undefined,
+      );
+      const mapped = mapSimulationDashboard(payload);
+      setSlots(mapped.slots);
+      setOverview(mapped.overview);
+      if (mapped.dateFilter) {
+        setAppliedRange({ from: mapped.dateFilter.from, to: mapped.dateFilter.to });
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+      setSlots([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadDashboard(null);
+  }, [loadDashboard]);
 
   const safeSlots = useMemo(() => slots ?? [], [slots]);
 
   return (
-    <div className="page-container overflow-x-hidden py-14">
+    <div className="page-container py-14">
       <h1 className="text-[clamp(2.2rem,6vw,3.9rem)] leading-tight font-semibold">Simulations</h1>
+
+      <SimulationDateRangeFilter
+        appliedRange={appliedRange}
+        loading={loading}
+        onApply={(range) => {
+          void loadDashboard(range);
+        }}
+      />
 
       {error ? (
         <div
@@ -68,7 +77,7 @@ export function SimulationsPage() {
       <div className="mt-7">
         <DashboardOverview overview={overview} slots={safeSlots} />
       </div>
-      <StrategyBoard slots={safeSlots} loading={loading} />
+      <StrategyAccordion slots={safeSlots} loading={loading} />
     </div>
   );
 }

@@ -1,4 +1,12 @@
-import type { PositionRow, StrategyMode, StrategySlot, WeeklyRow } from "@/mocks/dashboardMocks";
+import type {
+  DailyRow,
+  EquityPoint,
+  PositionRow,
+  SimulationDateFilterMeta,
+  StrategyMode,
+  StrategySlot,
+  WeeklyRow,
+} from "@/mocks/dashboardMocks";
 import { formatDate, formatTime } from "@/lib/format";
 
 export type DashboardOverviewData = {
@@ -10,6 +18,16 @@ export type DashboardOverviewData = {
   barsProcessed?: number;
   closedTrades?: number;
   daysCovered?: string;
+  tradeDateRange?: string;
+};
+
+type PeriodRowApi = {
+  week?: string;
+  day?: string;
+  period?: string;
+  start_balance: number;
+  end_balance: number;
+  pnl_dollars: number;
 };
 
 type ApiSlot = {
@@ -17,6 +35,7 @@ type ApiSlot = {
   title: string;
   mode?: string;
   contracts?: number;
+  instrument?: string;
   starting_balance?: number;
   ending_balance?: number;
   continuous_pnl?: number;
@@ -29,12 +48,9 @@ type ApiSlot = {
     profit_factor?: number;
     max_drawdown?: number;
   };
-  weekly_rows?: Array<{
-    week: string;
-    start_balance: number;
-    end_balance: number;
-    pnl_dollars: number;
-  }>;
+  weekly_rows?: PeriodRowApi[];
+  daily_rows?: PeriodRowApi[];
+  equity_curve?: Array<{ t: string | null; equity: number }>;
   recent_trades?: Array<{
     strategy?: string;
     side?: string;
@@ -49,6 +65,11 @@ type ApiSlot = {
 };
 
 type ApiDashboard = {
+  date_filter?: {
+    from?: string;
+    to?: string;
+    default_applied?: boolean;
+  };
   summary?: {
     market?: { last_bar_time?: string | null; last_price?: number | null; regime?: string | null };
     totals?: {
@@ -64,7 +85,23 @@ type ApiDashboard = {
   slots?: Record<string, ApiSlot>;
 };
 
-const SLOT_ORDER = ["iq_trendshift", "fvg", "asia_meanrev", "opendrive", "inverted_orb", "orb"] as const;
+const SLOT_ORDER = [
+  "iq_trendshift",
+  "fvg",
+  "asia_meanrev",
+  "opendrive",
+  "orb",
+  "orb_live_brazil",
+  "orb_live_brazil_sl_cap500",
+  "orb_live_brazil_or_percentile",
+] as const;
+
+const MNQ_SLOT_KEYS = new Set([
+  "orb",
+  "orb_live_brazil",
+  "orb_live_brazil_sl_cap500",
+  "orb_live_brazil_or_percentile",
+]);
 
 function parseTime(value: string | null | undefined): number | null {
   if (!value || typeof value !== "string") {
@@ -98,16 +135,40 @@ function mapMode(raw: string | undefined): StrategyMode {
   return "SIMULATED";
 }
 
-function mapWeekly(rows: ApiSlot["weekly_rows"]): WeeklyRow[] {
+function mapWeeklyRows(rows: PeriodRowApi[] | undefined): WeeklyRow[] {
   if (!Array.isArray(rows)) {
     return [];
   }
   return rows.map((r) => ({
-    week: r.week,
+    week: r.week || r.period || "—",
     startBalance: r.start_balance,
     endBalance: r.end_balance,
     pnl: r.pnl_dollars,
   }));
+}
+
+function mapDailyRows(rows: PeriodRowApi[] | undefined): DailyRow[] {
+  if (!Array.isArray(rows)) {
+    return [];
+  }
+  return rows.map((r) => ({
+    day: r.day || r.period || "—",
+    startBalance: r.start_balance,
+    endBalance: r.end_balance,
+    pnl: r.pnl_dollars,
+  }));
+}
+
+function mapEquityCurve(rows: ApiSlot["equity_curve"]): EquityPoint[] {
+  if (!Array.isArray(rows)) {
+    return [];
+  }
+  return rows
+    .filter((row) => typeof row.equity === "number")
+    .map((row) => ({
+      t: row.t ?? null,
+      equity: row.equity,
+    }));
 }
 
 function mapPositions(recent: ApiSlot["recent_trades"]): PositionRow[] {
@@ -129,12 +190,21 @@ function mapPositions(recent: ApiSlot["recent_trades"]): PositionRow[] {
   });
 }
 
+function resolveInstrument(api: ApiSlot): string {
+  const raw = (api.instrument || "").trim().toUpperCase();
+  if (raw) {
+    return raw;
+  }
+  return MNQ_SLOT_KEYS.has(api.key) ? "MNQ" : "MES";
+}
+
 function mapSlot(api: ApiSlot): StrategySlot {
   const m = api.metrics || {};
   return {
     key: api.key,
     title: api.title,
     mode: mapMode(api.mode),
+    instrument: resolveInstrument(api),
     startBalance: api.starting_balance ?? 50_000,
     endBalance: api.ending_balance ?? 50_000,
     continuousPnl: api.continuous_pnl ?? 0,
@@ -146,14 +216,28 @@ function mapSlot(api: ApiSlot): StrategySlot {
     winRate: typeof m.win_rate === "number" ? m.win_rate : 0,
     profitFactor: typeof m.profit_factor === "number" ? m.profit_factor : 0,
     maxDrawdown: typeof m.max_drawdown === "number" ? m.max_drawdown : 0,
-    weeklyRows: mapWeekly(api.weekly_rows),
+    weeklyRows: mapWeeklyRows(api.weekly_rows),
+    dailyRows: mapDailyRows(api.daily_rows),
+    equityCurve: mapEquityCurve(api.equity_curve),
     positions: mapPositions(api.all_trades ?? api.recent_trades),
+  };
+}
+
+function mapDateFilter(raw: ApiDashboard["date_filter"]): SimulationDateFilterMeta | undefined {
+  if (!raw?.from || !raw?.to) {
+    return undefined;
+  }
+  return {
+    from: raw.from,
+    to: raw.to,
+    defaultApplied: Boolean(raw.default_applied),
   };
 }
 
 export function mapSimulationDashboard(payload: unknown): {
   slots: StrategySlot[];
   overview: DashboardOverviewData;
+  dateFilter?: SimulationDateFilterMeta;
 } {
   const data = payload as ApiDashboard;
   const slotsRecord = data.slots && typeof data.slots === "object" ? data.slots : {};
@@ -165,21 +249,25 @@ export function mapSimulationDashboard(payload: unknown): {
     }
   }
 
+  const dateFilter = mapDateFilter(data.date_filter);
   const s = data.summary || {};
   const market = s.market || {};
   const totals = s.totals || {};
   const account = s.account || {};
   const regime = market.regime ? ` · regime ${market.regime}` : "";
-  const days =
+  const barCoverage =
     totals.covered_from && totals.covered_to
       ? `${formatDate(totals.covered_from)} → ${formatDate(totals.covered_to)}`
       : typeof totals.days_covered === "number"
         ? `${totals.days_covered} day(s)`
         : "—";
+  const tradeRange = dateFilter ? `${dateFilter.from} → ${dateFilter.to}` : undefined;
 
   const overview: DashboardOverviewData = {
     strategyName: "Bar-core simulation (StrategySimulator)",
-    strategySubtitle: `${formatTime(market.last_bar_time)}${regime} · ${days}`,
+    strategySubtitle: `${formatTime(market.last_bar_time)}${regime} · bars ${barCoverage}${
+      tradeRange ? ` · trades ${tradeRange}` : ""
+    }`,
     accountBalance: account.balance ?? account.running_balance ?? null,
     accountStatus:
       account.balance != null || account.running_balance != null
@@ -188,8 +276,16 @@ export function mapSimulationDashboard(payload: unknown): {
     totalSimPnl: typeof totals.continuous_pnl_dollars === "number" ? totals.continuous_pnl_dollars : 0,
     barsProcessed: totals.bars_processed,
     closedTrades: totals.closed_trades,
-    daysCovered: days,
+    daysCovered: barCoverage,
+    tradeDateRange: tradeRange,
   };
 
-  return { slots, overview };
+  return { slots, overview, dateFilter };
+}
+
+export function dateFilterToRange(meta: SimulationDateFilterMeta): { from: Date; to: Date } {
+  return {
+    from: new Date(`${meta.from}T12:00:00`),
+    to: new Date(`${meta.to}T12:00:00`),
+  };
 }

@@ -7,6 +7,18 @@ export type WeeklyRow = {
   pnl: number;
 };
 
+export type DailyRow = {
+  day: string;
+  startBalance: number;
+  endBalance: number;
+  pnl: number;
+};
+
+export type EquityPoint = {
+  t: string | null;
+  equity: number;
+};
+
 export type PositionRow = {
   closedAt: string;
   side: "LONG" | "SHORT";
@@ -20,6 +32,8 @@ export type StrategySlot = {
   key: string;
   title: string;
   mode: StrategyMode;
+  /** Futures symbol for contract size label (e.g. MES, MNQ). */
+  instrument: string;
   startBalance: number;
   endBalance: number;
   continuousPnl: number;
@@ -32,7 +46,15 @@ export type StrategySlot = {
   profitFactor: number;
   maxDrawdown: number;
   weeklyRows: WeeklyRow[];
+  dailyRows: DailyRow[];
+  equityCurve: EquityPoint[];
   positions: PositionRow[];
+};
+
+export type SimulationDateFilterMeta = {
+  from: string;
+  to: string;
+  defaultApplied: boolean;
 };
 
 export const mockDashboardSummary = {
@@ -48,6 +70,7 @@ export const mockStrategySlots: StrategySlot[] = [
     key: "iq-trendshift",
     title: "IQ + TrendShift Core",
     mode: "LIVE",
+    instrument: "MES",
     startBalance: 50000,
     endBalance: 52432.33,
     continuousPnl: 2432.33,
@@ -64,6 +87,8 @@ export const mockStrategySlots: StrategySlot[] = [
       { week: "2026-W17", startBalance: 50730, endBalance: 51540, pnl: 810 },
       { week: "2026-W18", startBalance: 51540, endBalance: 52432.33, pnl: 892.33 },
     ],
+    dailyRows: [],
+    equityCurve: [],
     positions: [
       { closedAt: "2026-04-05T14:05:00+00:00", side: "LONG", duration: "42m", contracts: 2, exit: "target", pnl: 181.2 },
       { closedAt: "2026-04-08T15:40:00+00:00", side: "SHORT", duration: "39m", contracts: 1, exit: "stop", pnl: -96.7 },
@@ -81,6 +106,7 @@ export const mockStrategySlots: StrategySlot[] = [
     key: "fvg-overlay",
     title: "FVG Overlay",
     mode: "SHADOW",
+    instrument: "MES",
     startBalance: 50000,
     endBalance: 52187.59,
     continuousPnl: 2187.59,
@@ -97,6 +123,8 @@ export const mockStrategySlots: StrategySlot[] = [
       { week: "2026-W17", startBalance: 50420, endBalance: 51330, pnl: 910 },
       { week: "2026-W18", startBalance: 51330, endBalance: 52187.59, pnl: 857.59 },
     ],
+    dailyRows: [],
+    equityCurve: [],
     positions: [
       { closedAt: "2026-04-06T15:10:00+00:00", side: "LONG", duration: "27m", contracts: 1, exit: "target", pnl: 88.3 },
       { closedAt: "2026-04-09T10:40:00+00:00", side: "SHORT", duration: "55m", contracts: 1, exit: "target", pnl: 164.46 },
@@ -113,6 +141,7 @@ export const mockStrategySlots: StrategySlot[] = [
     key: "asia-meanrev",
     title: "Asia Mean Reversion",
     mode: "SIMULATED",
+    instrument: "MES",
     startBalance: 50000,
     endBalance: 54551.5,
     continuousPnl: 4551.5,
@@ -129,6 +158,8 @@ export const mockStrategySlots: StrategySlot[] = [
       { week: "2026-W17", startBalance: 51290, endBalance: 52710, pnl: 1420 },
       { week: "2026-W18", startBalance: 52710, endBalance: 54551.5, pnl: 1841.5 },
     ],
+    dailyRows: [],
+    equityCurve: [],
     positions: [
       { closedAt: "2026-04-04T22:10:00+00:00", side: "LONG", duration: "35m", contracts: 1, exit: "target", pnl: 115.2 },
       { closedAt: "2026-04-08T23:00:00+00:00", side: "SHORT", duration: "48m", contracts: 1, exit: "target", pnl: 138.5 },
