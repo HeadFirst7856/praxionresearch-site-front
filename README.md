@@ -1,73 +1,86 @@
-# React + TypeScript + Vite
+# Praxion Research Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript + Vite SPA for the Praxion simulations dashboard.
 
-Currently, two official plugins are available:
+## Requirements
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 20+
+- npm
+- Backend API reachable from the browser
 
-## React Compiler
+## Local Setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+In local dev, Vite proxies `/api` to `http://127.0.0.1:8000` through `vite.config.ts`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Runtime Configuration
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+The frontend reads:
+
+- `VITE_API_BASE_URL`: backend origin, without trailing slash. Empty means same origin.
+- `VITE_BASE`: Vite base path for static assets. Use this when deploying to GitHub Pages project pages.
+
+Examples:
+
+```bash
+# Local dev with Vite proxy
+npm run dev
+
+# Local dev hitting a Cloudflare Tunnel backend directly
+VITE_API_BASE_URL=https://your-backend-tunnel.example.com npm run dev
 ```
+
+## GitHub Pages Deploy
+
+For a project page like:
+
+```text
+https://<github-user>.github.io/praxionresearch-site-front/
+```
+
+build with:
+
+```bash
+VITE_BASE=/praxionresearch-site-front/ \
+VITE_API_BASE_URL=https://<your-cloudflare-tunnel-domain> \
+npm run build
+```
+
+Publish the generated `dist/` directory to GitHub Pages.
+
+If using a custom GitHub Pages domain at the root, use:
+
+```bash
+VITE_BASE=/ \
+VITE_API_BASE_URL=https://<your-cloudflare-tunnel-domain> \
+npm run build
+```
+
+## Backend Requirements
+
+The backend must expose these authenticated REST endpoints:
+
+- `GET /api/v1/simulation/dashboard`
+- `POST /api/v1/simulation/run`
+- `GET /api/v1/simulation/status`
+- auth endpoints under `/api/v1/auth`
+
+When backend is behind Cloudflare Tunnel, set backend CORS to allow the GitHub Pages origin:
+
+```bash
+CORS_ALLOWED_ORIGINS=https://<github-user>.github.io
+```
+
+If GitHub Pages uses a project path, CORS still uses only the origin (`https://<github-user>.github.io`), not the path.
+
+## Build Check
+
+```bash
+npm run build
+```
+
+The build runs TypeScript first (`tsc -b`) and then Vite.
