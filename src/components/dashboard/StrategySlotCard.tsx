@@ -218,7 +218,7 @@ function StrategySlotDetails({ slot }: { slot: StrategySlot }) {
       <div className="mt-4 rounded-2xl border border-white/10 bg-muted/70 p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Closed Positions</div>
+            <div className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Positions</div>
             <div className="mt-1 text-xs text-muted-foreground">Newest trades first</div>
           </div>
           <div className="rounded-full border border-white/10 bg-background/60 px-3 py-1 text-xs text-muted-foreground">
@@ -229,7 +229,7 @@ function StrategySlotDetails({ slot }: { slot: StrategySlot }) {
           <table className="min-w-[700px] text-sm">
             <thead>
               <tr className="text-left text-muted-foreground">
-                <th className="pb-2 pr-3">Closed At</th>
+                <th className="pb-2 pr-3">Time</th>
                 <th className="pb-2 pr-3">Side</th>
                 <th className="pb-2 pr-3">Duration</th>
                 <th className="pb-2 pr-3">Contract</th>
@@ -253,7 +253,7 @@ function StrategySlotDetails({ slot }: { slot: StrategySlot }) {
                   <td className="py-1 pr-3">
                     {row.contracts} {slot.instrument}
                   </td>
-                  <td className="py-1 pr-3">{row.exit}</td>
+                  <td className={`py-1 pr-3 ${row.isOpen ? "text-sky-300" : ""}`}>{row.exit}</td>
                   <td className={`py-1 pr-3 ${row.pnl >= 0 ? "text-emerald-400" : "text-amber-400"}`}>
                     {formatMoney(row.pnl)}
                   </td>

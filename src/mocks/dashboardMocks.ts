@@ -26,6 +26,7 @@ export type PositionRow = {
   contracts: number;
   exit: string;
   pnl: number;
+  isOpen?: boolean;
 };
 
 export type StrategySlot = {

@@ -175,17 +175,19 @@ function mapPositions(recent: ApiSlot["recent_trades"]): PositionRow[] {
   if (!Array.isArray(recent)) {
     return [];
   }
-  const closed = recent.filter((t) => !t.is_open && t.exit_time);
-  return closed.map((t) => {
+  const displayable = recent.filter((t) => t.exit_time || (t.is_open && t.entry_time));
+  return displayable.map((t) => {
     const sideRaw = (t.side || "").toLowerCase();
     const side: "LONG" | "SHORT" = sideRaw === "long" ? "LONG" : "SHORT";
+    const isOpen = Boolean(t.is_open);
     return {
-      closedAt: t.exit_time as string,
+      closedAt: (t.exit_time || t.entry_time) as string,
       side,
       duration: formatDuration(t.entry_time ?? null, t.exit_time ?? null),
       contracts: typeof t.size === "number" ? t.size : 0,
-      exit: (t.exit_reason || "—").replace(/_/g, " "),
+      exit: (t.exit_reason || (isOpen ? "Live" : "—")).replace(/_/g, " "),
       pnl: typeof t.pnl_dollars === "number" ? t.pnl_dollars : 0,
+      isOpen,
     };
   });
 }
