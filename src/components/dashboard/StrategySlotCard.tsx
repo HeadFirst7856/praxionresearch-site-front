@@ -15,8 +15,8 @@ import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
 import { cn } from "@/lib/utils";
 
 const chartConfig = {
-  equity: {
-    label: "Equity",
+  cumulativePnl: {
+    label: "P&L",
     color: "#60a5fa",
   },
 } satisfies ChartConfig;
@@ -135,7 +135,7 @@ function StrategySlotDetails({ slot }: { slot: StrategySlot }) {
     <div className="mt-5 border-t border-white/10 pt-5">
       <div className="grid min-w-0 gap-4 xl:grid-cols-[1.65fr_0.85fr]">
         <div className="min-w-0 rounded-2xl border border-white/10 bg-muted/70 p-4">
-          <div className="mb-3 text-xs uppercase tracking-[0.12em] text-muted-foreground">Equity Curve</div>
+          <div className="mb-3 text-xs uppercase tracking-[0.12em] text-muted-foreground">P&L Curve</div>
           <ChartContainer
             config={chartConfig}
             className="h-64 w-full overflow-hidden rounded-xl border border-white/10 bg-linear-to-b from-slate-900/80 to-slate-950"
@@ -166,11 +166,11 @@ function StrategySlotDetails({ slot }: { slot: StrategySlot }) {
                 }
               />
               <Line
-                dataKey="equity"
+                dataKey="cumulativePnl"
                 type="natural"
-                stroke="var(--color-equity)"
+                stroke="var(--color-cumulativePnl)"
                 strokeWidth={2.5}
-                dot={{ r: 2.5, fill: "var(--color-equity)", strokeWidth: 0 }}
+                dot={{ r: 2.5, fill: "var(--color-cumulativePnl)", strokeWidth: 0 }}
                 activeDot={{ r: 5 }}
               />
             </LineChart>
