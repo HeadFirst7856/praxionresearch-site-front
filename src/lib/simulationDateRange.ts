@@ -54,6 +54,10 @@ export function defaultLastYearRange(reference = new Date()): DateRangeValue {
   };
 }
 
+export function defaultThisYearRange(reference = new Date()): DateRangeValue {
+  return presetDateRange("this-year", reference);
+}
+
 export function presetDateRange(preset: SimulationDateRangePreset, reference = new Date()): DateRangeValue {
   const today = reference;
   const sundayWeekOptions = { weekStartsOn: 0 as const };

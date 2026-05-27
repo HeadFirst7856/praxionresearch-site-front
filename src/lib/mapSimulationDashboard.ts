@@ -28,6 +28,7 @@ type PeriodRowApi = {
   start_balance: number;
   end_balance: number;
   pnl_dollars: number;
+  max_drawdown?: number;
 };
 
 type ApiSlot = {
@@ -86,22 +87,92 @@ type ApiDashboard = {
 };
 
 const SLOT_ORDER = [
+  "orb",
   "iq_trendshift",
   "fvg",
   "asia_meanrev",
   "opendrive",
-  "orb",
-  "orb_live_brazil",
-  "orb_live_brazil_sl_cap500",
-  "orb_live_brazil_or_percentile",
 ] as const;
 
-const MNQ_SLOT_KEYS = new Set([
-  "orb",
-  "orb_live_brazil",
-  "orb_live_brazil_sl_cap500",
-  "orb_live_brazil_or_percentile",
-]);
+const MNQ_SLOT_KEYS = new Set(["orb"]);
+
+export function sanitizeContractInput(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+export function effectiveContracts(value: string | number | null | undefined): number {
+  const raw = typeof value === "number" ? String(value) : String(value ?? "");
+  const digits = sanitizeContractInput(raw);
+  const parsed = Number.parseInt(digits, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function scalePeriodRows<T extends WeeklyRow | DailyRow>(rows: T[], contracts: number, startingBalance: number): T[] {
+  let running = startingBalance;
+  return rows.map((row) => {
+    const pnl = roundMoney(row.pnl * contracts);
+    const startBalance = roundMoney(running);
+    const endBalance = roundMoney(startBalance + pnl);
+    running = endBalance;
+    return {
+      ...row,
+      startBalance,
+      endBalance,
+      pnl,
+      maxDrawdown: row.maxDrawdown == null ? undefined : roundMoney(row.maxDrawdown * contracts),
+    };
+  });
+}
+
+export function projectSlotContracts(slot: StrategySlot, contracts: number): StrategySlot {
+  const safeContracts = Math.max(1, Math.floor(contracts));
+  const unitContinuousPnl = slot.unitContinuousPnl ?? slot.continuousPnl;
+  const unitClosedPnl = slot.unitClosedPnl ?? slot.closedPnl;
+  const unitOpenPnl = slot.unitOpenPnl ?? slot.openPnl;
+  const unitMaxDrawdown = slot.unitMaxDrawdown ?? slot.maxDrawdown;
+  const unitWeeklyRows = slot.unitWeeklyRows ?? slot.weeklyRows;
+  const unitDailyRows = slot.unitDailyRows ?? slot.dailyRows;
+  const unitEquityCurve = slot.unitEquityCurve ?? slot.equityCurve;
+  const unitPositions = slot.unitPositions ?? slot.positions;
+  const startBalance = slot.startBalance;
+
+  const positions = unitPositions.map((position) => ({
+    ...position,
+    contracts: safeContracts,
+    pnl: roundMoney((position.unitPnl ?? position.pnl) * safeContracts),
+  }));
+  const projectedPosition = slot.position.replace(/^([A-Z]+)\s+\d+\s+@/, `$1 ${safeContracts} @`);
+
+  return {
+    ...slot,
+    contracts: safeContracts,
+    continuousPnl: roundMoney(unitContinuousPnl * safeContracts),
+    closedPnl: roundMoney(unitClosedPnl * safeContracts),
+    openPnl: roundMoney(unitOpenPnl * safeContracts),
+    endBalance: roundMoney(startBalance + unitContinuousPnl * safeContracts),
+    maxDrawdown: roundMoney(unitMaxDrawdown * safeContracts),
+    weeklyRows: scalePeriodRows(unitWeeklyRows, safeContracts, startBalance),
+    dailyRows: scalePeriodRows(unitDailyRows, safeContracts, startBalance),
+    equityCurve: unitEquityCurve.map((point) => ({
+      ...point,
+      equity: roundMoney(startBalance + (point.equity - startBalance) * safeContracts),
+    })),
+    positions,
+    position: projectedPosition,
+    unitContinuousPnl,
+    unitClosedPnl,
+    unitOpenPnl,
+    unitMaxDrawdown,
+    unitWeeklyRows,
+    unitDailyRows,
+    unitEquityCurve,
+    unitPositions,
+  };
+}
 
 function parseTime(value: string | null | undefined): number | null {
   if (!value || typeof value !== "string") {
@@ -144,6 +215,7 @@ function mapWeeklyRows(rows: PeriodRowApi[] | undefined): WeeklyRow[] {
     startBalance: r.start_balance,
     endBalance: r.end_balance,
     pnl: r.pnl_dollars,
+    maxDrawdown: r.max_drawdown,
   }));
 }
 
@@ -156,6 +228,7 @@ function mapDailyRows(rows: PeriodRowApi[] | undefined): DailyRow[] {
     startBalance: r.start_balance,
     endBalance: r.end_balance,
     pnl: r.pnl_dollars,
+    maxDrawdown: r.max_drawdown,
   }));
 }
 
@@ -182,11 +255,14 @@ function mapPositions(recent: ApiSlot["recent_trades"]): PositionRow[] {
     const isOpen = Boolean(t.is_open);
     return {
       closedAt: (t.exit_time || t.entry_time) as string,
+      entryTime: t.entry_time ?? null,
+      exitTime: t.exit_time ?? null,
       side,
       duration: formatDuration(t.entry_time ?? null, t.exit_time ?? null),
       contracts: typeof t.size === "number" ? t.size : 0,
       exit: (t.exit_reason || (isOpen ? "Live" : "—")).replace(/_/g, " "),
       pnl: typeof t.pnl_dollars === "number" ? t.pnl_dollars : 0,
+      unitPnl: typeof t.pnl_dollars === "number" ? t.pnl_dollars : 0,
       isOpen,
     };
   });
@@ -202,6 +278,10 @@ function resolveInstrument(api: ApiSlot): string {
 
 function mapSlot(api: ApiSlot): StrategySlot {
   const m = api.metrics || {};
+  const weeklyRows = mapWeeklyRows(api.weekly_rows);
+  const dailyRows = mapDailyRows(api.daily_rows);
+  const equityCurve = mapEquityCurve(api.equity_curve);
+  const positions = mapPositions(api.all_trades ?? api.recent_trades);
   return {
     key: api.key,
     title: api.title,
@@ -218,10 +298,18 @@ function mapSlot(api: ApiSlot): StrategySlot {
     winRate: typeof m.win_rate === "number" ? m.win_rate : 0,
     profitFactor: typeof m.profit_factor === "number" ? m.profit_factor : 0,
     maxDrawdown: typeof m.max_drawdown === "number" ? m.max_drawdown : 0,
-    weeklyRows: mapWeeklyRows(api.weekly_rows),
-    dailyRows: mapDailyRows(api.daily_rows),
-    equityCurve: mapEquityCurve(api.equity_curve),
-    positions: mapPositions(api.all_trades ?? api.recent_trades),
+    weeklyRows,
+    dailyRows,
+    equityCurve,
+    positions,
+    unitContinuousPnl: api.continuous_pnl ?? 0,
+    unitClosedPnl: api.closed_pnl ?? 0,
+    unitOpenPnl: api.open_pnl ?? 0,
+    unitMaxDrawdown: typeof m.max_drawdown === "number" ? m.max_drawdown : 0,
+    unitWeeklyRows: weeklyRows,
+    unitDailyRows: dailyRows,
+    unitEquityCurve: equityCurve,
+    unitPositions: positions,
   };
 }
 

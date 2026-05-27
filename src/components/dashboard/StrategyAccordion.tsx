@@ -5,9 +5,11 @@ import type { StrategySlot } from "@/mocks/dashboardMocks";
 type Props = {
   slots: StrategySlot[];
   loading?: boolean;
+  contractInputs?: Record<string, string>;
+  onContractInputChange?: (strategyKey: string, value: string) => void;
 };
 
-export function StrategyAccordion({ slots, loading }: Props) {
+export function StrategyAccordion({ slots, loading, contractInputs = {}, onContractInputChange }: Props) {
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const toggleExpanded = (key: string) => {
@@ -43,6 +45,8 @@ export function StrategyAccordion({ slots, loading }: Props) {
             index={index}
             expanded={expandedKey === slot.key}
             onToggle={() => toggleExpanded(slot.key)}
+            contractInput={contractInputs[slot.key] ?? "1"}
+            onContractInputChange={(value) => onContractInputChange?.(slot.key, value)}
           />
         ))}
       </div>

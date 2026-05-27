@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   ChartContainer,
   ChartTooltip,
@@ -8,8 +9,9 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatMoney, formatPercent, formatTime } from "@/lib/format";
-import type { StrategySlot } from "@/mocks/dashboardMocks";
+import type { PositionRow, StrategySlot } from "@/mocks/dashboardMocks";
 import { ChevronDown } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
 import { cn } from "@/lib/utils";
@@ -28,13 +30,105 @@ type StrategySlotCardProps = {
   index: number;
   expanded: boolean;
   onToggle: () => void;
+  contractInput?: string;
+  onContractInputChange?: (value: string) => void;
 };
+
+function parseTimeMs(value: string | null | undefined): number | null {
+  if (!value) {
+    return null;
+  }
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function formatDurationMs(ms: number): string {
+  const minutes = Math.max(0, Math.round(ms / 60000));
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
+function durationForRow(row: PositionRow, nowMs: number): string {
+  const entryMs = parseTimeMs(row.entryTime);
+  const exitMs = parseTimeMs(row.exitTime);
+  const endMs = exitMs ?? (row.isOpen ? nowMs : null);
+  if (entryMs == null || endMs == null || endMs < entryMs) {
+    return row.duration || "—";
+  }
+  return formatDurationMs(endMs - entryMs);
+}
+
+function DurationCell({ row, nowMs }: { row: PositionRow; nowMs: number }) {
+  const duration = durationForRow(row, nowMs);
+  const exitLabel = row.exitTime ? formatTime(row.exitTime) : row.isOpen ? "-" : "n/a";
+
+  return (
+    <Tooltip disableHoverablePopup>
+      <TooltipTrigger
+        type="button"
+        delay={100}
+        closeDelay={80}
+        className="cursor-help border-b border-dotted border-muted-foreground/50 font-mono tabular-nums underline-offset-4"
+      >
+        {duration}
+      </TooltipTrigger>
+      <TooltipContent side="top" align="start" sideOffset={8} className="grid w-64 gap-2">
+        <div className="font-medium text-foreground">Trade timing</div>
+        <div className="grid gap-1">
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Entry Time</span>
+            <span className="font-mono tabular-nums text-right">{formatTime(row.entryTime)}</span>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Exit Time</span>
+            <span className="font-mono tabular-nums text-right">{exitLabel}</span>
+          </div>
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function ContractSizeInput({
+  value,
+  instrument,
+  onChange,
+  className,
+}: {
+  value: string;
+  instrument: string;
+  onChange?: (value: string) => void;
+  className?: string;
+}) {
+  return (
+    <label className={cn("flex w-full max-w-[190px] items-stretch text-sm", className)}>
+      <span className="sr-only">Contracts</span>
+      <Input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={value}
+        onChange={(event) => onChange?.(event.target.value)}
+        className="h-9 rounded-r-none border-r-0 bg-background/70 text-right font-mono tabular-nums"
+      />
+      <span className="flex h-9 min-w-14 items-center justify-center rounded-r-md border border-input bg-muted px-3 text-xs font-semibold text-muted-foreground">
+        {instrument}
+      </span>
+    </label>
+  );
+}
 
 function StrategySlotSummary({
   slot,
   index,
   expanded,
   onToggle,
+  contractInput = "1",
+  onContractInputChange,
 }: StrategySlotCardProps) {
   const modeTone =
     slot.mode === "LIVE"
@@ -44,31 +138,53 @@ function StrategySlotSummary({
         : "text-amber-300 border-amber-400/40";
 
   return (
-    <button
-      type="button"
-      className="w-full cursor-pointer text-left"
-      onClick={onToggle}
-      aria-expanded={expanded}
-    >
+    <div>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-        <div>
+        <div className="min-w-0 flex-1">
           <Badge variant="outline" className={modeTone}>
             {slot.mode}
           </Badge>
-          <h3 className="mt-3 text-2xl font-semibold">{slot.title}</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Independent 50K simulation track · click to {expanded ? "collapse" : "expand"} details
-          </p>
+          <div className="mt-3 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              className="min-w-0 cursor-pointer text-left"
+              onClick={onToggle}
+              aria-expanded={expanded}
+            >
+              <h3 className="truncate text-2xl font-semibold">{slot.title}</h3>
+            </button>
+            <ContractSizeInput
+              value={contractInput}
+              instrument={slot.instrument}
+              onChange={onContractInputChange}
+              className="sm:w-[170px]"
+            />
+          </div>
+          <button type="button" className="mt-2 cursor-pointer text-left" onClick={onToggle} aria-expanded={expanded}>
+            <p className="text-sm text-muted-foreground">
+              Independent 50K simulation track · click to {expanded ? "collapse" : "expand"} details
+            </p>
+          </button>
         </div>
-        <div className="flex items-start gap-2">
+        <button
+          type="button"
+          className="flex cursor-pointer items-start gap-2 text-left"
+          onClick={onToggle}
+          aria-expanded={expanded}
+        >
           <Badge variant="outline">Slot {index + 1}</Badge>
           <ChevronDown
             className={cn("mt-1 h-5 w-5 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-180")}
           />
-        </div>
+        </button>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <button
+        type="button"
+        className="mt-4 grid w-full cursor-pointer gap-3 text-left sm:grid-cols-2 xl:grid-cols-4"
+        onClick={onToggle}
+        aria-expanded={expanded}
+      >
         <div className="kpi-card">
           <div className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Start Balance</div>
           <div className="mt-2 text-2xl font-semibold">{formatMoney(slot.startBalance)}</div>
@@ -89,14 +205,20 @@ function StrategySlotSummary({
           <div className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Trades</div>
           <div className="mt-2 text-2xl font-semibold">{slot.trades}</div>
         </div>
-      </div>
-    </button>
+      </button>
+    </div>
   );
 }
 
 function StrategySlotDetails({ slot }: { slot: StrategySlot }) {
   const [visibleTradeRows, setVisibleTradeRows] = useState(TABLE_PAGE_SIZE);
   const [highlightFromRow, setHighlightFromRow] = useState<number | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const newestTrades = useMemo(
     () => [...slot.positions].sort((a, b) => new Date(b.closedAt).getTime() - new Date(a.closedAt).getTime()),
@@ -249,7 +371,9 @@ function StrategySlotDetails({ slot }: { slot: StrategySlot }) {
                 >
                   <td className="py-1 pr-3">{formatTime(row.closedAt)}</td>
                   <td className="py-1 pr-3">{row.side}</td>
-                  <td className="py-1 pr-3">{row.duration}</td>
+                  <td className="py-1 pr-3">
+                    <DurationCell row={row} nowMs={nowMs} />
+                  </td>
                   <td className="py-1 pr-3">
                     {row.contracts} {slot.instrument}
                   </td>
@@ -288,10 +412,24 @@ function StrategySlotDetails({ slot }: { slot: StrategySlot }) {
   );
 }
 
-export function StrategySlotCard({ slot, index, expanded, onToggle }: StrategySlotCardProps) {
+export function StrategySlotCard({
+  slot,
+  index,
+  expanded,
+  onToggle,
+  contractInput = "1",
+  onContractInputChange,
+}: StrategySlotCardProps) {
   return (
     <article className="min-w-0 overflow-hidden rounded-3xl border border-border bg-card p-5">
-      <StrategySlotSummary slot={slot} index={index} expanded={expanded} onToggle={onToggle} />
+      <StrategySlotSummary
+        slot={slot}
+        index={index}
+        expanded={expanded}
+        onToggle={onToggle}
+        contractInput={contractInput}
+        onContractInputChange={onContractInputChange}
+      />
       {expanded ? <StrategySlotDetails slot={slot} /> : null}
     </article>
   );

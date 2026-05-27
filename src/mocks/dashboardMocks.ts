@@ -5,6 +5,7 @@ export type WeeklyRow = {
   startBalance: number;
   endBalance: number;
   pnl: number;
+  maxDrawdown?: number;
 };
 
 export type DailyRow = {
@@ -12,6 +13,7 @@ export type DailyRow = {
   startBalance: number;
   endBalance: number;
   pnl: number;
+  maxDrawdown?: number;
 };
 
 export type EquityPoint = {
@@ -21,11 +23,14 @@ export type EquityPoint = {
 
 export type PositionRow = {
   closedAt: string;
+  entryTime?: string | null;
+  exitTime?: string | null;
   side: "LONG" | "SHORT";
   duration: string;
   contracts: number;
   exit: string;
   pnl: number;
+  unitPnl?: number;
   isOpen?: boolean;
 };
 
@@ -50,6 +55,14 @@ export type StrategySlot = {
   dailyRows: DailyRow[];
   equityCurve: EquityPoint[];
   positions: PositionRow[];
+  unitContinuousPnl?: number;
+  unitClosedPnl?: number;
+  unitOpenPnl?: number;
+  unitMaxDrawdown?: number;
+  unitWeeklyRows?: WeeklyRow[];
+  unitDailyRows?: DailyRow[];
+  unitEquityCurve?: EquityPoint[];
+  unitPositions?: PositionRow[];
 };
 
 export type SimulationDateFilterMeta = {

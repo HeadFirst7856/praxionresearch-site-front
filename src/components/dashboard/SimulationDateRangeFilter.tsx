@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { CalendarDays, CalendarIcon, Check, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  defaultLastYearRange,
+  defaultThisYearRange,
   formatRangeLabel,
   presetDateRange,
   simulationDateRangePresets,
@@ -44,8 +44,8 @@ function isPreset(value: unknown): value is SimulationDateRangePreset {
 
 export function SimulationDateRangeFilter({ appliedRange, loading, onApply }: Props) {
   const [open, setOpen] = useState(false);
-  const [selectedPreset, setSelectedPreset] = useState<SimulationDateRangePreset | null>(null);
-  const [draft, setDraft] = useState<DateRange | undefined>(() => toPickerRange(defaultLastYearRange()));
+  const [selectedPreset, setSelectedPreset] = useState<SimulationDateRangePreset | null>("this-year");
+  const [draft, setDraft] = useState<DateRange | undefined>(() => toPickerRange(defaultThisYearRange()));
 
   useEffect(() => {
     if (appliedRange) {
@@ -107,17 +107,16 @@ export function SimulationDateRangeFilter({ appliedRange, loading, onApply }: Pr
           </Select>
 
           <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger className="inline-flex w-full sm:w-auto">
-              <Button
-                variant="outline"
-                size="lg"
-                className="h-9 w-full justify-start gap-2 border-white/10 bg-white/[0.04] text-slate-100 hover:bg-white/[0.08] sm:w-auto"
-                disabled={loading}
-                type="button"
-              >
-                <CalendarIcon className="h-4 w-4" />
-                <span className="truncate">{draftValue ? formatRangeLabel(draftValue) : "Pick dates"}</span>
-              </Button>
+            <PopoverTrigger
+              type="button"
+              disabled={loading}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "lg" }),
+                "h-9 w-full justify-start gap-2 border-white/10 bg-white/[0.04] text-slate-100 hover:bg-white/[0.08] sm:w-auto",
+              )}
+            >
+              <CalendarIcon className="h-4 w-4" />
+              <span className="truncate">{draftValue ? formatRangeLabel(draftValue) : "Pick dates"}</span>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
