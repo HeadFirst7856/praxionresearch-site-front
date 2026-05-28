@@ -38,6 +38,7 @@ export type StrategySlot = {
   key: string;
   title: string;
   mode: StrategyMode;
+  description?: string;
   /** Futures symbol for contract size label (e.g. MES, MNQ). */
   instrument: string;
   startBalance: number;

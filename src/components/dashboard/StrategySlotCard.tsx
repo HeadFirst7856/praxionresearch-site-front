@@ -96,11 +96,13 @@ function DurationCell({ row, nowMs }: { row: PositionRow; nowMs: number }) {
 function ContractSizeInput({
   value,
   instrument,
+  disabled = false,
   onChange,
   className,
 }: {
   value: string;
   instrument: string;
+  disabled?: boolean;
   onChange?: (value: string) => void;
   className?: string;
 }) {
@@ -112,8 +114,9 @@ function ContractSizeInput({
         inputMode="numeric"
         pattern="[0-9]*"
         value={value}
+        disabled={disabled}
         onChange={(event) => onChange?.(event.target.value)}
-        className="h-9 rounded-r-none border-r-0 bg-background/70 text-right font-mono tabular-nums"
+        className="h-9 rounded-r-none border-r-0 bg-background/70 text-right font-mono tabular-nums disabled:opacity-70"
       />
       <span className="flex h-9 min-w-14 items-center justify-center rounded-r-md border border-input bg-muted px-3 text-xs font-semibold text-muted-foreground">
         {instrument}
@@ -136,6 +139,7 @@ function StrategySlotSummary({
       : slot.mode === "SHADOW"
         ? "text-sky-300 border-sky-400/40"
         : "text-amber-300 border-amber-400/40";
+  const contractLocked = slot.key === "orb-martingale-1" || slot.key === "orb-martingale-2";
 
   return (
     <div>
@@ -154,12 +158,14 @@ function StrategySlotSummary({
               <h3 className="truncate text-2xl font-semibold">{slot.title}</h3>
             </button>
             <ContractSizeInput
-              value={contractInput}
+              value={contractLocked ? String(slot.contracts || 1) : contractInput}
               instrument={slot.instrument}
-              onChange={onContractInputChange}
+              disabled={contractLocked}
+              onChange={contractLocked ? undefined : onContractInputChange}
               className="sm:w-[170px]"
             />
           </div>
+          {slot.description ? <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{slot.description}</p> : null}
           <button type="button" className="mt-2 cursor-pointer text-left" onClick={onToggle} aria-expanded={expanded}>
             <p className="text-sm text-muted-foreground">
               Independent 50K simulation track · click to {expanded ? "collapse" : "expand"} details

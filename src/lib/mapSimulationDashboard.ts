@@ -35,6 +35,7 @@ type ApiSlot = {
   key: string;
   title: string;
   mode?: string;
+  description?: string | null;
   contracts?: number;
   instrument?: string;
   starting_balance?: number;
@@ -88,13 +89,16 @@ type ApiDashboard = {
 
 const SLOT_ORDER = [
   "orb",
+  "orb-martingale-1",
+  "orb-martingale-2",
   "iq_trendshift",
   "fvg",
   "asia_meanrev",
   "opendrive",
 ] as const;
 
-const MNQ_SLOT_KEYS = new Set(["orb"]);
+const MARTINGALE_SLOT_KEYS = new Set(["orb-martingale-1", "orb-martingale-2"]);
+const MNQ_SLOT_KEYS = new Set(["orb", ...MARTINGALE_SLOT_KEYS]);
 
 export function sanitizeContractInput(value: string): string {
   return value.replace(/\D/g, "");
@@ -129,6 +133,9 @@ function scalePeriodRows<T extends WeeklyRow | DailyRow>(rows: T[], contracts: n
 }
 
 export function projectSlotContracts(slot: StrategySlot, contracts: number): StrategySlot {
+  if (MARTINGALE_SLOT_KEYS.has(slot.key)) {
+    return slot;
+  }
   const safeContracts = Math.max(1, Math.floor(contracts));
   const unitContinuousPnl = slot.unitContinuousPnl ?? slot.continuousPnl;
   const unitClosedPnl = slot.unitClosedPnl ?? slot.closedPnl;
@@ -285,6 +292,7 @@ function mapSlot(api: ApiSlot): StrategySlot {
   return {
     key: api.key,
     title: api.title,
+    description: api.description ?? undefined,
     mode: mapMode(api.mode),
     instrument: resolveInstrument(api),
     startBalance: api.starting_balance ?? 50_000,
