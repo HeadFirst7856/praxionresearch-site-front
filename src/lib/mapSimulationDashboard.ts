@@ -91,13 +91,14 @@ const SLOT_ORDER = [
   "orb",
   "orb-martingale-1",
   "orb-martingale-2",
+  "orb-martingale-3",
   "iq_trendshift",
   "fvg",
   "asia_meanrev",
   "opendrive",
 ] as const;
 
-const MARTINGALE_SLOT_KEYS = new Set(["orb-martingale-1", "orb-martingale-2"]);
+const MARTINGALE_SLOT_KEYS = new Set(["orb-martingale-1", "orb-martingale-2", "orb-martingale-3"]);
 const MNQ_SLOT_KEYS = new Set(["orb", ...MARTINGALE_SLOT_KEYS]);
 
 export function sanitizeContractInput(value: string): string {

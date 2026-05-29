@@ -63,15 +63,20 @@ function durationForRow(row: PositionRow, nowMs: number): string {
 }
 
 function DurationCell({ row, nowMs }: { row: PositionRow; nowMs: number }) {
+  const [open, setOpen] = useState(false);
   const duration = durationForRow(row, nowMs);
   const exitLabel = row.exitTime ? formatTime(row.exitTime) : row.isOpen ? "-" : "n/a";
 
   return (
-    <Tooltip disableHoverablePopup>
+    <Tooltip disableHoverablePopup open={open} onOpenChange={setOpen}>
       <TooltipTrigger
         type="button"
         delay={100}
         closeDelay={80}
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen((current) => !current);
+        }}
         className="cursor-help border-b border-dotted border-muted-foreground/50 font-mono tabular-nums underline-offset-4"
       >
         {duration}
@@ -139,7 +144,8 @@ function StrategySlotSummary({
       : slot.mode === "SHADOW"
         ? "text-sky-300 border-sky-400/40"
         : "text-amber-300 border-amber-400/40";
-  const contractLocked = slot.key === "orb-martingale-1" || slot.key === "orb-martingale-2";
+  const contractLocked =
+    slot.key === "orb-martingale-1" || slot.key === "orb-martingale-2" || slot.key === "orb-martingale-3";
 
   return (
     <div>
