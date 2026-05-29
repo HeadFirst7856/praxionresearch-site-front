@@ -73,7 +73,8 @@ function DurationCell({ row, nowMs }: { row: PositionRow; nowMs: number }) {
         type="button"
         delay={100}
         closeDelay={80}
-        onClick={(event) => {
+        closeOnClick={false}
+        onPointerUp={(event) => {
           event.stopPropagation();
           setOpen((current) => !current);
         }}
