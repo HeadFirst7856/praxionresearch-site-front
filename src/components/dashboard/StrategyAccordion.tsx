@@ -10,10 +10,18 @@ type Props = {
 };
 
 export function StrategyAccordion({ slots, loading, contractInputs = {}, onContractInputChange }: Props) {
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set());
 
   const toggleExpanded = (key: string) => {
-    setExpandedKey((prev) => (prev === key ? null : key));
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
   };
 
   if (loading && slots.length === 0) {
@@ -43,7 +51,7 @@ export function StrategyAccordion({ slots, loading, contractInputs = {}, onContr
             key={slot.key}
             slot={slot}
             index={index}
-            expanded={expandedKey === slot.key}
+            expanded={expandedKeys.has(slot.key)}
             onToggle={() => toggleExpanded(slot.key)}
             contractInput={contractInputs[slot.key] ?? "1"}
             onContractInputChange={(value) => onContractInputChange?.(slot.key, value)}
