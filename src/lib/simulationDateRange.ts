@@ -28,6 +28,8 @@ export type SimulationDateRangePreset =
   | "last-6-months"
   | "this-year"
   | "last-year"
+  | "last-5-years"
+  | "last-10-years"
   | "all";
 
 export const simulationDateRangePresets: Array<{ value: SimulationDateRangePreset; label: string }> = [
@@ -40,6 +42,8 @@ export const simulationDateRangePresets: Array<{ value: SimulationDateRangePrese
   { value: "last-6-months", label: "Last 6 months" },
   { value: "this-year", label: "This year" },
   { value: "last-year", label: "Last year" },
+  { value: "last-5-years", label: "Last 5 years" },
+  { value: "last-10-years", label: "Last 10 years" },
   { value: "all", label: "All" },
 ];
 
@@ -126,6 +130,20 @@ export function presetDateRange(preset: SimulationDateRangePreset, reference = n
     return {
       from: startOfYear(lastYear),
       to: endOfYear(lastYear),
+    };
+  }
+
+  if (preset === "last-5-years") {
+    return {
+      from: subYears(today, 5),
+      to: today,
+    };
+  }
+
+  if (preset === "last-10-years") {
+    return {
+      from: subYears(today, 10),
+      to: today,
     };
   }
 
