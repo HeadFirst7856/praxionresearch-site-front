@@ -129,10 +129,15 @@ export function presetDateRange(preset: SimulationDateRangePreset, reference = n
     };
   }
 
-  return {
-    from: new Date("2020-01-01T12:00:00"),
-    to: today,
-  };
+  if (preset === "all") {
+    return {
+      from: new Date("2010-01-01T12:00:00"),
+      to: today,
+    };
+  }
+
+  const _unhandled: never = preset;
+  throw new Error(`Unhandled simulation date preset: ${_unhandled}`);
 }
 
 export function clampRangeToToday(range: DateRangeValue, reference = new Date()): DateRangeValue {
