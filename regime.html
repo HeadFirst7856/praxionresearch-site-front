@@ -1,0 +1,1582 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Praxion Research | Regime</title>
+  <meta name="description" content="Regime workbench for Praxion Research, including the SPXW options surface buildout." />
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <div class="brand">PRAXION RESEARCH</div>
+      <nav class="nav-links">
+        <a href="./index.html">Home</a>
+        <a href="./platform.html">Platform</a>
+        <a href="./dashboard.html">Dashboard</a>
+        <a href="#surface">Regime</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-card">
+          <div class="eyebrow">SPXW Options Surface Lab</div>
+          <h1>Build the regime.<br/>See the surface.</h1>
+          <p class="lead">This page is the Praxion workbench for turning SPXW options data into a usable volatility surface. The first pass is focused on data readiness, strike and expiry coverage, and the assumptions needed to convert raw option prices into implied vol.</p>
+          <div class="actions">
+            <a class="button primary" href="#surface">Open Surface Workbench</a>
+            <a class="button ghost" href="./dashboard.html">Back to Dashboard</a>
+          </div>
+        </div>
+        <aside class="hero-card hero-side">
+          <div class="stat">
+            <div class="label">Dataset Status</div>
+            <div class="value">Ingested</div>
+            <div class="small">The SPXW Databento export was opened successfully and converted to local Parquet.</div>
+          </div>
+          <div class="stat">
+            <div class="label">Rows</div>
+            <div class="value">3.2M</div>
+            <div class="small">1-minute OPRA options bars across one month of SPXW contracts.</div>
+          </div>
+          <div class="stat">
+            <div class="label">Current State</div>
+            <div class="value">3D Snapshot Live</div>
+            <div class="small">The page now loads timestamp snapshots from the SPXW Greeks dataset through the Mac mini data endpoint.</div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="surface">
+      <div class="container">
+        <h2 class="section-title">Surface Workbench</h2>
+        <p class="section-copy">This first version sets up the page and the data framing. The next layer is to join the option bars with the underlying and calculate implied vol by expiry and strike so we can render slices, smiles, and a full surface.</p>
+        <div class="band">
+          <div class="band-grid">
+            <div class="kpi">
+              <div class="label">Symbols</div>
+              <div class="value">24,255</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Range</div>
+              <div class="value">1 Month</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Start</div>
+              <div class="value" style="font-size:20px;">2026-03-23</div>
+            </div>
+            <div class="kpi">
+              <div class="label">End</div>
+              <div class="value" style="font-size:20px;">2026-04-20</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="grid-3">
+          <div class="card">
+            <h3>What We Already Have</h3>
+            <p>SPXW OPRA 1-minute OHLCV in Parquet, with timestamp, symbol, instrument ID, and bar prices. This is enough to start normalizing the contract surface and preparing the strike-expiry grid.</p>
+          </div>
+          <div class="card">
+            <h3>What We Now Have</h3>
+            <p>Underlying SPX has already been paired in from IBKR and a model-derived Greeks dataset has been built, so the page can now render point-in-time 3D IV snapshots with a timestamp slider.</p>
+          </div>
+          <div class="card">
+            <h3>Recommended First Build</h3>
+            <p>Start with a snapshot view for one timestamp, parse strikes and expiries from SPXW symbols, solve implied vol from option close, then render smile slices and an expiry-by-strike surface.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="mock-shell">
+          <div class="mock-topbar">
+            <div>
+              <div class="eyebrow" style="margin-bottom:6px;">Praxion Regime</div>
+              <div class="muted">3D implied-vol snapshot with live timestamp slider.</div>
+            </div>
+            <div class="badges">
+              <div class="badge">SPXW</div>
+              <div class="badge">OPRA</div>
+              <div class="badge">IBKR paired</div>
+              <div class="badge">3D view</div>
+            </div>
+          </div>
+          <div class="mock-body">
+            <div class="slot-panel">
+              <div class="slot-header">
+                <div>
+                  <h3>3D Regime Surface</h3>
+                  <p class="muted" style="margin:8px 0 0 0;">Strike on X, days-to-expiry on Y, implied vol on Z. Move the slider to step through time.</p>
+                </div>
+              </div>
+              <div class="slot-kpis">
+                <div class="slot-kpi"><div class="label">0DTE Day</div><div class="value" id="regime-day-label" style="font-size:18px;">Loading...</div></div>
+                <div class="slot-kpi"><div class="label">Timestamp</div><div class="value" id="regime-ts-label" style="font-size:18px;">Loading...</div></div>
+                <div class="slot-kpi"><div class="label">SPX Spot</div><div class="value" id="regime-spot">n/a</div></div>
+                <div class="slot-kpi"><div class="label">Minutes Left</div><div class="value" id="regime-minutes-left">n/a</div></div>
+              </div>
+              <div class="slot-kpis" style="margin-top:14px;">
+                <div class="slot-kpi"><div class="label">Pin Strike</div><div class="value" id="regime-pin-strike">n/a</div></div>
+                <div class="slot-kpi"><div class="label">Pinning Area</div><div class="value" id="regime-pin-band" style="font-size:18px;">n/a</div></div>
+                <div class="slot-kpi"><div class="label">Gamma Flip Proxy</div><div class="value" id="regime-gamma-flip">n/a</div></div>
+                <div class="slot-kpi"><div class="label">Proxy Note</div><div class="value" id="regime-proxy-note" style="font-size:14px;">Volume-weighted gamma heuristic</div></div>
+              </div>
+              <div class="slot-table-wrap" style="margin-bottom:14px;">
+                <div class="slot-table-title">0DTE Day Selector</div>
+                <select id="regime-day-select" style="width:100%; padding:12px 14px; border-radius:14px; background:#07111f; color:#e5eefc; border:1px solid rgba(148,163,184,0.18);"></select>
+              </div>
+              <div class="slot-table-wrap" style="margin-bottom:14px;">
+                <div class="slot-table-title">Timestamp Slider</div>
+                <input id="regime-slider" type="range" min="0" max="0" value="0" style="width:100%; accent-color:#60a5fa;" />
+              </div>
+              <div class="slot-table-wrap">
+                <div class="slot-table-title">Volatility Surface</div>
+                <div id="regime-surface-plot" style="height:560px;"></div>
+              </div>
+              <div class="slot-table-wrap" style="margin-top:14px;">
+                <div class="slot-table-title">Option Price Surface</div>
+                <div id="regime-price-plot" style="height:560px;"></div>
+              </div>
+              <div class="slot-table-wrap" style="margin-top:14px;">
+                <div class="slot-table-title">Full-Day IV Surface</div>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
+                  <button id="regime-sheet-play" style="padding:10px 14px; border-radius:12px; border:1px solid rgba(148,163,184,0.18); background:#07111f; color:#e5eefc; cursor:pointer;">Play Days</button>
+                  <div class="muted" id="regime-sheet-day-label">Animation Day: Loading...</div>
+                </div>
+                <input id="regime-sheet-day-slider" type="range" min="0" max="0" value="0" style="width:100%; margin-bottom:12px; accent-color:#ffffff;" />
+                <div id="regime-selector-sheet-plot" style="height:560px;"></div>
+              </div>
+              <div class="slot-table-wrap" style="margin-top:14px;">
+                <div class="slot-table-title">Snapshot Notes</div>
+                <table class="table">
+                  <tbody>
+                    <tr><td>Parquet root</td><td><code>fund/04_data/spxw_options_1min_with_greeks</code></td></tr>
+                    <tr><td>View</td><td>0DTE blanket surface rendered from the local Greeks dataset</td></tr>
+                    <tr><td>Surface axes</td><td>Strike × Minutes to expiry × Implied vol %</td></tr>
+                    <tr><td>Slice control</td><td>The timestamp slider highlights the selected intraday smile on top of both blankets while keeping the chart field fixed.</td></tr>
+                    <tr><td>Second graph</td><td>Option price uses the same day selector, timestamp slider, and a fixed strike window around spot.</td></tr>
+                    <tr><td>Third graph</td><td>A static full-day IV surface laid out by strike and day progress, with the slider only moving the highlighted current white slice.</td></tr>
+                    <tr><td>Pin / flip box</td><td>Uses a volume-weighted gamma proxy from the same selected 0DTE slice. It is directional context, not a true dealer-position measure.</td></tr>
+                    <tr><td>Current scope</td><td>0DTE days from the one-month SPXW sample, rendered in a fixed ±100 point strike band around the day spot.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="mock-shell">
+          <div class="mock-topbar">
+            <div>
+              <div class="eyebrow" style="margin-bottom:6px;">ES Futures Regime Models</div>
+              <div class="muted">These views come from the deeper ES futures regime dataset, so the page can model higher-timeframe chop without leaning on the one-month SPXW options sample.</div>
+            </div>
+            <div class="badges">
+              <div class="badge">ES</div>
+              <div class="badge">1-Minute</div>
+              <div class="badge">HTF Chop</div>
+              <div class="badge">Regime</div>
+            </div>
+          </div>
+          <div class="mock-body">
+            <div class="slot-panel">
+              <div class="slot-header">
+                <div>
+                  <h3>Higher-Timeframe Regime Surfaces</h3>
+                  <p class="muted" style="margin:8px 0 0 0;">Chop surfaces use efficiency on X, balance and rotation on Y, and chop score on Z. Trend surfaces keep efficiency on X, move trend alignment to Y, and map trend score on Z. Use the selector to focus on the last 2 to 4 weeks or the full surface.</p>
+                </div>
+              </div>
+              <div class="slot-table-wrap" style="margin-bottom:14px;">
+                <div class="slot-table-title">Surface Window</div>
+                <select id="regime-htf-window-select" style="width:100%; padding:12px 14px; border-radius:14px; background:#07111f; color:#e5eefc; border:1px solid rgba(148,163,184,0.18);"></select>
+              </div>
+              <div class="slot-kpis" style="margin-top:14px;">
+                <div class="slot-kpi"><div class="label">Window</div><div class="value" id="regime-htf-window-label" style="font-size:18px;">Loading...</div></div>
+                <div class="slot-kpi"><div class="label">Latest 4H Chop</div><div class="value" id="regime-htf-4h-score">n/a</div></div>
+                <div class="slot-kpi"><div class="label">Latest Daily Chop</div><div class="value" id="regime-htf-daily-score">n/a</div></div>
+                <div class="slot-kpi"><div class="label">Latest Daily Trend</div><div class="value" id="regime-htf-daily-trend-score">n/a</div></div>
+              </div>
+              <div class="slot-kpis" style="margin-top:14px;">
+                <div class="slot-kpi"><div class="label">Latest 4H Trend</div><div class="value" id="regime-htf-4h-trend-score">n/a</div></div>
+                <div class="slot-kpi"><div class="label">Sample Days</div><div class="value" id="regime-htf-sample-days">n/a</div></div>
+                <div class="slot-kpi"><div class="label">ORB Chop Corr</div><div class="value" id="regime-orb-chop-corr">n/a</div></div>
+                <div class="slot-kpi"><div class="label">Filtered ORB PnL</div><div class="value" id="regime-orb-filtered-pnl">n/a</div></div>
+              </div>
+              <div class="slot-table-wrap" style="margin-top:14px;">
+                <div class="slot-table-title">4H Chop Surface</div>
+                <div id="regime-chop-4h-plot" style="height:560px;"></div>
+              </div>
+              <div class="slot-table-wrap" style="margin-top:14px;">
+                <div class="slot-table-title">Daily Chop Surface</div>
+                <div id="regime-chop-daily-plot" style="height:560px;"></div>
+              </div>
+              <div class="slot-table-wrap" style="margin-top:14px;">
+                <div class="slot-table-title">4H Trend Surface</div>
+                <div id="regime-trend-4h-plot" style="height:560px;"></div>
+              </div>
+              <div class="slot-table-wrap" style="margin-top:14px;">
+                <div class="slot-table-title">Daily Trend Surface</div>
+                <div id="regime-trend-daily-plot" style="height:560px;"></div>
+              </div>
+              <div class="slot-header" style="margin-top:20px; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+                <div style="flex:1 1 320px; min-width:260px;">
+                  <h3>ORB Regime Overlays</h3>
+                  <p class="muted" style="margin:8px 0 0 0;">These overlays match the NQ daily regime rows to the current ORB trade stream, now preferring Fred's inbound JSON when available, so you can see whether high-chop days are contributing or dragging.</p>
+                </div>
+                <label style="display:flex; flex-direction:column; gap:6px; min-width:128px;">
+                  <span class="muted" style="font-size:12px;">Contract type</span>
+                  <select id="regime-orb-contract-unit-select" style="width:100%; padding:12px 14px; border-radius:14px; background:#07111f; color:#e5eefc; border:1px solid rgba(148,163,184,0.18);">
+                    <option value="mnq" selected>MNQ</option>
+                    <option value="nq">NQ</option>
+                  </select>
+                </label>
+                <label style="display:flex; flex-direction:column; gap:6px; min-width:128px;">
+                  <span class="muted" style="font-size:12px;"># Contracts</span>
+                  <select id="regime-orb-contract-count-select" style="width:100%; padding:12px 14px; border-radius:14px; background:#07111f; color:#e5eefc; border:1px solid rgba(148,163,184,0.18);">
+                    <option value="1" selected>1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                  </select>
+                </label>
+              </div>
+              <div class="slot-table-wrap" style="margin-top:14px;">
+                <div class="slot-table-title">Daily Chop vs ORB PnL Scatter</div>
+                <div id="regime-orb-scatter-plot" style="height:520px;"></div>
+              </div>
+              <div class="slot-table-wrap" style="margin-top:14px;">
+                <div class="slot-table-title">Daily Chop vs ORB PnL Scatter (Date Filtered)</div>
+                <div style="display:flex; gap:10px; align-items:end; flex-wrap:wrap; margin-bottom:12px;">
+                  <label style="display:flex; flex-direction:column; gap:6px; min-width:170px; flex:1 1 170px;">
+                    <span class="muted" style="font-size:12px;">Preset</span>
+                    <select id="regime-orb-range-preset" style="width:100%; padding:12px 14px; border-radius:14px; background:#07111f; color:#e5eefc; border:1px solid rgba(148,163,184,0.18);">
+                      <option value="all">All</option>
+                      <option value="1w">Last Week</option>
+                      <option value="2w">Last 2 Weeks</option>
+                      <option value="1m">Last Month</option>
+                      <option value="3m">Last 3 Months</option>
+                    </select>
+                  </label>
+                  <label style="display:flex; flex-direction:column; gap:6px; min-width:160px; flex:1 1 160px;">
+                    <span class="muted" style="font-size:12px;">Start date</span>
+                    <input id="regime-orb-range-start" type="date" style="width:100%; padding:12px 14px; border-radius:14px; background:#07111f; color:#e5eefc; border:1px solid rgba(148,163,184,0.18);" />
+                  </label>
+                  <label style="display:flex; flex-direction:column; gap:6px; min-width:160px; flex:1 1 160px;">
+                    <span class="muted" style="font-size:12px;">End date</span>
+                    <input id="regime-orb-range-end" type="date" style="width:100%; padding:12px 14px; border-radius:14px; background:#07111f; color:#e5eefc; border:1px solid rgba(148,163,184,0.18);" />
+                  </label>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;" id="regime-orb-dow-toggle">
+                  <button type="button" data-dow="all" style="padding:8px 12px; border-radius:999px; border:1px solid rgba(148,163,184,0.18); background:#0f172a; color:#e5eefc; cursor:pointer;">All days</button>
+                  <button type="button" data-dow="mon" style="padding:8px 12px; border-radius:999px; border:1px solid rgba(148,163,184,0.18); background:#07111f; color:#94a3b8; cursor:pointer;">Mon</button>
+                  <button type="button" data-dow="tue" style="padding:8px 12px; border-radius:999px; border:1px solid rgba(148,163,184,0.18); background:#07111f; color:#94a3b8; cursor:pointer;">Tue</button>
+                  <button type="button" data-dow="wed" style="padding:8px 12px; border-radius:999px; border:1px solid rgba(148,163,184,0.18); background:#07111f; color:#94a3b8; cursor:pointer;">Wed</button>
+                  <button type="button" data-dow="thu" style="padding:8px 12px; border-radius:999px; border:1px solid rgba(148,163,184,0.18); background:#07111f; color:#94a3b8; cursor:pointer;">Thu</button>
+                  <button type="button" data-dow="fri" style="padding:8px 12px; border-radius:999px; border:1px solid rgba(148,163,184,0.18); background:#07111f; color:#94a3b8; cursor:pointer;">Fri</button>
+                </div>
+                <div class="slot-kpis" style="margin-bottom:12px;">
+                  <div class="slot-kpi"><div class="label">Cumulative P&amp;L</div><div class="value" id="regime-orb-range-pnl" style="font-size:20px;">n/a</div></div>
+                  <div class="slot-kpi"><div class="label">Max DD</div><div class="value" id="regime-orb-range-dd" style="font-size:20px;">n/a</div></div>
+                  <div class="slot-kpi"><div class="label">Positive Trades</div><div class="value" id="regime-orb-range-pos" style="font-size:20px;">n/a</div></div>
+                  <div class="slot-kpi"><div class="label">Negative Trades</div><div class="value" id="regime-orb-range-neg" style="font-size:20px;">n/a</div></div>
+                </div>
+                <div class="muted" id="regime-orb-range-summary" style="margin-bottom:12px;">Loading ORB range...</div>
+                <div id="regime-orb-scatter-filtered-plot" style="height:520px;"></div>
+              </div>
+              <div class="slot-table-wrap" style="margin-top:14px;">
+                <div class="slot-table-title">ORB Expectancy by Chop Bucket</div>
+                <div id="regime-orb-bucket-plot" style="height:420px;"></div>
+              </div>
+              <div class="slot-table-wrap" style="margin-top:14px;">
+                <div class="slot-table-title">ORB Equity Curve With High-Chop Filter</div>
+                <div id="regime-orb-filter-plot" style="height:460px;"></div>
+              </div>
+              <div class="slot-header" style="margin-top:20px;">
+                <div>
+                  <h3>Intraday Context Surfaces</h3>
+                  <p class="muted" style="margin:8px 0 0 0;">These remain useful context views. Time of day is on X, session is on Y, and the selected futures context measure is on Z.</p>
+                </div>
+              </div>
+              <div class="slot-table-wrap">
+                <div class="slot-table-title">VWAP Distance Surface (bps)</div>
+                <div id="regime-vwap-model-plot" style="height:560px;"></div>
+              </div>
+              <div class="slot-table-wrap" style="margin-top:14px;">
+                <div class="slot-table-title">Trend Strength Surface (ADX 14)</div>
+                <div id="regime-trend-model-plot" style="height:560px;"></div>
+              </div>
+              <div class="slot-table-wrap" style="margin-top:14px;">
+                <div class="slot-table-title">Model Notes</div>
+                <table class="table">
+                  <tbody>
+                    <tr><td>Data root</td><td><code>fund/04_data/es_1min_with_regime_uniform</code></td></tr>
+                    <tr><td>4H / daily chop</td><td>Built from the full ES 1-minute futures tape by combining directional efficiency with an auction-balance score that rewards overlap, VWAP re-acceptance, and flip density.</td></tr>
+                    <tr><td>4H / daily trend</td><td>Uses the same HTF periods, but adds trend alignment and ADX so the surface highlights directional persistence instead of balance.</td></tr>
+                    <tr><td>ORB overlays</td><td>Join the current ORB trade stream, preferring Fred's inbound JSON when available, to matching NQ daily regime rows, then show scatter, expectancy buckets, and an equity-curve preview that skips the highest-chop quartile.</td></tr>
+                    <tr><td>Window selector</td><td>Supports the last 2 weeks, 3 weeks, 4 weeks, or the full sample loaded into the page.</td></tr>
+                    <tr><td>VWAP model</td><td>Signed distance from session VWAP in basis points during regular trading hours.</td></tr>
+                    <tr><td>Trend model</td><td>ADX 14 across regular trading hours as a direct trend-strength surface.</td></tr>
+                    <tr><td>Reason</td><td>We only have about one month of options data, but we poll ES futures daily and have a deeper regime-ready futures dataset for higher-timeframe classification.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">Praxion Research regime lab</div>
+  </footer>
+
+  <script>
+    const REGIME_DATA_BASE = 'https://data.praxionresearch.com';
+    const FUTURES_REGIME_MODELS_PATH = './data/regime-futures-es-models.json';
+    const STRIKE_HALF_RANGE = 100;
+    const slider = document.getElementById('regime-slider');
+    const daySelect = document.getElementById('regime-day-select');
+    const dayLabel = document.getElementById('regime-day-label');
+    const tsLabel = document.getElementById('regime-ts-label');
+    const spotLabel = document.getElementById('regime-spot');
+    const minutesLabel = document.getElementById('regime-minutes-left');
+    const pinStrikeLabel = document.getElementById('regime-pin-strike');
+    const pinBandLabel = document.getElementById('regime-pin-band');
+    const gammaFlipLabel = document.getElementById('regime-gamma-flip');
+    const proxyNoteLabel = document.getElementById('regime-proxy-note');
+    const sheetDaySlider = document.getElementById('regime-sheet-day-slider');
+    const sheetDayLabel = document.getElementById('regime-sheet-day-label');
+    const sheetPlayButton = document.getElementById('regime-sheet-play');
+    const htfWindowSelect = document.getElementById('regime-htf-window-select');
+    const htfWindowLabel = document.getElementById('regime-htf-window-label');
+    const htf4hScoreLabel = document.getElementById('regime-htf-4h-score');
+    const htfDailyScoreLabel = document.getElementById('regime-htf-daily-score');
+    const htf4hTrendScoreLabel = document.getElementById('regime-htf-4h-trend-score');
+    const htfDailyTrendScoreLabel = document.getElementById('regime-htf-daily-trend-score');
+    const htfSampleDaysLabel = document.getElementById('regime-htf-sample-days');
+    const orbChopCorrLabel = document.getElementById('regime-orb-chop-corr');
+    const orbFilteredPnlLabel = document.getElementById('regime-orb-filtered-pnl');
+    const orbContractUnitSelect = document.getElementById('regime-orb-contract-unit-select');
+    const orbContractCountSelect = document.getElementById('regime-orb-contract-count-select');
+    const orbRangePresetSelect = document.getElementById('regime-orb-range-preset');
+    const orbRangeStartInput = document.getElementById('regime-orb-range-start');
+    const orbRangeEndInput = document.getElementById('regime-orb-range-end');
+    const orbRangeSummaryLabel = document.getElementById('regime-orb-range-summary');
+    const orbRangePnlLabel = document.getElementById('regime-orb-range-pnl');
+    const orbRangeDdLabel = document.getElementById('regime-orb-range-dd');
+    const orbRangePosLabel = document.getElementById('regime-orb-range-pos');
+    const orbRangeNegLabel = document.getElementById('regime-orb-range-neg');
+    const orbDowButtons = Array.from(document.querySelectorAll('#regime-orb-dow-toggle [data-dow]'));
+    let regimeDays = null;
+    let dayPayload = null;
+    let renderTimer = null;
+    let sheetRenderDay = null;
+    let sheetPayloadCache = new Map();
+    let sheetPlayTimer = null;
+    let currentDayScope = null;
+    let futuresModelsPayload = null;
+    const ORB_WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri'];
+    let orbDowFilters = new Set(ORB_WEEKDAY_KEYS);
+
+    async function fetchJson(url) {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
+      return res.json();
+    }
+
+    function toFiniteNumber(value) {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : null;
+    }
+
+    function median(values) {
+      if (!values.length) return null;
+      const sorted = values.slice().sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
+
+    function paddedRange(values, padRatio = 0.08, fallbackPad = 1) {
+      const nums = values.map(toFiniteNumber).filter((value) => value != null);
+      if (!nums.length) return null;
+      const min = Math.min(...nums);
+      const max = Math.max(...nums);
+      const span = max - min;
+      const pad = span > 0 ? span * padRatio : fallbackPad;
+      return [min - pad, max + pad];
+    }
+
+    function filterRowsToStrikeBand(rows, strikeRange) {
+      if (!strikeRange) return rows || [];
+      const [minStrike, maxStrike] = strikeRange;
+      return (rows || []).filter((row) => {
+        const strike = toFiniteNumber(row.strike);
+        return strike != null && strike >= minStrike && strike <= maxStrike;
+      });
+    }
+
+    function buildDayScope(rows) {
+      const validRows = (rows || []).filter((row) => toFiniteNumber(row.strike) != null);
+      const spotValues = validRows.map((row) => toFiniteNumber(row.spot)).filter((value) => value != null);
+      const centerSpot = median(spotValues);
+      const strikes = validRows.map((row) => toFiniteNumber(row.strike)).filter((value) => value != null);
+      const fallbackStrikeRange = strikes.length ? [Math.min(...strikes), Math.max(...strikes)] : null;
+      const strikeRange = centerSpot == null
+        ? fallbackStrikeRange
+        : [centerSpot - STRIKE_HALF_RANGE, centerSpot + STRIKE_HALF_RANGE];
+      const scopedRows = filterRowsToStrikeBand(validRows, strikeRange);
+      const timestamps = [...new Set(scopedRows.map((row) => row.timestamp_utc).filter(Boolean))].sort((a, b) => new Date(a) - new Date(b));
+      const firstTs = timestamps.length ? new Date(timestamps[0]) : null;
+      const dayProgress = timestamps.map((ts) => firstTs ? Math.round((new Date(ts) - firstTs) / 60000) : 0);
+      return {
+        centerSpot,
+        strikeRange,
+        minutesRange: paddedRange(scopedRows.map((row) => row.minutes_to_expiry), 0.04, 5),
+        ivRange: paddedRange(scopedRows.filter((row) => toFiniteNumber(row.iv_pct) != null && Number(row.iv_pct) > 0).map((row) => row.iv_pct), 0.08, 0.5),
+        priceRange: paddedRange(scopedRows.filter((row) => toFiniteNumber(row.option_price) != null && Number(row.option_price) > 0).map((row) => row.option_price), 0.08, 0.5),
+        dayProgressRange: paddedRange(dayProgress, 0.02, 5),
+      };
+    }
+
+    function buildSurfaceGrid(rows, valueKey) {
+      const filtered = rows.filter((row) => row.strike != null && row.minutes_to_expiry != null && row[valueKey] != null && row[valueKey] > 0);
+      const strikes = [...new Set(filtered.map((row) => Number(row.strike)))].sort((a, b) => a - b);
+      const minutes = [...new Set(filtered.map((row) => Number(row.minutes_to_expiry)))].sort((a, b) => b - a);
+      const strikeIndex = new Map(strikes.map((value, idx) => [value, idx]));
+      const minuteIndex = new Map(minutes.map((value, idx) => [value, idx]));
+      const z = minutes.map(() => strikes.map(() => null));
+
+      for (const row of filtered) {
+        const y = minuteIndex.get(Number(row.minutes_to_expiry));
+        const x = strikeIndex.get(Number(row.strike));
+        if (y == null || x == null) continue;
+        z[y][x] = Number(row[valueKey]);
+      }
+      return { strikes, minutes, z, filtered };
+    }
+
+    function renderSurfacePlot(containerId, rows, selectedTs, valueKey, zTitle, hoverLabel, scope) {
+      const scopedRows = filterRowsToStrikeBand(rows, scope?.strikeRange);
+      const { strikes, minutes, z, filtered } = buildSurfaceGrid(scopedRows, valueKey);
+      const sliceRows = filtered.filter((row) => row.timestamp_utc === selectedTs).sort((a, b) => a.strike - b.strike);
+      const selectedMinutes = sliceRows.length ? Number(sliceRows[0].minutes_to_expiry) : null;
+
+      const surfaceTrace = {
+        type: 'surface',
+        x: strikes,
+        y: minutes,
+        z,
+        colorscale: [
+          [0, 'rgb(88, 28, 135)'],
+          [0.5, 'rgb(126, 34, 206)'],
+          [1, 'rgb(192, 132, 252)'],
+        ],
+        connectgaps: false,
+        opacity: 0.9,
+        colorbar: { title: zTitle },
+        hovertemplate: `Strike %{x}<br>Minutes Left %{y:.0f}<br>${hoverLabel} %{z:.2f}<extra></extra>`,
+      };
+
+      const sliceTrace = {
+        type: 'scatter3d',
+        mode: 'lines+markers',
+        x: sliceRows.map((row) => row.strike),
+        y: sliceRows.map(() => selectedMinutes),
+        z: sliceRows.map((row) => row[valueKey]),
+        line: { color: '#f8fafc', width: 8 },
+        marker: { color: '#f8fafc', size: 2.5 },
+        hovertemplate: `Selected slice<br>Strike %{x}<br>Minutes Left %{y:.0f}<br>${hoverLabel} %{z:.2f}<extra></extra>`,
+        name: 'Selected timestamp',
+      };
+
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { l: 0, r: 0, t: 10, b: 0 },
+        scene: {
+          bgcolor: 'rgba(0,0,0,0)',
+          xaxis: { title: 'Strike', color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)', autorange: true },
+          yaxis: { title: 'Minutes To Expiry', color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)', autorange: true },
+          zaxis: { title: zTitle, color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)', autorange: true },
+          camera: { eye: { x: 1.45, y: 1.22, z: 0.92 } },
+        },
+        showlegend: false,
+      };
+
+      Plotly.react(containerId, [surfaceTrace, sliceTrace], layout, { responsive: true, displayModeBar: false });
+      return { filtered, sliceRows, selectedMinutes };
+    }
+
+    function buildSelectorSheetGrid(rows) {
+      const filtered = rows.filter((row) => row.strike != null && row.iv_pct != null && row.iv_pct > 0 && row.timestamp_utc);
+      const strikes = [...new Set(filtered.map((row) => Number(row.strike)))].sort((a, b) => a - b);
+      const timestamps = [...new Set(filtered.map((row) => row.timestamp_utc))].sort((a, b) => new Date(a) - new Date(b));
+      const firstTs = timestamps.length ? new Date(timestamps[0]) : null;
+      const dayProgress = timestamps.map((ts) => firstTs ? Math.round((new Date(ts) - firstTs) / 60000) : 0);
+      const strikeIndex = new Map(strikes.map((value, idx) => [value, idx]));
+      const timestampIndex = new Map(timestamps.map((value, idx) => [value, idx]));
+      const z = timestamps.map(() => strikes.map(() => null));
+      const customdata = timestamps.map((ts) => strikes.map(() => ts));
+
+      for (const row of filtered) {
+        const y = timestampIndex.get(row.timestamp_utc);
+        const x = strikeIndex.get(Number(row.strike));
+        if (y == null || x == null) continue;
+        z[y][x] = Number(row.iv_pct);
+      }
+      return { strikes, timestamps, dayProgress, z, customdata, filtered };
+    }
+
+    function renderSelectorSheetPlot(containerId, rows, selectedTs, scope) {
+      const scopedRows = filterRowsToStrikeBand(rows, scope?.strikeRange);
+      const { strikes, timestamps, dayProgress, z, customdata, filtered } = buildSelectorSheetGrid(scopedRows);
+      const timestampIndex = new Map(timestamps.map((value, idx) => [value, idx]));
+      const sliceRows = filtered.filter((row) => row.timestamp_utc === selectedTs).sort((a, b) => a.strike - b.strike);
+      const selectedIdx = timestampIndex.has(selectedTs) ? timestampIndex.get(selectedTs) : null;
+      const selectedDayProgress = selectedIdx == null ? null : dayProgress[selectedIdx];
+
+      const surfaceTrace = {
+        type: 'surface',
+        x: strikes,
+        y: dayProgress,
+        z,
+        customdata,
+        colorscale: [
+          [0, 'rgb(218, 218, 218)'],
+          [1, 'rgb(255, 255, 255)'],
+        ],
+        connectgaps: false,
+        opacity: 0.95,
+        showscale: false,
+        hovertemplate: `Strike %{x}<br>Timestamp %{customdata}<br>IV %{z:.2f}<extra></extra>`,
+      };
+
+      const sliceTrace = {
+        type: 'scatter3d',
+        mode: 'lines+markers',
+        x: sliceRows.map((row) => row.strike),
+        y: sliceRows.map(() => selectedDayProgress),
+        z: sliceRows.map((row) => row.iv_pct),
+        line: { color: '#ffffff', width: 9 },
+        marker: { color: '#ffffff', size: 2.8 },
+        hovertemplate: `Selected slice<br>Strike %{x}<br>Timestamp ${selectedTs || 'n/a'}<br>IV %{z:.2f}<extra></extra>`,
+        name: 'Selected timestamp',
+      };
+
+      const tickCount = Math.min(6, timestamps.length);
+      const tickStep = Math.max(1, Math.floor(timestamps.length / Math.max(tickCount - 1, 1)));
+      const tickIndices = timestamps.map((_, idx) => idx).filter((_, idx) => idx % tickStep === 0 || idx === timestamps.length - 1);
+      const tickvals = tickIndices.map((idx) => dayProgress[idx]);
+      const ticktext = tickIndices.map((idx) => (timestamps[idx] || '').slice(11, 16));
+
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { l: 0, r: 0, t: 10, b: 0 },
+        scene: {
+          bgcolor: 'rgba(0,0,0,0)',
+          xaxis: { title: 'Strike', color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)', autorange: true },
+          yaxis: { title: 'Day Progress (ET)', color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)', tickvals, ticktext, autorange: true },
+          zaxis: { title: 'IV %', color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)', autorange: true },
+          camera: { eye: { x: 1.42, y: 1.18, z: 0.9 } },
+        },
+        showlegend: false,
+      };
+
+      Plotly.react(containerId, [surfaceTrace, sliceTrace], layout, { responsive: true, displayModeBar: false });
+    }
+
+    function buildFuturesSurfaceCustomdata(days, minuteLabels) {
+      return days.map((day) => minuteLabels.map((label) => [day, label]));
+    }
+
+    function buildTimeTicks(minuteValues, minuteLabels) {
+      const tickvals = [];
+      const ticktext = [];
+      minuteValues.forEach((value, idx) => {
+        if (idx === 0 || idx === minuteValues.length - 1 || value % 60 === 30) {
+          tickvals.push(value);
+          ticktext.push(minuteLabels[idx]);
+        }
+      });
+      return { tickvals, ticktext };
+    }
+
+    function buildSessionTicks(days) {
+      const step = Math.max(1, Math.floor(days.length / 6));
+      const tickvals = [];
+      const ticktext = [];
+      days.forEach((day, idx) => {
+        if (idx % step === 0 || idx === days.length - 1) {
+          tickvals.push(idx);
+          ticktext.push(day);
+        }
+      });
+      return { tickvals, ticktext };
+    }
+
+    function renderFuturesContextSurface(containerId, payload, surfaceKey, zTitle, hoverLabel, colorscale) {
+      const days = payload?.session_days || [];
+      const minuteValues = payload?.minute_values || [];
+      const minuteLabels = payload?.minute_labels || [];
+      const z = payload?.surfaces?.[surfaceKey] || [];
+      if (!days.length || !minuteValues.length || !z.length) {
+        document.getElementById(containerId).innerHTML = '<div class="muted">No futures regime data available yet.</div>';
+        return;
+      }
+
+      const yValues = days.map((_, idx) => idx);
+      const customdata = buildFuturesSurfaceCustomdata(days, minuteLabels);
+      const timeTicks = buildTimeTicks(minuteValues, minuteLabels);
+      const sessionTicks = buildSessionTicks(days);
+
+      const trace = {
+        type: 'surface',
+        x: minuteValues,
+        y: yValues,
+        z,
+        customdata,
+        colorscale,
+        connectgaps: false,
+        opacity: 0.95,
+        colorbar: { title: zTitle },
+        hovertemplate: `Session %{customdata[0]}<br>Time %{customdata[1]} ET<br>${hoverLabel} %{z:.2f}<extra></extra>`,
+      };
+
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { l: 0, r: 0, t: 10, b: 0 },
+        scene: {
+          bgcolor: 'rgba(0,0,0,0)',
+          xaxis: { title: 'Time of Day (ET)', color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)', tickvals: timeTicks.tickvals, ticktext: timeTicks.ticktext, autorange: true },
+          yaxis: { title: 'Session', color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)', tickvals: sessionTicks.tickvals, ticktext: sessionTicks.ticktext, autorange: true },
+          zaxis: { title: zTitle, color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)', autorange: true },
+          camera: { eye: { x: 1.4, y: 1.16, z: 0.94 } },
+        },
+        showlegend: false,
+      };
+
+      Plotly.react(containerId, [trace], layout, { responsive: true, displayModeBar: false });
+    }
+
+    function buildHtfPresetMap(payload) {
+      const presets = payload?.htf_models?.window_presets || [];
+      return new Map(presets.map((preset) => [preset.key, preset]));
+    }
+
+    function filterHtfRowsByWindow(rows, preset) {
+      if (!preset || preset.sessions == null) return rows || [];
+      const sessionDays = [...new Set((rows || []).map((row) => row.session_day).filter(Boolean))].sort();
+      const allowed = new Set(sessionDays.slice(-Number(preset.sessions || 0)));
+      return (rows || []).filter((row) => allowed.has(row.session_day));
+    }
+
+    function buildAxisValues(minValue, maxValue, steps = 20) {
+      if (!Number.isFinite(minValue) || !Number.isFinite(maxValue) || maxValue <= minValue) {
+        return [0, 5, 10, 15, 20];
+      }
+      const values = [];
+      const step = (maxValue - minValue) / Math.max(steps, 1);
+      for (let idx = 0; idx <= steps; idx += 1) {
+        values.push(Number((minValue + step * idx).toFixed(2)));
+      }
+      return values;
+    }
+
+    function computeEfficiencyRange(rows) {
+      const values = (rows || []).map((row) => Number(row.efficiency_pct)).filter((value) => Number.isFinite(value));
+      if (!values.length) return { min: 0, max: 20 };
+      const maxValue = Math.max(...values);
+      const paddedMax = Math.min(100, Math.max(12, Math.ceil((maxValue + 2) / 2) * 2));
+      return { min: 0, max: paddedMax };
+    }
+
+    function buildHtfGrid(rows, efficiencyRange, yKey, zKey, step = 5) {
+      const xValues = buildAxisValues(efficiencyRange.min, efficiencyRange.max, 20);
+      const yValues = [];
+      for (let value = 0; value <= 100; value += step) {
+        yValues.push(value);
+      }
+      const cleanRows = (rows || []).filter((row) => toFiniteNumber(row.efficiency_pct) != null && toFiniteNumber(row[yKey]) != null && toFiniteNumber(row[zKey]) != null);
+      const z = yValues.map((yValue) => xValues.map((efficiency) => {
+        if (!cleanRows.length) return null;
+        let weightedSum = 0;
+        let totalWeight = 0;
+        cleanRows.forEach((row) => {
+          const dx = efficiency - Number(row.efficiency_pct);
+          const dy = yValue - Number(row[yKey]);
+          const distanceSq = dx * dx + dy * dy;
+          const weight = 1 / (1 + distanceSq / 90);
+          weightedSum += Number(row[zKey]) * weight;
+          totalWeight += weight;
+        });
+        return totalWeight ? Number((weightedSum / totalWeight).toFixed(2)) : null;
+      }));
+      return { xValues, yValues, z, cleanRows };
+    }
+
+    function renderHtfSurface(containerId, rows, latestRow, config) {
+      const container = document.getElementById(containerId);
+      const efficiencyRange = computeEfficiencyRange(rows);
+      const { xValues, yValues, z, cleanRows } = buildHtfGrid(rows, efficiencyRange, config.yKey, config.zKey);
+      if (!cleanRows.length) {
+        container.innerHTML = `<div class="muted">No ${config.emptyLabel} available yet.</div>`;
+        return;
+      }
+
+      const surfaceTrace = {
+        type: 'surface',
+        x: xValues,
+        y: yValues,
+        z,
+        colorscale: config.surfaceColorscale,
+        opacity: 0.9,
+        connectgaps: true,
+        colorbar: { title: config.zTitle },
+        hovertemplate: `Efficiency %{x:.1f}<br>${config.yLabel} %{y:.0f}<br>${config.zLabel} %{z:.1f}<extra></extra>`,
+        name: `${config.titlePrefix} surface`,
+      };
+
+      const sampleTrace = {
+        type: 'scatter3d',
+        mode: 'markers',
+        x: cleanRows.map((row) => Number(row.efficiency_pct)),
+        y: cleanRows.map((row) => Number(row[config.yKey])),
+        z: cleanRows.map((row) => Number(row[config.zKey])),
+        customdata: cleanRows.map((row) => [row.label, row.bar_count, row.net_move_bps, row.trend_strength_adx]),
+        marker: {
+          size: 4,
+          color: cleanRows.map((row) => Number(row[config.zKey])),
+          colorscale: config.markerColorscale,
+          opacity: 0.88,
+          line: { color: '#e5eefc', width: 0.4 },
+          showscale: false,
+        },
+        hovertemplate: `${config.titlePrefix} sample<br>%{customdata[0]}<br>Efficiency %{x:.1f}<br>${config.yLabel} %{y:.1f}<br>${config.zLabel} %{z:.1f}<br>Bars %{customdata[1]}<br>Net move %{customdata[2]} bps<br>ADX %{customdata[3]}<extra></extra>`,
+        name: `${config.titlePrefix} observations`,
+      };
+
+      const traces = [surfaceTrace, sampleTrace];
+      if (latestRow && toFiniteNumber(latestRow.efficiency_pct) != null && toFiniteNumber(latestRow[config.yKey]) != null && toFiniteNumber(latestRow[config.zKey]) != null) {
+        traces.push({
+          type: 'scatter3d',
+          mode: 'markers+text',
+          x: [Number(latestRow.efficiency_pct)],
+          y: [Number(latestRow[config.yKey])],
+          z: [Number(latestRow[config.zKey])],
+          text: ['Latest'],
+          textposition: 'top center',
+          marker: { size: 7, color: '#ffffff', line: { color: '#0f172a', width: 1 } },
+          hovertemplate: `Latest ${config.titlePrefix.toLowerCase()}<br>${latestRow.label}<br>Efficiency %{x:.1f}<br>${config.yLabel} %{y:.1f}<br>${config.zLabel} %{z:.1f}<extra></extra>`,
+          name: 'Latest',
+        });
+      }
+
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { l: 0, r: 0, t: 10, b: 0 },
+        scene: {
+          bgcolor: 'rgba(0,0,0,0)',
+          xaxis: { title: 'Directional Efficiency (auto-zoomed)', color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)', range: [efficiencyRange.min, efficiencyRange.max] },
+          yaxis: { title: config.yAxisTitle, color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)', range: [0, 100] },
+          zaxis: { title: config.zTitle, color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)', range: [0, 100] },
+          camera: { eye: { x: 1.34, y: 1.18, z: 0.96 } },
+        },
+        legend: { orientation: 'h', y: 1.03, x: 0 },
+      };
+
+      Plotly.react(containerId, traces, layout, { responsive: true, displayModeBar: false });
+    }
+
+    function orbContractNormalizer(payload) {
+      const count = Number(payload?.native_contracts || payload?.stats?.native_contracts || 1);
+      return Number.isFinite(count) && count > 0 ? count : 1;
+    }
+
+    function normalizeOrbPnl(value, payload) {
+      return Number(value || 0) / orbContractNormalizer(payload);
+    }
+
+    function orbRowPnl1Mnq(row, payload) {
+      const direct = toFiniteNumber(row?.pnl_1mnq);
+      if (direct != null) return direct;
+      const points = toFiniteNumber(row?.pnl_points);
+      if (points != null) return points * 2.0;
+      return normalizeOrbPnl(row?.pnl_dollars, payload);
+    }
+
+    function orbBucketPnl1Mnq(row, key, payload) {
+      const direct = toFiniteNumber(row?.[`${key}_1mnq`]);
+      if (direct != null) return direct;
+      return normalizeOrbPnl(row?.[key], payload);
+    }
+
+    function orbCurvePnl1Mnq(row, key, payload) {
+      const direct = toFiniteNumber(row?.[`${key}_1mnq`]);
+      if (direct != null) return direct;
+      return normalizeOrbPnl(row?.[key], payload);
+    }
+
+    function currentOrbContractCount() {
+      const count = Number(orbContractCountSelect?.value || 1);
+      return Number.isFinite(count) && count > 0 ? count : 1;
+    }
+
+    function currentOrbContractUnit() {
+      return (orbContractUnitSelect?.value || 'mnq').toLowerCase() === 'nq' ? 'nq' : 'mnq';
+    }
+
+    function currentOrbScaleMultiplier() {
+      return currentOrbContractCount() * (currentOrbContractUnit() === 'nq' ? 10 : 1);
+    }
+
+    function orbContractLabel() {
+      return `${currentOrbContractCount()} ${currentOrbContractUnit().toUpperCase()}`;
+    }
+
+    function scaleOrbFrom1Mnq(value) {
+      const num = toFiniteNumber(value);
+      return num == null ? null : num * currentOrbScaleMultiplier();
+    }
+
+    function orbRowPnl(row, payload) {
+      return scaleOrbFrom1Mnq(orbRowPnl1Mnq(row, payload));
+    }
+
+    function orbBucketPnl(row, key, payload) {
+      return scaleOrbFrom1Mnq(orbBucketPnl1Mnq(row, key, payload));
+    }
+
+    function orbCurvePnl(row, key, payload) {
+      return scaleOrbFrom1Mnq(orbCurvePnl1Mnq(row, key, payload));
+    }
+
+    function renderOrbScatterPlot(payload) {
+      const rows = payload?.daily_rows || [];
+      if (!rows.length) {
+        document.getElementById('regime-orb-scatter-plot').innerHTML = '<div class="muted">No ORB overlay data available yet.</div>';
+        return;
+      }
+      renderOrbScatterRows('regime-orb-scatter-plot', rows, payload);
+    }
+
+    function renderOrbScatterRows(containerId, rows, payload) {
+      const container = document.getElementById(containerId);
+      const validRows = (rows || []).filter((row) => {
+        const hasChop = row?.chop_score !== null && row?.chop_score !== undefined && row?.chop_score !== '';
+        const hasTrend = row?.trend_score !== null && row?.trend_score !== undefined && row?.trend_score !== '';
+        return hasChop
+          && hasTrend
+          && toFiniteNumber(row.chop_score) != null
+          && toFiniteNumber(row.trend_score) != null
+          && toFiniteNumber(orbRowPnl(row, payload)) != null;
+      });
+      if (!validRows.length) {
+        container.innerHTML = '<div class="muted">No classified ORB overlay data available for this range.</div>';
+        return;
+      }
+      const sizeLabel = orbContractLabel();
+      const trace = {
+        type: 'scatter',
+        mode: 'markers',
+        x: validRows.map((row) => Number(row.chop_score)),
+        y: validRows.map((row) => orbRowPnl(row, payload)),
+        text: validRows.map((row) => row.session_day),
+        customdata: validRows.map((row) => [row.bucket, row.trend_score, row.direction, row.exit_reason]),
+        marker: {
+          size: 7,
+          color: validRows.map((row) => Number(row.trend_score)),
+          colorscale: [
+            [0, '#ef4444'],
+            [0.5, '#f59e0b'],
+            [1, '#22c55e'],
+          ],
+          line: { color: '#e5eefc', width: 0.5 },
+          colorbar: { title: 'Trend Score' },
+          opacity: 0.82,
+        },
+        hovertemplate: `%{text}<br>Chop %{x:.1f}<br>ORB PnL (${sizeLabel}) %{y:.1f}<br>Bucket %{customdata[0]}<br>Trend %{customdata[1]}<br>Direction %{customdata[2]}<br>Exit %{customdata[3]}<extra></extra>`,
+      };
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { l: 44, r: 22, t: 10, b: 42 },
+        xaxis: { title: 'Daily Chop Score', color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)' },
+        yaxis: { title: `ORB PnL, ${sizeLabel} ($)`, color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)', zerolinecolor: 'rgba(248,250,252,0.35)' },
+      };
+      Plotly.react(containerId, [trace], layout, { responsive: true, displayModeBar: false });
+    }
+
+    function sortedOrbSessionDays(rows) {
+      return [...new Set((rows || []).map((row) => row.session_day).filter(Boolean))].sort((a, b) => new Date(a) - new Date(b));
+    }
+
+    function orbPresetBounds(rows, presetKey) {
+      const sessionDays = sortedOrbSessionDays(rows);
+      if (!sessionDays.length) return { start: '', end: '' };
+      const sessionLookback = {
+        '1w': 5,
+        '2w': 10,
+        '1m': 21,
+        '3m': 63,
+      };
+      const keep = sessionLookback[presetKey];
+      if (!keep) {
+        return { start: sessionDays[0], end: sessionDays[sessionDays.length - 1] };
+      }
+      const slice = sessionDays.slice(-keep);
+      return { start: slice[0] || sessionDays[0], end: slice[slice.length - 1] || sessionDays[sessionDays.length - 1] };
+    }
+
+    function filterOrbRowsByRange(rows, startDate, endDate) {
+      const startTs = startDate ? new Date(`${startDate}T00:00:00Z`) : null;
+      const endTs = endDate ? new Date(`${endDate}T23:59:59Z`) : null;
+      return (rows || []).filter((row) => {
+        if (!row.session_day) return false;
+        const rowTs = new Date(`${row.session_day}T12:00:00Z`);
+        if (startTs && rowTs < startTs) return false;
+        if (endTs && rowTs > endTs) return false;
+        return true;
+      });
+    }
+
+    function orbWeekdayKey(sessionDay) {
+      if (!sessionDay) return null;
+      const day = new Date(`${sessionDay}T12:00:00Z`).getUTCDay();
+      return ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][day] || null;
+    }
+
+    function filterOrbRowsByWeekday(rows, weekdayFilters) {
+      const selectedKeys = Array.from(weekdayFilters || []);
+      if (!selectedKeys.length || selectedKeys.length === ORB_WEEKDAY_KEYS.length) return rows || [];
+      const selected = new Set(selectedKeys);
+      return (rows || []).filter((row) => selected.has(orbWeekdayKey(row.session_day)));
+    }
+
+    function orbSelectedWeekdayKeys() {
+      return ORB_WEEKDAY_KEYS.filter((key) => orbDowFilters.has(key));
+    }
+
+    function orbWeekdayLabel(weekdayFilters) {
+      const selectedKeys = Array.isArray(weekdayFilters)
+        ? weekdayFilters
+        : Array.from(weekdayFilters || []);
+      if (!selectedKeys.length || selectedKeys.length === ORB_WEEKDAY_KEYS.length) return 'All days';
+      const labels = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri' };
+      return selectedKeys.map((key) => labels[key] || key).join(' + ');
+    }
+
+    function syncOrbDowButtons() {
+      const selectedKeys = orbSelectedWeekdayKeys();
+      const allActive = selectedKeys.length === ORB_WEEKDAY_KEYS.length;
+      orbDowButtons.forEach((button) => {
+        const key = button.dataset.dow || 'all';
+        const isActive = key === 'all' ? allActive : orbDowFilters.has(key);
+        button.style.background = isActive ? '#0f172a' : '#07111f';
+        button.style.color = isActive ? '#e5eefc' : '#94a3b8';
+        button.style.borderColor = isActive ? 'rgba(96,165,250,0.55)' : 'rgba(148,163,184,0.18)';
+      });
+    }
+
+    function formatOrbDollar(value) {
+      const num = toFiniteNumber(value);
+      if (num == null) return 'n/a';
+      return `${num < 0 ? '-' : ''}$${Math.abs(num).toLocaleString(undefined, { maximumFractionDigits: 1 })}`;
+    }
+
+    function updateOrbRangeStats(rows, payload) {
+      const orderedRows = (rows || []).slice().sort((a, b) => new Date(a.session_day) - new Date(b.session_day));
+      let cumulativePnl = 0;
+      let peakPnl = 0;
+      let maxDrawdown = 0;
+      orderedRows.forEach((row) => {
+        cumulativePnl += orbRowPnl(row, payload);
+        peakPnl = Math.max(peakPnl, cumulativePnl);
+        maxDrawdown = Math.max(maxDrawdown, peakPnl - cumulativePnl);
+      });
+      const positiveTrades = orderedRows.filter((row) => Number(row.pnl_dollars) > 0).length;
+      const negativeTrades = orderedRows.filter((row) => Number(row.pnl_dollars) < 0).length;
+      orbRangePnlLabel.textContent = formatOrbDollar(cumulativePnl);
+      orbRangeDdLabel.textContent = formatOrbDollar(-maxDrawdown);
+      orbRangePosLabel.textContent = String(positiveTrades);
+      orbRangeNegLabel.textContent = String(negativeTrades);
+    }
+
+    function renderOrbRangeScatter(payload) {
+      const rows = payload?.daily_rows || [];
+      if (!rows.length) {
+        orbRangeSummaryLabel.textContent = 'No ORB overlay data available yet.';
+        updateOrbRangeStats([], payload);
+        document.getElementById('regime-orb-scatter-filtered-plot').innerHTML = '<div class="muted">No ORB overlay data available yet.</div>';
+        return;
+      }
+      const sessionDays = sortedOrbSessionDays(rows);
+      const minDay = sessionDays[0];
+      const maxDay = sessionDays[sessionDays.length - 1];
+      const startDate = orbRangeStartInput.value || minDay;
+      const endDate = orbRangeEndInput.value || maxDay;
+      const rangedRows = filterOrbRowsByRange(rows, startDate, endDate);
+      const filteredRows = filterOrbRowsByWeekday(rangedRows, orbDowFilters);
+      const weekdayLabel = orbWeekdayLabel(orbSelectedWeekdayKeys());
+      if (!filteredRows.length) {
+        orbRangeSummaryLabel.textContent = `No ORB sessions between ${startDate} and ${endDate} for ${weekdayLabel.toLowerCase()}.`;
+        updateOrbRangeStats([], payload);
+        document.getElementById('regime-orb-scatter-filtered-plot').innerHTML = '<div class="muted">No ORB overlay data available for this date and weekday filter.</div>';
+        return;
+      }
+      const actualDays = sortedOrbSessionDays(filteredRows);
+      updateOrbRangeStats(filteredRows, payload);
+      orbRangeSummaryLabel.textContent = `${filteredRows.length} sessions, ${actualDays[0]} to ${actualDays[actualDays.length - 1]}, ${weekdayLabel}, sized at ${orbContractLabel()}.`;
+      renderOrbScatterRows('regime-orb-scatter-filtered-plot', filteredRows, payload);
+    }
+
+    function syncOrbRangeInputsToPreset(payload, presetKey) {
+      const rows = payload?.daily_rows || [];
+      if (!rows.length) return;
+      const bounds = orbPresetBounds(rows, presetKey || 'all');
+      orbRangeStartInput.value = bounds.start || '';
+      orbRangeEndInput.value = bounds.end || '';
+    }
+
+    function initOrbRangeControls(payload) {
+      const rows = payload?.daily_rows || [];
+      if (!rows.length) return;
+      const sessionDays = sortedOrbSessionDays(rows);
+      const minDay = sessionDays[0];
+      const maxDay = sessionDays[sessionDays.length - 1];
+      orbRangeStartInput.min = minDay;
+      orbRangeStartInput.max = maxDay;
+      orbRangeEndInput.min = minDay;
+      orbRangeEndInput.max = maxDay;
+      if (!orbRangePresetSelect.value) {
+        orbRangePresetSelect.value = 'all';
+      }
+      syncOrbDowButtons();
+      syncOrbRangeInputsToPreset(payload, orbRangePresetSelect.value);
+      renderOrbRangeScatter(payload);
+    }
+
+    function renderOrbBucketPlot(payload) {
+      const rows = payload?.bucket_summary || [];
+      if (!rows.length) {
+        document.getElementById('regime-orb-bucket-plot').innerHTML = '<div class="muted">No ORB bucket data available yet.</div>';
+        return;
+      }
+      const sizeLabel = orbContractLabel();
+      const trace = {
+        type: 'bar',
+        x: rows.map((row) => row.bucket),
+        y: rows.map((row) => orbBucketPnl(row, 'avg_pnl', payload)),
+        text: rows.map((row) => `${orbBucketPnl(row, 'avg_pnl', payload).toFixed(1)} avg (${sizeLabel}), ${Number(row.win_rate).toFixed(1)}% win`),
+        textposition: 'auto',
+        marker: {
+          color: rows.map((row) => row.bucket === 'Low Chop' ? '#22c55e' : row.bucket === 'High Chop' ? '#ef4444' : '#38bdf8'),
+        },
+        hovertemplate: `%{x}<br>Avg PnL (${sizeLabel}) %{y:.1f}<br>%{text}<extra></extra>`,
+      };
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { l: 44, r: 12, t: 10, b: 42 },
+        xaxis: { color: '#cbd5e1' },
+        yaxis: { title: `Average ORB PnL, ${sizeLabel} ($)`, color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)', zerolinecolor: 'rgba(248,250,252,0.35)' },
+      };
+      Plotly.react('regime-orb-bucket-plot', [trace], layout, { responsive: true, displayModeBar: false });
+    }
+
+    function renderOrbFilterPlot(payload) {
+      const rows = payload?.filter_preview || [];
+      if (!rows.length) {
+        document.getElementById('regime-orb-filter-plot').innerHTML = '<div class="muted">No ORB filter preview data available yet.</div>';
+        return;
+      }
+      const sizeLabel = orbContractLabel();
+      const x = rows.map((row) => row.session_day);
+      const rawTrace = {
+        type: 'scatter',
+        mode: 'lines',
+        x,
+        y: rows.map((row) => orbCurvePnl(row, 'raw_cum_pnl', payload)),
+        line: { color: '#38bdf8', width: 2.5 },
+        name: 'Raw ORB equity',
+        hovertemplate: `%{x}<br>Raw cum PnL, ${sizeLabel} %{y:.1f}<extra></extra>`,
+      };
+      const filteredTrace = {
+        type: 'scatter',
+        mode: 'lines',
+        x,
+        y: rows.map((row) => orbCurvePnl(row, 'filtered_cum_pnl', payload)),
+        line: { color: '#22c55e', width: 2.5 },
+        name: 'Skip top chop quartile',
+        hovertemplate: `%{x}<br>Filtered cum PnL, ${sizeLabel} %{y:.1f}<extra></extra>`,
+      };
+      const skippedMarkers = {
+        type: 'scatter',
+        mode: 'markers',
+        x: rows.filter((row) => row.skipped_by_filter).map((row) => row.session_day),
+        y: rows.filter((row) => row.skipped_by_filter).map((row) => orbCurvePnl(row, 'raw_cum_pnl', payload)),
+        marker: { color: '#ef4444', size: 5, opacity: 0.75 },
+        name: 'Skipped high-chop days',
+        hovertemplate: `%{x}<br>Skipped at raw cum PnL, ${sizeLabel} %{y:.1f}<extra></extra>`,
+      };
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { l: 44, r: 18, t: 10, b: 42 },
+        xaxis: { title: 'Session Day', color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.10)', showticklabels: false },
+        yaxis: { title: `Cumulative ORB PnL, ${sizeLabel} ($)`, color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)', zerolinecolor: 'rgba(248,250,252,0.35)' },
+        legend: { orientation: 'h', y: 1.04, x: 0 },
+      };
+      Plotly.react('regime-orb-filter-plot', [rawTrace, filteredTrace, skippedMarkers], layout, { responsive: true, displayModeBar: false });
+    }
+
+    function updateOrbSummary(payload) {
+      const stats = payload?.stats || {};
+      orbChopCorrLabel.textContent = toFiniteNumber(stats.chop_pnl_corr) != null ? String(stats.chop_pnl_corr) : 'n/a';
+      const filteredBase = toFiniteNumber(stats.filtered_total_pnl_1mnq) != null
+        ? stats.filtered_total_pnl_1mnq
+        : (toFiniteNumber(stats.filtered_total_pnl) != null ? normalizeOrbPnl(stats.filtered_total_pnl, payload) : null);
+      orbFilteredPnlLabel.textContent = formatOrbDollar(scaleOrbFrom1Mnq(filteredBase));
+    }
+
+    function renderOrbOverlayViews(payload) {
+      updateOrbSummary(payload || {});
+      renderOrbScatterPlot(payload || {});
+      renderOrbRangeScatter(payload || {});
+      renderOrbBucketPlot(payload || {});
+      renderOrbFilterPlot(payload || {});
+    }
+
+    function updateHtfSummary(windowPreset, fourHourRows, dailyRows) {
+      const sessionDays = [...new Set([...(fourHourRows || []).map((row) => row.session_day), ...(dailyRows || []).map((row) => row.session_day)].filter(Boolean))].sort();
+      const latest4h = (fourHourRows || []).slice().sort((a, b) => new Date(a.period_start) - new Date(b.period_start)).pop() || null;
+      const latestDaily = (dailyRows || []).slice().sort((a, b) => new Date(a.period_start) - new Date(b.period_start)).pop() || null;
+      htfWindowLabel.textContent = windowPreset?.label || 'n/a';
+      htfSampleDaysLabel.textContent = sessionDays.length ? String(sessionDays.length) : 'n/a';
+      htf4hScoreLabel.textContent = latest4h && toFiniteNumber(latest4h.chop_score) != null ? `${Number(latest4h.chop_score).toFixed(1)} (${latest4h.label})` : 'n/a';
+      htfDailyScoreLabel.textContent = latestDaily && toFiniteNumber(latestDaily.chop_score) != null ? `${Number(latestDaily.chop_score).toFixed(1)} (${latestDaily.label})` : 'n/a';
+      htf4hTrendScoreLabel.textContent = latest4h && toFiniteNumber(latest4h.trend_score) != null ? `${Number(latest4h.trend_score).toFixed(1)} (${latest4h.label})` : 'n/a';
+      htfDailyTrendScoreLabel.textContent = latestDaily && toFiniteNumber(latestDaily.trend_score) != null ? `${Number(latestDaily.trend_score).toFixed(1)} (${latestDaily.label})` : 'n/a';
+      return { latest4h, latestDaily };
+    }
+
+    function renderHtfModels() {
+      if (!futuresModelsPayload) return;
+      const presets = buildHtfPresetMap(futuresModelsPayload);
+      const defaultKey = futuresModelsPayload?.htf_models?.default_window || '4w';
+      const presetKey = htfWindowSelect.value || defaultKey;
+      const preset = presets.get(presetKey) || presets.get(defaultKey) || { label: 'Full Surface', sessions: null };
+      const fourHourRows = filterHtfRowsByWindow(futuresModelsPayload?.htf_models?.four_hour?.rows || [], preset);
+      const dailyRows = filterHtfRowsByWindow(futuresModelsPayload?.htf_models?.daily?.rows || [], preset);
+      const summary = updateHtfSummary(preset, fourHourRows, dailyRows);
+      renderHtfSurface('regime-chop-4h-plot', fourHourRows, summary.latest4h, {
+        titlePrefix: '4H Chop',
+        yKey: 'balance_score',
+        zKey: 'chop_score',
+        yLabel: 'Balance',
+        zLabel: 'Chop',
+        yAxisTitle: 'Balance / Rotation',
+        zTitle: 'Chop Score',
+        emptyLabel: 'higher-timeframe chop data',
+        surfaceColorscale: [
+          [0, 'rgb(15, 23, 42)'],
+          [0.35, 'rgb(8, 145, 178)'],
+          [0.65, 'rgb(245, 158, 11)'],
+          [1, 'rgb(153, 27, 27)'],
+        ],
+        markerColorscale: [
+          [0, '#38bdf8'],
+          [0.5, '#f59e0b'],
+          [1, '#ef4444'],
+        ],
+      });
+      renderHtfSurface('regime-chop-daily-plot', dailyRows, summary.latestDaily, {
+        titlePrefix: 'Daily Chop',
+        yKey: 'balance_score',
+        zKey: 'chop_score',
+        yLabel: 'Balance',
+        zLabel: 'Chop',
+        yAxisTitle: 'Balance / Rotation',
+        zTitle: 'Chop Score',
+        emptyLabel: 'higher-timeframe chop data',
+        surfaceColorscale: [
+          [0, 'rgb(15, 23, 42)'],
+          [0.35, 'rgb(8, 145, 178)'],
+          [0.65, 'rgb(245, 158, 11)'],
+          [1, 'rgb(153, 27, 27)'],
+        ],
+        markerColorscale: [
+          [0, '#38bdf8'],
+          [0.5, '#f59e0b'],
+          [1, '#ef4444'],
+        ],
+      });
+      renderHtfSurface('regime-trend-4h-plot', fourHourRows, summary.latest4h, {
+        titlePrefix: '4H Trend',
+        yKey: 'trend_alignment_score',
+        zKey: 'trend_score',
+        yLabel: 'Trend Alignment',
+        zLabel: 'Trend',
+        yAxisTitle: 'Trend Alignment',
+        zTitle: 'Trend Score',
+        emptyLabel: 'higher-timeframe trend data',
+        surfaceColorscale: [
+          [0, 'rgb(30, 41, 59)'],
+          [0.35, 'rgb(37, 99, 235)'],
+          [0.65, 'rgb(34, 197, 94)'],
+          [1, 'rgb(250, 204, 21)'],
+        ],
+        markerColorscale: [
+          [0, '#60a5fa'],
+          [0.5, '#22c55e'],
+          [1, '#fde047'],
+        ],
+      });
+      renderHtfSurface('regime-trend-daily-plot', dailyRows, summary.latestDaily, {
+        titlePrefix: 'Daily Trend',
+        yKey: 'trend_alignment_score',
+        zKey: 'trend_score',
+        yLabel: 'Trend Alignment',
+        zLabel: 'Trend',
+        yAxisTitle: 'Trend Alignment',
+        zTitle: 'Trend Score',
+        emptyLabel: 'higher-timeframe trend data',
+        surfaceColorscale: [
+          [0, 'rgb(30, 41, 59)'],
+          [0.35, 'rgb(37, 99, 235)'],
+          [0.65, 'rgb(34, 197, 94)'],
+          [1, 'rgb(250, 204, 21)'],
+        ],
+        markerColorscale: [
+          [0, '#60a5fa'],
+          [0.5, '#22c55e'],
+          [1, '#fde047'],
+        ],
+      });
+      updateOrbSummary(futuresModelsPayload?.orb_overlay || {});
+      renderOrbScatterPlot(futuresModelsPayload?.orb_overlay || {});
+      initOrbRangeControls(futuresModelsPayload?.orb_overlay || {});
+      renderOrbBucketPlot(futuresModelsPayload?.orb_overlay || {});
+      renderOrbFilterPlot(futuresModelsPayload?.orb_overlay || {});
+    }
+
+    async function initFuturesModels() {
+      futuresModelsPayload = await fetchJson(FUTURES_REGIME_MODELS_PATH);
+      const windowPresets = futuresModelsPayload?.htf_models?.window_presets || [];
+      htfWindowSelect.innerHTML = windowPresets.map((preset) => `<option value="${preset.key}">${preset.label}</option>`).join('');
+      htfWindowSelect.value = futuresModelsPayload?.htf_models?.default_window || (windowPresets[0]?.key || 'full');
+      renderHtfModels();
+      renderFuturesContextSurface(
+        'regime-vwap-model-plot',
+        futuresModelsPayload,
+        'vwap_distance_bps',
+        'VWAP Distance (bps)',
+        'VWAP Distance',
+        [
+          [0, 'rgb(30, 58, 138)'],
+          [0.5, 'rgb(241, 245, 249)'],
+          [1, 'rgb(153, 27, 27)'],
+        ],
+      );
+      renderFuturesContextSurface(
+        'regime-trend-model-plot',
+        futuresModelsPayload,
+        'trend_strength_adx',
+        'Trend Strength (ADX 14)',
+        'ADX 14',
+        [
+          [0, 'rgb(15, 23, 42)'],
+          [0.4, 'rgb(14, 116, 144)'],
+          [0.7, 'rgb(34, 197, 94)'],
+          [1, 'rgb(250, 204, 21)'],
+        ],
+      );
+    }
+
+    function updatePinningBox(selectedTs, selectedMinutes) {
+      const selectedAllRows = (dayPayload.surface_rows || []).filter((row) => row.timestamp_utc === selectedTs && row.strike != null);
+      spotLabel.textContent = selectedAllRows.length ? Number(selectedAllRows[0].spot).toFixed(2) : 'n/a';
+      minutesLabel.textContent = selectedMinutes == null ? 'n/a' : `${Math.round(selectedMinutes)}`;
+      if (!selectedAllRows.length) {
+        pinStrikeLabel.textContent = 'n/a';
+        pinBandLabel.textContent = 'n/a';
+        gammaFlipLabel.textContent = 'n/a';
+        proxyNoteLabel.textContent = 'No slice data';
+        return;
+      }
+
+      const weighted = selectedAllRows
+        .filter((row) => row.gamma != null)
+        .map((row) => ({
+          ...row,
+          gammaProxy: Math.abs(Number(row.gamma)) * Math.max(Number(row.volume || 0), 1),
+          signedGammaProxy: (row.option_type === 'c' ? 1 : -1) * Math.abs(Number(row.gamma || 0)) * Math.max(Number(row.volume || 0), 1),
+        }))
+        .sort((a, b) => a.strike - b.strike);
+
+      if (!weighted.length) {
+        pinStrikeLabel.textContent = 'n/a';
+        pinBandLabel.textContent = 'n/a';
+        gammaFlipLabel.textContent = 'n/a';
+        proxyNoteLabel.textContent = 'Gamma unavailable in slice';
+        return;
+      }
+
+      const top = weighted.slice().sort((a, b) => b.gammaProxy - a.gammaProxy).slice(0, 3);
+      const pinCenter = top.reduce((sum, row) => sum + row.strike * row.gammaProxy, 0) / Math.max(top.reduce((sum, row) => sum + row.gammaProxy, 0), 1e-9);
+      const pinLow = Math.min(...top.map((row) => row.strike));
+      const pinHigh = Math.max(...top.map((row) => row.strike));
+      pinStrikeLabel.textContent = pinCenter.toFixed(2);
+      pinBandLabel.textContent = `${pinLow.toFixed(2)} to ${pinHigh.toFixed(2)}`;
+
+      let running = 0;
+      let prev = null;
+      let flip = null;
+      for (const row of weighted) {
+        running += row.signedGammaProxy;
+        if (prev && ((prev.running <= 0 && running >= 0) || (prev.running >= 0 && running <= 0))) {
+          const span = running - prev.running;
+          const ratio = Math.abs(span) < 1e-9 ? 0 : Math.abs(prev.running) / Math.abs(span);
+          flip = prev.strike + (row.strike - prev.strike) * ratio;
+          break;
+        }
+        prev = { strike: row.strike, running };
+      }
+      gammaFlipLabel.textContent = flip == null ? 'No clear flip' : flip.toFixed(2);
+      proxyNoteLabel.textContent = 'Volume-weighted gamma proxy, not true dealer OI';
+    }
+
+    function pickSheetSelectedTs(payload) {
+      const timestamps = payload?.timestamps_utc || [];
+      if (!timestamps.length) return null;
+      const currentTimestamps = dayPayload?.timestamps_utc || [];
+      const currentMax = Math.max(currentTimestamps.length - 1, 1);
+      const ratio = currentTimestamps.length ? Number(slider.value || 0) / currentMax : 1;
+      const idx = Math.min(timestamps.length - 1, Math.max(0, Math.round(ratio * Math.max(timestamps.length - 1, 0))));
+      return timestamps[idx] || timestamps[timestamps.length - 1] || null;
+    }
+
+    async function ensureSheetPayload(day) {
+      if (!day) return null;
+      if (sheetPayloadCache.has(day)) return sheetPayloadCache.get(day);
+      const payload = await fetchJson(`${REGIME_DATA_BASE}/regime/zero-dte-day?date=${encodeURIComponent(day)}`);
+      sheetPayloadCache.set(day, payload);
+      return payload;
+    }
+
+    async function renderSheetDay(day) {
+      const payload = await ensureSheetPayload(day);
+      sheetRenderDay = day;
+      sheetDayLabel.textContent = `Animation Day: ${day}`;
+      renderSelectorSheetPlot('regime-selector-sheet-plot', payload?.surface_rows || [], pickSheetSelectedTs(payload), buildDayScope(payload?.surface_rows || []));
+    }
+
+    function renderDaySurface(selectedTs) {
+      const rows = dayPayload.surface_rows || [];
+      const ivPlot = renderSurfacePlot('regime-surface-plot', rows, selectedTs, 'iv_pct', 'IV %', 'IV', currentDayScope);
+      renderSurfacePlot('regime-price-plot', rows, selectedTs, 'option_price', 'Option Price', 'Price', currentDayScope);
+      if (sheetRenderDay) {
+        renderSheetDay(sheetRenderDay).catch(() => {});
+      } else {
+        renderSelectorSheetPlot('regime-selector-sheet-plot', rows, selectedTs, currentDayScope);
+      }
+      const selectedMinutes = ivPlot.selectedMinutes;
+      tsLabel.textContent = selectedTs || 'n/a';
+      updatePinningBox(selectedTs, selectedMinutes);
+    }
+
+    async function loadDay(day) {
+      dayLabel.textContent = day;
+      tsLabel.textContent = 'Loading...';
+      dayPayload = await fetchJson(`${REGIME_DATA_BASE}/regime/zero-dte-day?date=${encodeURIComponent(day)}`);
+      currentDayScope = buildDayScope(dayPayload.surface_rows || []);
+      const timestamps = dayPayload.timestamps_utc || [];
+      slider.min = '0';
+      slider.max = String(Math.max(timestamps.length - 1, 0));
+      slider.value = String(Math.max(timestamps.length - 1, 0));
+      renderDaySurface(timestamps[Number(slider.value)] || null);
+    }
+
+    async function initRegime() {
+      regimeDays = await fetchJson(`${REGIME_DATA_BASE}/regime-0dte-days.json`);
+      const days = regimeDays.days || [];
+      daySelect.innerHTML = days.map((day) => `<option value="${day}">${day}</option>`).join('');
+      sheetDaySlider.min = '0';
+      sheetDaySlider.max = String(Math.max(days.length - 1, 0));
+      const defaultDay = regimeDays.default_day || days[days.length - 1];
+      if (defaultDay) {
+        const defaultIdx = Math.max(0, days.indexOf(defaultDay));
+        daySelect.value = defaultDay;
+        sheetDaySlider.value = String(defaultIdx);
+        sheetDayLabel.textContent = `Animation Day: ${defaultDay}`;
+        await loadDay(defaultDay);
+        await renderSheetDay(defaultDay);
+      }
+    }
+
+    daySelect.addEventListener('change', () => {
+      if (!daySelect.value) return;
+      loadDay(daySelect.value).catch((err) => {
+        tsLabel.textContent = 'Failed to load';
+        document.getElementById('regime-surface-plot').innerHTML = `<div class="muted">Regime surface feed error: ${err.message}</div>`;
+        document.getElementById('regime-price-plot').innerHTML = `<div class="muted">Regime surface feed error: ${err.message}</div>`;
+        document.getElementById('regime-selector-sheet-plot').innerHTML = `<div class="muted">Regime surface feed error: ${err.message}</div>`;
+      });
+    });
+
+    slider.addEventListener('input', () => {
+      if (!dayPayload) return;
+      const timestamps = dayPayload.timestamps_utc || [];
+      const idx = Number(slider.value || 0);
+      tsLabel.textContent = timestamps[idx] || 'Loading...';
+      clearTimeout(renderTimer);
+      renderTimer = setTimeout(() => renderDaySurface(timestamps[idx] || null), 80);
+    });
+
+    sheetDaySlider.addEventListener('input', () => {
+      const days = regimeDays?.days || [];
+      const idx = Number(sheetDaySlider.value || 0);
+      const day = days[idx];
+      if (!day) return;
+      renderSheetDay(day).catch((err) => {
+        sheetDayLabel.textContent = `Animation Day failed: ${err.message}`;
+      });
+    });
+
+    sheetPlayButton.addEventListener('click', () => {
+      const days = regimeDays?.days || [];
+      if (!days.length) return;
+      if (sheetPlayTimer) {
+        clearInterval(sheetPlayTimer);
+        sheetPlayTimer = null;
+        sheetPlayButton.textContent = 'Play Days';
+        return;
+      }
+      sheetPlayButton.textContent = 'Pause';
+      sheetPlayTimer = setInterval(() => {
+        const maxIdx = days.length - 1;
+        let idx = Number(sheetDaySlider.value || 0);
+        idx = idx >= maxIdx ? 0 : idx + 1;
+        sheetDaySlider.value = String(idx);
+        const day = days[idx];
+        renderSheetDay(day).catch(() => {});
+      }, 900);
+    });
+
+    htfWindowSelect.addEventListener('change', () => {
+      renderHtfModels();
+    });
+
+    orbRangePresetSelect.addEventListener('change', () => {
+      if (!futuresModelsPayload?.orb_overlay) return;
+      syncOrbRangeInputsToPreset(futuresModelsPayload.orb_overlay, orbRangePresetSelect.value || 'all');
+      renderOrbRangeScatter(futuresModelsPayload.orb_overlay);
+    });
+
+    orbRangeStartInput.addEventListener('change', () => {
+      if (!futuresModelsPayload?.orb_overlay) return;
+      orbRangePresetSelect.value = 'all';
+      if (orbRangeEndInput.value && orbRangeStartInput.value && orbRangeStartInput.value > orbRangeEndInput.value) {
+        orbRangeEndInput.value = orbRangeStartInput.value;
+      }
+      renderOrbRangeScatter(futuresModelsPayload.orb_overlay);
+    });
+
+    orbRangeEndInput.addEventListener('change', () => {
+      if (!futuresModelsPayload?.orb_overlay) return;
+      orbRangePresetSelect.value = 'all';
+      if (orbRangeStartInput.value && orbRangeEndInput.value && orbRangeEndInput.value < orbRangeStartInput.value) {
+        orbRangeStartInput.value = orbRangeEndInput.value;
+      }
+      renderOrbRangeScatter(futuresModelsPayload.orb_overlay);
+    });
+
+    orbDowButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        if (!futuresModelsPayload?.orb_overlay) return;
+        const key = button.dataset.dow || 'all';
+        if (key === 'all') {
+          orbDowFilters = new Set(ORB_WEEKDAY_KEYS);
+        } else if (orbDowFilters.has(key)) {
+          orbDowFilters.delete(key);
+          if (!orbDowFilters.size) {
+            orbDowFilters = new Set(ORB_WEEKDAY_KEYS);
+          }
+        } else {
+          orbDowFilters.add(key);
+        }
+        syncOrbDowButtons();
+        renderOrbRangeScatter(futuresModelsPayload.orb_overlay);
+      });
+    });
+
+    [orbContractUnitSelect, orbContractCountSelect].forEach((control) => {
+      control.addEventListener('change', () => {
+        if (!futuresModelsPayload?.orb_overlay) return;
+        renderOrbOverlayViews(futuresModelsPayload.orb_overlay);
+      });
+    });
+
+    initRegime().catch((err) => {
+      dayLabel.textContent = 'Failed to load';
+      tsLabel.textContent = 'Failed to load';
+      spotLabel.textContent = 'n/a';
+      minutesLabel.textContent = 'n/a';
+      pinStrikeLabel.textContent = 'n/a';
+      pinBandLabel.textContent = 'n/a';
+      gammaFlipLabel.textContent = 'n/a';
+      proxyNoteLabel.textContent = 'Feed error';
+      document.getElementById('regime-surface-plot').innerHTML = `<div class="muted">Regime surface feed error: ${err.message}</div>`;
+      document.getElementById('regime-price-plot').innerHTML = `<div class="muted">Regime surface feed error: ${err.message}</div>`;
+      document.getElementById('regime-selector-sheet-plot').innerHTML = `<div class="muted">Regime surface feed error: ${err.message}</div>`;
+      sheetDayLabel.textContent = 'Animation Day: Feed error';
+    });
+
+    initFuturesModels().catch((err) => {
+      htfWindowLabel.textContent = 'Feed error';
+      htf4hScoreLabel.textContent = 'n/a';
+      htfDailyScoreLabel.textContent = 'n/a';
+      htf4hTrendScoreLabel.textContent = 'n/a';
+      htfDailyTrendScoreLabel.textContent = 'n/a';
+      htfSampleDaysLabel.textContent = 'n/a';
+      orbChopCorrLabel.textContent = 'n/a';
+      orbFilteredPnlLabel.textContent = 'n/a';
+      document.getElementById('regime-chop-4h-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
+      document.getElementById('regime-chop-daily-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
+      document.getElementById('regime-trend-4h-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
+      document.getElementById('regime-trend-daily-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
+      document.getElementById('regime-orb-scatter-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
+      document.getElementById('regime-orb-bucket-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
+      document.getElementById('regime-orb-filter-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
+      document.getElementById('regime-vwap-model-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
+      document.getElementById('regime-trend-model-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
+    });
+  </script>
+</body>
+</html>
