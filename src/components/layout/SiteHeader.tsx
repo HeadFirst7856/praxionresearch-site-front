@@ -13,7 +13,10 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 
-const publicLinks = [{ to: "/", label: "Home" }];
+const publicLinks = [
+  { to: "/", label: "Home" },
+  { to: "/regime.html", label: "Regime" },
+];
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
@@ -30,15 +33,26 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
-          {navLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={location.pathname === link.to ? "text-foreground" : "hover:text-foreground"}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const isExternalHtml = link.to.endsWith(".html");
+            return isExternalHtml ? (
+              <a
+                key={link.to}
+                href={link.to}
+                className={location.pathname === link.to ? "text-foreground" : "hover:text-foreground"}
+              >
+                {link.label}
+              </a>
+            ) : (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={location.pathname === link.to ? "text-foreground" : "hover:text-foreground"}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
           {isAuthenticated ? (
             <>
               <span className="text-xs uppercase tracking-[0.12em] text-slate-400">{name}</span>
@@ -71,16 +85,28 @@ export function SiteHeader() {
               <DrawerTitle className="text-left tracking-[0.14em]">PRAXION MENU</DrawerTitle>
             </DrawerHeader>
             <div className="flex flex-col gap-1 px-4 pb-8">
-              {navLinks.map((link) => (
-                <DrawerClose asChild key={link.to}>
-                  <Link
-                    to={link.to}
-                    className="rounded-md border border-transparent px-3 py-2 text-sm text-muted-foreground hover:border-border hover:text-foreground"
-                  >
-                    {link.label}
-                  </Link>
-                </DrawerClose>
-              ))}
+              {navLinks.map((link) => {
+                const isExternalHtml = link.to.endsWith(".html");
+                return (
+                  <DrawerClose asChild key={link.to}>
+                    {isExternalHtml ? (
+                      <a
+                        href={link.to}
+                        className="rounded-md border border-transparent px-3 py-2 text-sm text-muted-foreground hover:border-border hover:text-foreground"
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        to={link.to}
+                        className="rounded-md border border-transparent px-3 py-2 text-sm text-muted-foreground hover:border-border hover:text-foreground"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
+                  </DrawerClose>
+                );
+              })}
               {isAuthenticated ? (
                 <Button type="button" variant="outline" size="sm" onClick={logout} className="mt-2">
                   Logout
