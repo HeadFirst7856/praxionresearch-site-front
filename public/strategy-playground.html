@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Praxion Research | Strategy Playground</title>
+  <meta name="description" content="Graph workspace for strategy comparisons, risk maps, and simulation exploration." />
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <div class="brand">PRAXION RESEARCH</div>
+      <nav class="nav-links">
+        <a href="./index.html">Home</a>
+        <a href="./platform.html">Platform</a>
+        <a href="./dashboard.html">Dashboard</a>
+        <a href="./regime.html">Regime</a>
+        <a href="#playground">Strategy Playground</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="playground">
+      <div class="container hero-grid">
+        <div class="hero-card">
+          <div class="eyebrow">New Graph Workspace</div>
+          <h1>Strategy Playground.<br/>See the shape of the edge.</h1>
+          <p class="lead">This page is a dedicated graph lab for comparing strategies, pressure-testing risk, and exploring which visuals deserve to graduate into the main Praxion simulations surface.</p>
+          <div class="actions">
+            <a class="button primary" href="#charts">Open Graphs</a>
+            <a class="button ghost" href="./dashboard.html">Back to Dashboard</a>
+          </div>
+        </div>
+        <aside class="hero-card hero-side">
+          <div class="stat">
+            <div class="label">Purpose</div>
+            <div class="value">Fast Iteration</div>
+            <div class="small">Test graph ideas without crowding the main simulations board.</div>
+          </div>
+          <div class="stat">
+            <div class="label">Source</div>
+            <div class="value">Simulation Data</div>
+            <div class="small">Pulls from the same dataset-backed dashboard payload used by the static companion pages.</div>
+          </div>
+          <div class="stat">
+            <div class="label">Use</div>
+            <div class="value">Compare Sleeves</div>
+            <div class="small">Return, drawdown, win rate, and equity shape side by side.</div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="band">
+          <div class="band-grid">
+            <div class="kpi">
+              <div class="label">Tracked Sleeves</div>
+              <div class="value" id="pg-slot-count">Loading...</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Total P&amp;L</div>
+              <div class="value" id="pg-total-pnl">Loading...</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Average Win Rate</div>
+              <div class="value" id="pg-avg-winrate">Loading...</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Average Max DD</div>
+              <div class="value" id="pg-avg-dd">Loading...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="charts">
+      <div class="container">
+        <div class="mock-shell">
+          <div class="mock-topbar">
+            <div>
+              <div class="eyebrow" style="margin-bottom:6px;">Strategy Playground</div>
+              <div class="muted">Quick comparisons from the current dataset-backed simulation payload.</div>
+            </div>
+            <div class="badges">
+              <div class="badge">P&amp;L</div>
+              <div class="badge">Drawdown</div>
+              <div class="badge">Win Rate</div>
+              <div class="badge">Equity Curve</div>
+            </div>
+          </div>
+          <div class="mock-body">
+            <div class="slot-panel">
+              <div class="slot-table-wrap">
+                <div class="slot-table-title">Continuous P&amp;L by Strategy</div>
+                <div id="pg-pnl-chart" style="height:420px;"></div>
+              </div>
+              <div class="slot-table-wrap" style="margin-top:14px;">
+                <div class="slot-table-title">Return vs Max Drawdown</div>
+                <div id="pg-risk-chart" style="height:420px;"></div>
+              </div>
+              <div class="slot-table-wrap" style="margin-top:14px;">
+                <div class="slot-table-title">Equity Curves</div>
+                <div id="pg-equity-chart" style="height:460px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const COLORS = ['#60a5fa', '#818cf8', '#34d399', '#f59e0b', '#f472b6', '#fb7185', '#22c55e'];
+
+    function fmtMoney(value) {
+      const num = Number(value || 0);
+      const sign = num > 0 ? '+' : '';
+      return `${sign}$${num.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    }
+
+    function fmtPct(value) {
+      return `${Number(value || 0).toFixed(1)}%`;
+    }
+
+    function shortName(title) {
+      return String(title || '')
+        .replace('IQ + ', 'IQ/')
+        .replace('TrendShift', 'TS')
+        .replace('Mean Reversion', 'MR')
+        .replace('Tick Squeeze Confirmation', 'TickSq')
+        .replace('Open Drive', 'OpenDrive')
+        .replace('Fair Value Gap', 'FVG')
+        .trim();
+    }
+
+    function normalizeSlots(payload) {
+      const rawSlots = payload?.slots || {};
+      return Object.values(rawSlots)
+        .filter(Boolean)
+        .map((slot, idx) => ({
+          key: slot.key || `slot-${idx}`,
+          title: slot.title || slot.key || `Strategy ${idx + 1}`,
+          short: shortName(slot.title || slot.key || `Strategy ${idx + 1}`),
+          pnl: Number(slot.continuous_pnl || 0),
+          drawdown: Number(slot.metrics?.max_drawdown || 0),
+          winRate: Number(slot.metrics?.win_rate || 0) * 100,
+          profitFactor: Number(slot.metrics?.profit_factor || 0),
+          curve: Array.isArray(slot.equity_curve) ? slot.equity_curve : [],
+          color: COLORS[idx % COLORS.length],
+        }))
+        .filter((slot) => Number.isFinite(slot.pnl));
+    }
+
+    function setHeadline(slots) {
+      const totalPnl = slots.reduce((sum, slot) => sum + slot.pnl, 0);
+      const avgWinRate = slots.length ? slots.reduce((sum, slot) => sum + slot.winRate, 0) / slots.length : 0;
+      const avgDrawdown = slots.length ? slots.reduce((sum, slot) => sum + slot.drawdown, 0) / slots.length : 0;
+      document.getElementById('pg-slot-count').textContent = String(slots.length);
+      document.getElementById('pg-total-pnl').textContent = fmtMoney(totalPnl);
+      document.getElementById('pg-avg-winrate').textContent = fmtPct(avgWinRate);
+      document.getElementById('pg-avg-dd').textContent = fmtMoney(-avgDrawdown);
+    }
+
+    function renderPnlChart(slots) {
+      Plotly.react('pg-pnl-chart', [{
+        type: 'bar',
+        x: slots.map((slot) => slot.short),
+        y: slots.map((slot) => slot.pnl),
+        marker: { color: slots.map((slot) => slot.color), line: { color: 'rgba(255,255,255,0.12)', width: 1 } },
+        hovertemplate: '%{x}<br>P&L: $%{y:,.0f}<extra></extra>'
+      }], {
+        paper_bgcolor: '#07111f',
+        plot_bgcolor: '#07111f',
+        margin: { t: 20, r: 20, b: 50, l: 60 },
+        xaxis: { color: '#94a3b8', tickfont: { size: 12 } },
+        yaxis: { color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
+        font: { color: '#e2e8f0' }
+      }, { responsive: true, displayModeBar: false });
+    }
+
+    function renderRiskChart(slots) {
+      Plotly.react('pg-risk-chart', [{
+        type: 'scatter',
+        mode: 'markers+text',
+        x: slots.map((slot) => slot.pnl),
+        y: slots.map((slot) => slot.drawdown),
+        text: slots.map((slot) => slot.short),
+        textposition: 'top center',
+        marker: {
+          size: 14,
+          color: slots.map((slot) => slot.color),
+          line: { color: 'rgba(255,255,255,0.18)', width: 1 },
+        },
+        hovertemplate: '%{text}<br>P&L: $%{x:,.0f}<br>Max DD: $%{y:,.0f}<br>Win rate: %{customdata:.1f}%<extra></extra>',
+        customdata: slots.map((slot) => slot.winRate),
+      }], {
+        paper_bgcolor: '#07111f',
+        plot_bgcolor: '#07111f',
+        margin: { t: 20, r: 20, b: 60, l: 70 },
+        xaxis: { title: 'Continuous P&L', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
+        yaxis: { title: 'Max Drawdown', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
+        font: { color: '#e2e8f0' }
+      }, { responsive: true, displayModeBar: false });
+    }
+
+    function renderEquityChart(slots) {
+      const traces = slots.map((slot) => ({
+        type: 'scatter',
+        mode: 'lines',
+        name: slot.short,
+        x: slot.curve.map((point, idx) => point.t || `start-${idx}`),
+        y: slot.curve.map((point) => Number(point.equity || 0)),
+        line: { color: slot.color, width: 2 },
+        hovertemplate: `${slot.short}<br>Equity: $%{y:,.0f}<extra></extra>`,
+      }));
+      Plotly.react('pg-equity-chart', traces, {
+        paper_bgcolor: '#07111f',
+        plot_bgcolor: '#07111f',
+        margin: { t: 20, r: 20, b: 50, l: 60 },
+        xaxis: { color: '#94a3b8', showgrid: false, showticklabels: false },
+        yaxis: { color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
+        font: { color: '#e2e8f0' },
+        legend: { orientation: 'h', y: -0.18 }
+      }, { responsive: true, displayModeBar: false });
+    }
+
+    async function main() {
+      try {
+        const response = await fetch('./data/dashboard-data.json', { cache: 'no-store' });
+        const payload = await response.json();
+        const slots = normalizeSlots(payload);
+        setHeadline(slots);
+        renderPnlChart(slots);
+        renderRiskChart(slots);
+        renderEquityChart(slots.slice(0, 5));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        document.getElementById('pg-slot-count').textContent = 'Error';
+        document.getElementById('pg-total-pnl').textContent = message;
+        document.getElementById('pg-avg-winrate').textContent = 'n/a';
+        document.getElementById('pg-avg-dd').textContent = 'n/a';
+        document.getElementById('pg-pnl-chart').innerHTML = `<div class="muted">Failed to load dashboard data: ${message}</div>`;
+        document.getElementById('pg-risk-chart').innerHTML = `<div class="muted">Failed to load dashboard data: ${message}</div>`;
+        document.getElementById('pg-equity-chart').innerHTML = `<div class="muted">Failed to load dashboard data: ${message}</div>`;
+      }
+    }
+
+    main();
+  </script>
+</body>
+</html>

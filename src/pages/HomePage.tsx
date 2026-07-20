@@ -29,15 +29,15 @@ function PublicHome() {
               an institutional standard for clarity, risk, and operational control.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link
-                to="/strategy-playground"
+              <a
+                href="/strategy-playground.html"
                 className={cn(
                   buttonVariants({ variant: "default" }),
                   "rounded-full bg-sky-500/20 px-4 text-sky-100 hover:bg-sky-500/30",
                 )}
               >
                 Strategy Playground
-              </Link>
+              </a>
               <Link
                 to="/simulations"
                 className={cn(
@@ -78,15 +78,15 @@ function PublicHome() {
                 A new graph lab for strategy comparisons, risk maps, and experimental simulation visuals before they graduate into the main dashboard.
               </p>
             </div>
-            <Link
-              to="/strategy-playground"
+            <a
+              href="/strategy-playground.html"
               className={cn(
                 buttonVariants({ variant: "default" }),
                 "w-full rounded-full bg-sky-500/20 px-5 text-center text-sky-100 hover:bg-sky-500/30 md:w-auto",
               )}
             >
               Open Strategy Playground
-            </Link>
+            </a>
           </div>
         </div>
       </section>

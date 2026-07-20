@@ -15,7 +15,7 @@ import {
 
 const publicLinks = [
   { to: "/", label: "Home" },
-  { to: "/strategy-playground", label: "Strategy Playground" },
+  { to: "/strategy-playground.html", label: "Strategy Playground" },
   { to: "/regime.html", label: "Regime" },
 ];
 
