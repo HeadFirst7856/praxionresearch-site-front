@@ -30,10 +30,19 @@ function PublicHome() {
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link
-                to="/simulations"
+                to="/strategy-playground"
                 className={cn(
                   buttonVariants({ variant: "default" }),
                   "rounded-full bg-sky-500/20 px-4 text-sky-100 hover:bg-sky-500/30",
+                )}
+              >
+                Strategy Playground
+              </Link>
+              <Link
+                to="/simulations"
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "rounded-full border-white/15 bg-transparent px-4 text-slate-100 hover:bg-white/5",
                 )}
               >
                 Simulations
@@ -44,7 +53,7 @@ function PublicHome() {
       </section>
 
       <section className="pb-8">
-        <div className="page-container">
+        <div className="page-container space-y-4">
           <div className="glass-panel p-4">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {[
@@ -59,6 +68,25 @@ function PublicHome() {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="glass-panel flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-xs uppercase tracking-[0.14em] text-sky-300">New Workspace</p>
+              <h2 className="mt-2 text-2xl font-semibold text-slate-50">Strategy Playground</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                A new graph lab for strategy comparisons, risk maps, and experimental simulation visuals before they graduate into the main dashboard.
+              </p>
+            </div>
+            <Link
+              to="/strategy-playground"
+              className={cn(
+                buttonVariants({ variant: "default" }),
+                "w-full rounded-full bg-sky-500/20 px-5 text-center text-sky-100 hover:bg-sky-500/30 md:w-auto",
+              )}
+            >
+              Open Strategy Playground
+            </Link>
           </div>
         </div>
       </section>

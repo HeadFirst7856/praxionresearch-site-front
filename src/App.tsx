@@ -4,6 +4,7 @@ import { RequireAuth } from "@/components/auth/RequireAuth";
 import { AppShell } from "@/components/layout/AppShell";
 import { HomePage } from "@/pages/HomePage";
 import { SimulationsPage } from "@/pages/SimulationsPage";
+import { StrategyPlaygroundPage } from "@/pages/StrategyPlaygroundPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { SignupPage } from "@/pages/SignupPage";
 import { Toaster } from "@/components/ui/sonner";
@@ -20,6 +21,7 @@ function App() {
             <Route index element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             {signupEnabled ? <Route path="/signup" element={<SignupPage />} /> : null}
+            <Route path="/strategy-playground" element={<StrategyPlaygroundPage />} />
             <Route path="/dashboard" element={<Navigate to="/simulations" replace />} />
             <Route element={<RequireAuth />}>
               <Route path="/simulations" element={<SimulationsPage />} />
