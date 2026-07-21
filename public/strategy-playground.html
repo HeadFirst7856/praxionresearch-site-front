@@ -4,9 +4,146 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Praxion Research | Strategy Playground</title>
-  <meta name="description" content="Graph workspace for strategy comparisons, risk maps, and simulation exploration." />
+  <meta name="description" content="Fred-parity RVWAP MLP graph lab for feature analysis, overlap diagnostics, neural structure, and day-level trade exploration." />
   <link rel="stylesheet" href="./styles.css" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    .play-shell {
+      display: grid;
+      gap: 20px;
+    }
+    .play-grid-2 {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .play-grid-3 {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .play-card {
+      background: rgba(7, 17, 31, 0.82);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 28px;
+      padding: 22px;
+      box-shadow: 0 28px 90px rgba(2, 6, 23, 0.28);
+    }
+    .play-card h2, .play-card h3 { margin: 0; }
+    .play-subtitle { color: #94a3b8; margin-top: 8px; line-height: 1.5; }
+    .play-kpis { display: grid; gap: 14px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .play-kpi {
+      background: rgba(9, 18, 33, 0.82);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 22px;
+      padding: 16px;
+    }
+    .play-kpi .label, .play-mini .label {
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+    .play-kpi .value {
+      margin-top: 8px;
+      font-size: 30px;
+      line-height: 1.05;
+      color: #f8fafc;
+      font-weight: 600;
+    }
+    .play-mini-grid { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 16px; }
+    .play-mini {
+      background: rgba(9, 18, 33, 0.74);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 20px;
+      padding: 15px;
+    }
+    .play-mini .value {
+      margin-top: 8px;
+      font-size: 24px;
+      color: #f8fafc;
+      font-weight: 600;
+    }
+    .plot { min-height: 360px; }
+    .plot-tall { min-height: 420px; }
+    .brain-wrap {
+      border-radius: 24px;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      background: radial-gradient(circle at 50% 45%, rgba(56, 189, 248, 0.12), transparent 55%), linear-gradient(180deg, rgba(10, 17, 31, 0.96), rgba(6, 11, 21, 0.96));
+      padding: 16px;
+      min-height: 380px;
+    }
+    .brain-controls, .day-controls, .sleeve-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 14px;
+      margin-bottom: 14px;
+    }
+    .pill-button {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: rgba(255, 255, 255, 0.04);
+      color: #e2e8f0;
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .pill-button.active, .pill-button:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .day-select {
+      min-width: 260px;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: rgba(9, 18, 33, 0.92);
+      color: #e2e8f0;
+      padding: 12px 14px;
+    }
+    .trade-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .trade-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      background: rgba(9, 18, 33, 0.62);
+      padding: 12px 14px;
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+    .trade-left, .trade-right { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; }
+    .positive { color: #86efac; }
+    .negative { color: #fca5a5; }
+    .muted-note {
+      color: #94a3b8;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    .brain-caption {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      color: #94a3b8;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    @media (max-width: 980px) {
+      .play-grid-2, .play-grid-3, .play-kpis, .play-mini-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
   <header class="nav">
@@ -26,9 +163,9 @@
     <section class="hero" id="playground">
       <div class="container hero-grid">
         <div class="hero-card">
-          <div class="eyebrow">New Graph Workspace</div>
-          <h1>Strategy Playground.<br/>See the shape of the edge.</h1>
-          <p class="lead">This page is a dedicated graph lab for comparing strategies, pressure-testing risk, and exploring which visuals deserve to graduate into the main Praxion simulations surface.</p>
+          <div class="eyebrow">Fred-parity MLP Lab</div>
+          <h1>Strategy Playground.<br/>See the model think.</h1>
+          <p class="lead">This workspace reframes the RVWAP MLP the way the ORB regime page reframed ORB, with graphs focused on features, overlap distortion, neural structure, and selectable day-level trade diagnostics.</p>
           <div class="actions">
             <a class="button primary" href="#charts">Open Graphs</a>
             <a class="button ghost" href="./dashboard.html">Back to Dashboard</a>
@@ -36,79 +173,129 @@
         </div>
         <aside class="hero-card hero-side">
           <div class="stat">
-            <div class="label">Purpose</div>
-            <div class="value">Fast Iteration</div>
-            <div class="small">Test graph ideas without crowding the main simulations board.</div>
+            <div class="label">Model</div>
+            <div class="value">Fred-parity MLP</div>
+            <div class="small">Backtest payload built from the Fred backend event stream, then corrected to a strict no-stacking combined book.</div>
           </div>
           <div class="stat">
-            <div class="label">Source</div>
-            <div class="value">Simulation Data</div>
-            <div class="small">Pulls from the same dataset-backed dashboard payload used by the static companion pages.</div>
+            <div class="label">View</div>
+            <div class="value">Feature First</div>
+            <div class="small">Top inputs, feature families, and a neural "brain" view sit next to day-level P&amp;L and confidence maps.</div>
           </div>
           <div class="stat">
-            <div class="label">Use</div>
-            <div class="value">Compare Sleeves</div>
-            <div class="small">Return, drawdown, win rate, and equity shape side by side.</div>
+            <div class="label">Reality Check</div>
+            <div class="value">No Stack</div>
+            <div class="small">The page highlights how much the original stacked replay overstated throughput versus a one-open-trade-at-a-time combined book.</div>
           </div>
         </aside>
       </div>
     </section>
 
     <section class="section">
-      <div class="container">
-        <div class="band">
-          <div class="band-grid">
-            <div class="kpi">
-              <div class="label">Tracked Sleeves</div>
-              <div class="value" id="pg-slot-count">Loading...</div>
-            </div>
-            <div class="kpi">
-              <div class="label">Total P&amp;L</div>
-              <div class="value" id="pg-total-pnl">Loading...</div>
-            </div>
-            <div class="kpi">
-              <div class="label">Average Win Rate</div>
-              <div class="value" id="pg-avg-winrate">Loading...</div>
-            </div>
-            <div class="kpi">
-              <div class="label">Average Max DD</div>
-              <div class="value" id="pg-avg-dd">Loading...</div>
-            </div>
-          </div>
-        </div>
+      <div class="container play-kpis">
+        <div class="play-kpi"><div class="label">No-stack net, 2 MNQ</div><div class="value" id="kpi-net">Loading...</div></div>
+        <div class="play-kpi"><div class="label">Average month, 6 MNQ</div><div class="value" id="kpi-month">Loading...</div></div>
+        <div class="play-kpi"><div class="label">24M median, no withdrawal</div><div class="value" id="kpi-mc">Loading...</div></div>
+        <div class="play-kpi"><div class="label">Overlap trades removed</div><div class="value" id="kpi-skipped">Loading...</div></div>
       </div>
     </section>
 
     <section class="section" id="charts">
-      <div class="container">
-        <div class="mock-shell">
-          <div class="mock-topbar">
-            <div>
-              <div class="eyebrow" style="margin-bottom:6px;">Strategy Playground</div>
-              <div class="muted">Quick comparisons from the current dataset-backed simulation payload.</div>
-            </div>
-            <div class="badges">
-              <div class="badge">P&amp;L</div>
-              <div class="badge">Drawdown</div>
-              <div class="badge">Win Rate</div>
-              <div class="badge">Equity Curve</div>
+      <div class="container play-shell">
+        <div class="play-grid-2">
+          <div class="play-card">
+            <h2>Stacked vs no-stack reality</h2>
+            <div class="play-subtitle">This chart matters because it shows how much overlap inflated the original Fred-parity replay.</div>
+            <div id="monthly-chart" class="plot"></div>
+            <div class="play-mini-grid">
+              <div class="play-mini"><div class="label">Accepted trades</div><div class="value" id="mini-accepted">-</div></div>
+              <div class="play-mini"><div class="label">Skipped overlap</div><div class="value" id="mini-skipped">-</div></div>
+              <div class="play-mini"><div class="label">No-stack max DD</div><div class="value" id="mini-dd">-</div></div>
             </div>
           </div>
-          <div class="mock-body">
-            <div class="slot-panel">
-              <div class="slot-table-wrap">
-                <div class="slot-table-title">Continuous P&amp;L by Strategy</div>
-                <div id="pg-pnl-chart" style="height:420px;"></div>
-              </div>
-              <div class="slot-table-wrap" style="margin-top:14px;">
-                <div class="slot-table-title">Return vs Max Drawdown</div>
-                <div id="pg-risk-chart" style="height:420px;"></div>
-              </div>
-              <div class="slot-table-wrap" style="margin-top:14px;">
-                <div class="slot-table-title">Equity Curves</div>
-                <div id="pg-equity-chart" style="height:460px;"></div>
-              </div>
+
+          <div class="play-card">
+            <h2>RTH vs Europe risk map</h2>
+            <div class="play-subtitle">The two sleeves share the same model family, but the trade count, drawdown shape, and payoff profile are meaningfully different.</div>
+            <div id="risk-chart" class="plot"></div>
+            <div class="play-mini-grid" id="sleeve-mini-grid"></div>
+          </div>
+        </div>
+
+        <div class="play-grid-2">
+          <div class="play-card">
+            <h2>3D feature family surface</h2>
+            <div class="play-subtitle">A literal 3D scatter of feature families. X is family slot, Y is total feature strength, Z is feature count.</div>
+            <div id="feature-surface" class="plot-tall"></div>
+          </div>
+
+          <div class="play-card">
+            <h2>Top feature rails</h2>
+            <div class="play-subtitle">Flip between sleeves to inspect the strongest input features, thresholds, and size ladder.</div>
+            <div class="sleeve-controls">
+              <button class="pill-button active" id="btn-rth" type="button">RTH sleeve</button>
+              <button class="pill-button" id="btn-europe" type="button">Europe sleeve</button>
             </div>
+            <div id="top-features-chart" class="plot"></div>
+            <div class="play-mini-grid">
+              <div class="play-mini"><div class="label">Size ladder</div><div class="value" id="ladder-value">-</div><div class="muted-note" id="ladder-thresholds"></div></div>
+              <div class="play-mini"><div class="label">Holdout WR / PF</div><div class="value" id="holdout-value">-</div><div class="muted-note" id="holdout-net"></div></div>
+              <div class="play-mini"><div class="label">Standardized features</div><div class="value" id="feature-count">-</div><div class="muted-note" id="feature-count-sub"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="play-grid-2">
+          <div class="play-card">
+            <h2>MLP node brain</h2>
+            <div class="play-subtitle">A visual of the selected sleeve's strongest inputs, key hidden neurons, and output win-probability head.</div>
+            <div class="brain-controls">
+              <span class="muted-note">Rendering the top weighted paths only, so the graph stays readable.</span>
+            </div>
+            <div class="brain-wrap">
+              <div class="brain-caption">
+                <span id="brain-title">RTH MLP node brain</span>
+                <span id="brain-meta">-</span>
+              </div>
+              <div id="brain-svg"></div>
+            </div>
+          </div>
+
+          <div class="play-card">
+            <h2>Monte Carlo path bands</h2>
+            <div class="play-subtitle">This carries the 24-month no-stack projection into the Playground, with both cashflow cases visible together.</div>
+            <div id="mc-chart" class="plot"></div>
+            <div class="play-mini-grid">
+              <div class="play-mini"><div class="label">Median, no withdrawal</div><div class="value" id="mc-no">-</div><div class="muted-note" id="mc-no-bust"></div></div>
+              <div class="play-mini"><div class="label">Median, with withdrawals</div><div class="value" id="mc-wd">-</div><div class="muted-note" id="mc-wd-bust"></div></div>
+              <div class="play-mini"><div class="label">Why it matters</div><div class="muted-note">You can see the distribution shape compress once we stop pretending both sleeves could overlap freely.</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="play-grid-2">
+          <div class="play-card">
+            <h2>Daily dot plot, selectable</h2>
+            <div class="play-subtitle">X is average model confidence, Y is realized day P&amp;L, bubble size is trade count. Click dots or use the selector.</div>
+            <div class="day-controls">
+              <select id="day-select" class="day-select"></select>
+              <button class="pill-button" id="jump-best" type="button">Best day</button>
+              <button class="pill-button" id="jump-worst" type="button">Worst day</button>
+              <button class="pill-button" id="jump-latest" type="button">Latest day</button>
+            </div>
+            <div id="daily-chart" class="plot-tall"></div>
+          </div>
+
+          <div class="play-card">
+            <h2 id="day-focus-title">Day focus</h2>
+            <div class="play-subtitle">Select a day to inspect trade timing, sleeve mix, confidence, and realized P&amp;L.</div>
+            <div class="play-mini-grid">
+              <div class="play-mini"><div class="label">Day P&amp;L</div><div class="value" id="day-pnl">-</div></div>
+              <div class="play-mini"><div class="label">Avg confidence</div><div class="value" id="day-confidence">-</div></div>
+              <div class="play-mini"><div class="label">Feature stress</div><div class="value" id="day-stress">-</div></div>
+            </div>
+            <div id="day-trades-chart" class="plot"></div>
+            <div class="trade-list" id="trade-list"></div>
           </div>
         </div>
       </div>
@@ -116,138 +303,503 @@
   </main>
 
   <script>
-    const COLORS = ['#60a5fa', '#818cf8', '#34d399', '#f59e0b', '#f472b6', '#fb7185', '#22c55e'];
+    const COLORS = {
+      rth: '#38bdf8',
+      europe: '#a78bfa',
+      combined: '#22c55e',
+      stacked: '#f59e0b',
+      module48: '#f472b6',
+      mixed: '#f59e0b',
+      trend: '#38bdf8',
+      volatility: '#f59e0b',
+      regime: '#34d399',
+      rvwap: '#a78bfa',
+      session: '#f472b6',
+      time: '#fb7185',
+      candle: '#60a5fa',
+      volume: '#fbbf24',
+      risk: '#f87171',
+      other: '#94a3b8',
+    };
 
-    function fmtMoney(value) {
+    let state = {
+      payload: null,
+      selectedSleeve: 'rth',
+      selectedDay: null,
+    };
+
+    function fmtMoney(value, digits = 0) {
       const num = Number(value || 0);
-      const sign = num > 0 ? '+' : '';
-      return `${sign}$${num.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+      const sign = num > 0 ? '+' : num < 0 ? '-' : '';
+      return `${sign}$${Math.abs(num).toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits })}`;
     }
 
-    function fmtPct(value) {
-      return `${Number(value || 0).toFixed(1)}%`;
+    function fmtPct(value, digits = 1) {
+      return `${(Number(value || 0) * 100).toFixed(digits)}%`;
     }
 
-    function shortName(title) {
-      return String(title || '')
-        .replace('IQ + ', 'IQ/')
-        .replace('TrendShift', 'TS')
-        .replace('Mean Reversion', 'MR')
-        .replace('Tick Squeeze Confirmation', 'TickSq')
-        .replace('Open Drive', 'OpenDrive')
-        .replace('Fair Value Gap', 'FVG')
-        .trim();
+    function compactMoney(value) {
+      const num = Number(value || 0);
+      const abs = Math.abs(num);
+      const sign = num > 0 ? '+' : num < 0 ? '-' : '';
+      if (abs >= 1000000) return `${sign}$${(abs / 1000000).toFixed(1)}m`;
+      if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(1)}k`;
+      return `${sign}$${abs.toFixed(0)}`;
     }
 
-    function normalizeSlots(payload) {
-      const rawSlots = payload?.slots || {};
-      return Object.values(rawSlots)
-        .filter(Boolean)
-        .map((slot, idx) => ({
-          key: slot.key || `slot-${idx}`,
-          title: slot.title || slot.key || `Strategy ${idx + 1}`,
-          short: shortName(slot.title || slot.key || `Strategy ${idx + 1}`),
-          pnl: Number(slot.continuous_pnl || 0),
-          drawdown: Number(slot.metrics?.max_drawdown || 0),
-          winRate: Number(slot.metrics?.win_rate || 0) * 100,
-          profitFactor: Number(slot.metrics?.profit_factor || 0),
-          curve: Array.isArray(slot.equity_curve) ? slot.equity_curve : [],
-          color: COLORS[idx % COLORS.length],
-        }))
-        .filter((slot) => Number.isFinite(slot.pnl));
+    function clockLabel(minutesFromMidnight) {
+      const total = Number(minutesFromMidnight || 0);
+      const hours = Math.floor(total / 60);
+      const minutes = total % 60;
+      const suffix = hours >= 12 ? 'PM' : 'AM';
+      const twelve = hours % 12 === 0 ? 12 : hours % 12;
+      return `${twelve}:${String(minutes).padStart(2, '0')} ${suffix}`;
     }
 
-    function setHeadline(slots) {
-      const totalPnl = slots.reduce((sum, slot) => sum + slot.pnl, 0);
-      const avgWinRate = slots.length ? slots.reduce((sum, slot) => sum + slot.winRate, 0) / slots.length : 0;
-      const avgDrawdown = slots.length ? slots.reduce((sum, slot) => sum + slot.drawdown, 0) / slots.length : 0;
-      document.getElementById('pg-slot-count').textContent = String(slots.length);
-      document.getElementById('pg-total-pnl').textContent = fmtMoney(totalPnl);
-      document.getElementById('pg-avg-winrate').textContent = fmtPct(avgWinRate);
-      document.getElementById('pg-avg-dd').textContent = fmtMoney(-avgDrawdown);
+    function familyLabel(value) {
+      const text = String(value || 'other');
+      return text.charAt(0).toUpperCase() + text.slice(1);
     }
 
-    function renderPnlChart(slots) {
-      Plotly.react('pg-pnl-chart', [{
-        type: 'bar',
-        x: slots.map((slot) => slot.short),
-        y: slots.map((slot) => slot.pnl),
-        marker: { color: slots.map((slot) => slot.color), line: { color: 'rgba(255,255,255,0.12)', width: 1 } },
-        hovertemplate: '%{x}<br>P&L: $%{y:,.0f}<extra></extra>'
-      }], {
+    function shortFeatureLabel(value) {
+      return String(value || '').replace(/^ml_/, '').replace(/^seq_/, 'seq ').replace(/_/g, ' ');
+    }
+
+    function dominantColor(key) {
+      return COLORS[key] || '#94a3b8';
+    }
+
+    function setHeadline(payload) {
+      document.getElementById('kpi-net').textContent = fmtMoney(payload.headline.noStackNetPnl2Mnq);
+      document.getElementById('kpi-month').textContent = fmtMoney(payload.headline.noStackAvgMonth6Mnq);
+      document.getElementById('kpi-mc').textContent = fmtMoney(payload.headline.mcMedian24mNoWithdrawal);
+      document.getElementById('kpi-skipped').textContent = Number(payload.headline.skippedTrades || 0).toLocaleString();
+      document.getElementById('mini-accepted').textContent = Number(payload.summaries.noStack.history.filter_stats.accepted_trades || 0).toLocaleString();
+      document.getElementById('mini-skipped').textContent = Number(payload.summaries.noStack.history.filter_stats.skipped_trades || 0).toLocaleString();
+      document.getElementById('mini-dd').textContent = fmtMoney(payload.summaries.noStack.history.trade_stats.max_drawdown_closed_equity);
+      document.getElementById('mc-no').textContent = fmtMoney(payload.summaries.noStack.monte_carlo.no_withdrawal.median_end_balance);
+      document.getElementById('mc-no-bust').textContent = `Bust ${fmtPct(payload.summaries.noStack.monte_carlo.no_withdrawal.prob_finish_busted)}`;
+      document.getElementById('mc-wd').textContent = fmtMoney(payload.summaries.noStack.monte_carlo.withdraw_1200.median_end_balance);
+      document.getElementById('mc-wd-bust').textContent = `Bust ${fmtPct(payload.summaries.noStack.monte_carlo.withdraw_1200.prob_finish_busted)}`;
+    }
+
+    function renderMonthly(payload) {
+      const months = payload.monthlyComparison.map((row) => row.month);
+      Plotly.react('monthly-chart', [
+        {
+          type: 'scatter',
+          mode: 'lines',
+          x: months,
+          y: payload.monthlyComparison.map((row) => row.stackedCombined),
+          name: 'Stacked',
+          line: { color: COLORS.stacked, width: 2 },
+          fill: 'tozeroy',
+          fillcolor: 'rgba(245, 158, 11, 0.10)',
+          hovertemplate: '%{x}<br>Stacked: $%{y:,.0f}<extra></extra>'
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          x: months,
+          y: payload.monthlyComparison.map((row) => row.noStackCombined),
+          name: 'No stack',
+          line: { color: COLORS.combined, width: 3 },
+          fill: 'tozeroy',
+          fillcolor: 'rgba(34, 197, 94, 0.14)',
+          hovertemplate: '%{x}<br>No stack: $%{y:,.0f}<extra></extra>'
+        }
+      ], {
         paper_bgcolor: '#07111f',
         plot_bgcolor: '#07111f',
-        margin: { t: 20, r: 20, b: 50, l: 60 },
-        xaxis: { color: '#94a3b8', tickfont: { size: 12 } },
+        margin: { t: 20, r: 20, b: 40, l: 60 },
+        xaxis: { color: '#94a3b8', showgrid: false },
         yaxis: { color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
-        font: { color: '#e2e8f0' }
+        font: { color: '#e2e8f0' },
+        legend: { orientation: 'h', y: -0.2 }
       }, { responsive: true, displayModeBar: false });
     }
 
-    function renderRiskChart(slots) {
-      Plotly.react('pg-risk-chart', [{
+    function renderRisk(payload) {
+      const sleeves = payload.sleeveCards || [];
+      Plotly.react('risk-chart', [{
         type: 'scatter',
         mode: 'markers+text',
-        x: slots.map((slot) => slot.pnl),
-        y: slots.map((slot) => slot.drawdown),
-        text: slots.map((slot) => slot.short),
+        x: sleeves.map((row) => row.netPnl),
+        y: sleeves.map((row) => Math.abs(row.maxDrawdown)),
+        text: sleeves.map((row) => row.label),
         textposition: 'top center',
         marker: {
-          size: 14,
-          color: slots.map((slot) => slot.color),
-          line: { color: 'rgba(255,255,255,0.18)', width: 1 },
+          size: sleeves.map((row) => Math.max(18, Math.min(42, row.trades / 80))),
+          color: sleeves.map((row) => row.color),
+          line: { color: 'rgba(255,255,255,0.18)', width: 1.5 }
         },
-        hovertemplate: '%{text}<br>P&L: $%{x:,.0f}<br>Max DD: $%{y:,.0f}<br>Win rate: %{customdata:.1f}%<extra></extra>',
-        customdata: slots.map((slot) => slot.winRate),
+        customdata: sleeves.map((row) => [row.winRate, row.profitFactor, row.trades]),
+        hovertemplate: '%{text}<br>Net P&L: $%{x:,.0f}<br>Max DD: $%{y:,.0f}<br>Win rate: %{customdata[0]:.1%}<br>PF: %{customdata[1]:.2f}<br>Trades: %{customdata[2]:,.0f}<extra></extra>'
       }], {
         paper_bgcolor: '#07111f',
         plot_bgcolor: '#07111f',
         margin: { t: 20, r: 20, b: 60, l: 70 },
-        xaxis: { title: 'Continuous P&L', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
-        yaxis: { title: 'Max Drawdown', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
+        xaxis: { title: 'Net P&L', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
+        yaxis: { title: 'Max drawdown', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
+        font: { color: '#e2e8f0' }
+      }, { responsive: true, displayModeBar: false });
+
+      document.getElementById('sleeve-mini-grid').innerHTML = sleeves.map((row) => `
+        <div class="play-mini">
+          <div class="label">${row.label}</div>
+          <div class="value">${fmtMoney(row.netPnl)}</div>
+          <div class="muted-note">WR ${fmtPct(row.winRate)} · PF ${Number(row.profitFactor || 0).toFixed(2)} · DD ${compactMoney(-row.maxDrawdown)}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderFeatureSurface(payload) {
+      const families = (payload.combinedFeatureMap && payload.combinedFeatureMap.featureFamilies) || [];
+      Plotly.react('feature-surface', [{
+        type: 'scatter3d',
+        mode: 'markers+text',
+        x: families.map((row, idx) => idx + 1),
+        y: families.map((row) => row.totalStrength),
+        z: families.map((row) => row.featureCount),
+        text: families.map((row) => familyLabel(row.family)),
+        textposition: 'top center',
+        marker: {
+          size: families.map((row) => Math.max(8, row.featureCount * 2.4)),
+          color: families.map((row) => {
+            const sleeves = row.sleeves || [];
+            if (sleeves.includes('rth') && sleeves.includes('europe')) return COLORS.combined;
+            if (sleeves.includes('rth')) return COLORS.rth;
+            if (sleeves.includes('europe')) return COLORS.europe;
+            return dominantColor(row.family);
+          }),
+          opacity: 0.88,
+          line: { color: 'rgba(255,255,255,0.16)', width: 1 }
+        },
+        customdata: families.map((row) => [row.featureCount, (row.sleeves || []).join(' + ')]),
+        hovertemplate: '%{text}<br>Total strength: %{y:.3f}<br>Feature count: %{customdata[0]}<br>Sleeves: %{customdata[1]}<extra></extra>'
+      }], {
+        paper_bgcolor: '#07111f',
+        margin: { t: 10, r: 0, b: 0, l: 0 },
+        scene: {
+          bgcolor: '#07111f',
+          xaxis: { title: 'Family slot', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
+          yaxis: { title: 'Total strength', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
+          zaxis: { title: 'Feature count', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
+          camera: { eye: { x: 1.55, y: 1.15, z: 0.92 } }
+        },
         font: { color: '#e2e8f0' }
       }, { responsive: true, displayModeBar: false });
     }
 
-    function renderEquityChart(slots) {
-      const traces = slots.map((slot) => ({
-        type: 'scatter',
-        mode: 'lines',
-        name: slot.short,
-        x: slot.curve.map((point, idx) => point.t || `start-${idx}`),
-        y: slot.curve.map((point) => Number(point.equity || 0)),
-        line: { color: slot.color, width: 2 },
-        hovertemplate: `${slot.short}<br>Equity: $%{y:,.0f}<extra></extra>`,
-      }));
-      Plotly.react('pg-equity-chart', traces, {
+    function renderTopFeatures() {
+      const payload = state.payload;
+      const artifact = payload.artifacts[state.selectedSleeve];
+      const top = (artifact.topFeatures || []).slice(0, 10).reverse();
+      Plotly.react('top-features-chart', [{
+        type: 'bar',
+        orientation: 'h',
+        x: top.map((row) => row.absStrength),
+        y: top.map((row) => shortFeatureLabel(row.feature)),
+        marker: {
+          color: top.map((row) => dominantColor(row.family)),
+          line: { color: 'rgba(255,255,255,0.12)', width: 1 }
+        },
+        customdata: top.map((row) => [row.feature, row.strength, row.family]),
+        hovertemplate: '%{customdata[0]}<br>Abs strength: %{x:.3f}<br>Signed strength: %{customdata[1]:.3f}<br>Family: %{customdata[2]}<extra></extra>'
+      }], {
+        paper_bgcolor: '#07111f',
+        plot_bgcolor: '#07111f',
+        margin: { t: 10, r: 20, b: 40, l: 180 },
+        xaxis: { color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
+        yaxis: { color: '#94a3b8' },
+        font: { color: '#e2e8f0' }
+      }, { responsive: true, displayModeBar: false });
+
+      document.getElementById('ladder-value').textContent = artifact.sizeLadder.join(' / ');
+      document.getElementById('ladder-thresholds').textContent = `Thresholds ${artifact.thresholds.map((v) => Number(v).toFixed(2)).join(' · ')}`;
+      document.getElementById('holdout-value').textContent = `${fmtPct(artifact.testWinRate)} / ${Number(artifact.testProfitFactor || 0).toFixed(2)}`;
+      document.getElementById('holdout-net').textContent = `Net ${fmtMoney(artifact.testNet)}`;
+      document.getElementById('feature-count').textContent = Number(artifact.standardizedFeatureCount || 0).toLocaleString();
+      document.getElementById('feature-count-sub').textContent = `${Number(artifact.hiddenSize || 0)} hidden nodes, ${Number(artifact.numericFeatureCount || 0).toLocaleString()} numeric inputs`;
+      document.getElementById('btn-rth').classList.toggle('active', state.selectedSleeve === 'rth');
+      document.getElementById('btn-europe').classList.toggle('active', state.selectedSleeve === 'europe');
+      renderBrain(artifact);
+    }
+
+    function renderBrain(artifact) {
+      const color = state.selectedSleeve === 'rth' ? COLORS.rth : COLORS.europe;
+      const inputNodes = artifact.brain.inputNodes || [];
+      const hiddenNodes = artifact.brain.hiddenNodes || [];
+      const outputNode = artifact.brain.outputNode || { id: 'out', label: 'Win Prob' };
+      const edgeIH = artifact.brain.edgesInputHidden || [];
+      const edgeHO = artifact.brain.edgesHiddenOutput || [];
+      const width = 720;
+      const height = 340;
+      const inputX = 90;
+      const hiddenX = 360;
+      const outputX = 620;
+      const lookup = new Map();
+      const placedInputs = inputNodes.map((node, idx) => ({ ...node, x: inputX, y: 40 + (idx * (height - 80)) / Math.max(inputNodes.length - 1, 1) }));
+      const placedHidden = hiddenNodes.map((node, idx) => ({ ...node, x: hiddenX, y: 54 + (idx * (height - 108)) / Math.max(hiddenNodes.length - 1, 1) }));
+      placedInputs.forEach((node) => lookup.set(node.id, node));
+      placedHidden.forEach((node) => lookup.set(node.id, node));
+      lookup.set(outputNode.id, { ...outputNode, x: outputX, y: height / 2 });
+      const maxIn = Math.max(0.0001, ...edgeIH.map((edge) => Number(edge.absWeight || 0)));
+      const maxOut = Math.max(0.0001, ...edgeHO.map((edge) => Number(edge.absWeight || 0)));
+
+      const svg = [`<svg viewBox="0 0 ${width} ${height}" style="width:100%;height:340px;overflow:visible;">`];
+      svg.push(`<defs>
+        <linearGradient id="brainGlow" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="${color}" stop-opacity="0.82"></stop>
+          <stop offset="100%" stop-color="#f8fafc" stop-opacity="0.22"></stop>
+        </linearGradient>
+      </defs>`);
+
+      edgeIH.forEach((edge) => {
+        const source = lookup.get(edge.source);
+        const target = lookup.get(edge.target);
+        if (!source || !target) return;
+        const opacity = 0.12 + (Number(edge.absWeight || 0) / maxIn) * 0.5;
+        const widthStroke = 1 + (Number(edge.absWeight || 0) / maxIn) * 3;
+        svg.push(`<path d="M ${source.x} ${source.y} C ${source.x + 80} ${source.y}, ${target.x - 80} ${target.y}, ${target.x} ${target.y}" fill="none" stroke="url(#brainGlow)" stroke-opacity="${opacity}" stroke-width="${widthStroke}"></path>`);
+      });
+      edgeHO.forEach((edge) => {
+        const source = lookup.get(edge.source);
+        const target = lookup.get(edge.target);
+        if (!source || !target) return;
+        const opacity = 0.18 + (Number(edge.absWeight || 0) / maxOut) * 0.58;
+        const widthStroke = 1 + (Number(edge.absWeight || 0) / maxOut) * 4;
+        svg.push(`<path d="M ${source.x} ${source.y} C ${source.x + 70} ${source.y}, ${target.x - 70} ${target.y}, ${target.x} ${target.y}" fill="none" stroke="#f8fafc" stroke-opacity="${opacity}" stroke-width="${widthStroke}"></path>`);
+      });
+      placedInputs.forEach((node) => {
+        const strength = Number(node.strength || 0);
+        const outer = 8 + strength * 30;
+        const inner = 4 + strength * 14;
+        svg.push(`<g transform="translate(${node.x},${node.y})"><circle r="${outer}" fill="${color}" fill-opacity="0.22"></circle><circle r="${inner}" fill="${color}"></circle><text x="18" y="4" fill="#cbd5e1" font-size="11">${node.label}</text></g>`);
+      });
+      placedHidden.forEach((node) => {
+        const score = Number(node.score || 0);
+        const outer = 10 + score * 24;
+        const inner = 6 + score * 12;
+        svg.push(`<g transform="translate(${node.x},${node.y})"><circle r="${outer}" fill="#e2e8f0" fill-opacity="0.12"></circle><circle r="${inner}" fill="#e2e8f0" fill-opacity="0.84"></circle><text x="0" y="32" text-anchor="middle" fill="#94a3b8" font-size="11">${node.label}</text></g>`);
+      });
+      const out = lookup.get(outputNode.id);
+      svg.push(`<g transform="translate(${out.x},${out.y})"><circle r="30" fill="${color}" fill-opacity="0.16"></circle><circle r="18" fill="${color}"></circle><text x="0" y="4" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="600">Win</text><text x="0" y="18" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="600">Prob</text></g>`);
+      svg.push('</svg>');
+      document.getElementById('brain-title').textContent = `${state.selectedSleeve.toUpperCase()} MLP node brain`;
+      document.getElementById('brain-meta').textContent = `${artifact.standardizedFeatureCount} standardized inputs · ${artifact.hiddenSize} hidden nodes`;
+      document.getElementById('brain-svg').innerHTML = svg.join('');
+    }
+
+    function renderMonteCarlo(payload) {
+      const rows = payload.monteCarloCompare || [];
+      Plotly.react('mc-chart', [
+        {
+          type: 'scatter',
+          mode: 'lines',
+          x: rows.map((row) => row.month),
+          y: rows.map((row) => row.medianNoWithdrawal),
+          name: 'Median, no withdrawal',
+          line: { color: COLORS.combined, width: 3 },
+          hovertemplate: 'Month %{x}<br>%{y:$,.0f}<extra></extra>'
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          x: rows.map((row) => row.month),
+          y: rows.map((row) => row.medianWithWithdrawal),
+          name: 'Median, with $1.2k withdrawal',
+          line: { color: COLORS.module48, width: 3 },
+          hovertemplate: 'Month %{x}<br>%{y:$,.0f}<extra></extra>'
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          x: rows.map((row) => row.month),
+          y: rows.map((row) => row.p10NoWithdrawal),
+          name: 'P10, no withdrawal',
+          line: { color: 'rgba(34,197,94,0.35)', width: 1.5 },
+          hoverinfo: 'skip'
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          x: rows.map((row) => row.month),
+          y: rows.map((row) => row.p90NoWithdrawal),
+          name: 'P90, no withdrawal',
+          line: { color: 'rgba(34,197,94,0.35)', width: 1.5 },
+          hoverinfo: 'skip'
+        }
+      ], {
         paper_bgcolor: '#07111f',
         plot_bgcolor: '#07111f',
         margin: { t: 20, r: 20, b: 50, l: 60 },
-        xaxis: { color: '#94a3b8', showgrid: false, showticklabels: false },
+        xaxis: { title: 'Projection month', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.08)' },
         yaxis: { color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
         font: { color: '#e2e8f0' },
-        legend: { orientation: 'h', y: -0.18 }
+        legend: { orientation: 'h', y: -0.2 }
       }, { responsive: true, displayModeBar: false });
+    }
+
+    function buildDayOptions(payload) {
+      const select = document.getElementById('day-select');
+      const seen = new Set();
+      const priority = [payload.dayDefaults.latestDay, payload.dayDefaults.bestDay, payload.dayDefaults.worstDay].filter(Boolean);
+      const ordered = [...priority, ...(payload.dailyDots || []).map((row) => row.day)].filter((day) => {
+        if (seen.has(day)) return false;
+        seen.add(day);
+        return true;
+      });
+      select.innerHTML = ordered.map((day) => {
+        let suffix = '';
+        if (day === payload.dayDefaults.latestDay) suffix = ' · latest';
+        else if (day === payload.dayDefaults.bestDay) suffix = ' · best';
+        else if (day === payload.dayDefaults.worstDay) suffix = ' · worst';
+        return `<option value="${day}">${day}${suffix}</option>`;
+      }).join('');
+      if (state.selectedDay) select.value = state.selectedDay;
+      select.onchange = (event) => {
+        state.selectedDay = event.target.value;
+        renderDayFocus();
+      };
+      document.getElementById('jump-best').onclick = () => { state.selectedDay = payload.dayDefaults.bestDay; select.value = state.selectedDay; renderDayFocus(); };
+      document.getElementById('jump-worst').onclick = () => { state.selectedDay = payload.dayDefaults.worstDay; select.value = state.selectedDay; renderDayFocus(); };
+      document.getElementById('jump-latest').onclick = () => { state.selectedDay = payload.dayDefaults.latestDay; select.value = state.selectedDay; renderDayFocus(); };
+    }
+
+    function renderDaily(payload) {
+      const dots = payload.dailyDots || [];
+      Plotly.react('daily-chart', [{
+        type: 'scatter',
+        mode: 'markers',
+        x: dots.map((row) => row.avgProbability),
+        y: dots.map((row) => row.pnl),
+        text: dots.map((row) => row.day),
+        marker: {
+          size: dots.map((row) => 10 + row.trades * 2.4),
+          color: dots.map((row) => dominantColor(row.dominantSleeve || 'mixed')),
+          line: {
+            color: dots.map((row) => row.day === state.selectedDay ? '#f8fafc' : 'rgba(255,255,255,0.0)'),
+            width: dots.map((row) => row.day === state.selectedDay ? 2 : 0),
+          },
+          opacity: 0.88,
+        },
+        customdata: dots.map((row) => [row.trades, row.winRate, row.featureStress, row.dominantSleeve]),
+        hovertemplate: '%{text}<br>Avg confidence: %{x:.1%}<br>Day P&L: $%{y:,.0f}<br>Trades: %{customdata[0]}<br>Win rate: %{customdata[1]:.1%}<br>Feature stress: %{customdata[2]:.2f}<br>Sleeve mix: %{customdata[3]}<extra></extra>'
+      }], {
+        paper_bgcolor: '#07111f',
+        plot_bgcolor: '#07111f',
+        margin: { t: 20, r: 20, b: 60, l: 60 },
+        xaxis: { title: 'Average model confidence', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)', tickformat: '.0%' },
+        yaxis: { title: 'Day P&L', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
+        font: { color: '#e2e8f0' }
+      }, { responsive: true, displayModeBar: false });
+
+      const chart = document.getElementById('daily-chart');
+      chart.on('plotly_click', (event) => {
+        const point = event.points && event.points[0];
+        if (!point) return;
+        state.selectedDay = point.text;
+        document.getElementById('day-select').value = state.selectedDay;
+        renderDaily(payload);
+        renderDayFocus();
+      });
+    }
+
+    function renderDayFocus() {
+      const payload = state.payload;
+      const day = state.selectedDay;
+      const row = (payload.dailyDots || []).find((item) => item.day === day);
+      const trades = (payload.dayTrades && payload.dayTrades[day]) || [];
+      document.getElementById('day-focus-title').textContent = row ? `Day focus, ${row.day}` : 'Day focus';
+      document.getElementById('day-pnl').textContent = row ? fmtMoney(row.pnl) : '-';
+      document.getElementById('day-pnl').className = `value ${row && row.pnl >= 0 ? 'positive' : 'negative'}`;
+      document.getElementById('day-confidence').textContent = row ? fmtPct(row.avgProbability) : '-';
+      document.getElementById('day-stress').textContent = row ? Number(row.featureStress || 0).toFixed(2) : '-';
+
+      Plotly.react('day-trades-chart', [{
+        type: 'scatter',
+        mode: 'markers',
+        x: trades.map((trade) => trade.entryMinuteEt),
+        y: trades.map((trade) => trade.probability),
+        text: trades.map((trade) => `${trade.sleeve.toUpperCase()} ${trade.side}`),
+        marker: {
+          size: trades.map((trade) => 10 + Number(trade.contracts2MnqBase || 0) * 3),
+          color: trades.map((trade) => dominantColor(trade.sleeve)),
+          line: { color: 'rgba(255,255,255,0.18)', width: 1 },
+        },
+        customdata: trades.map((trade) => [trade.pnlDollars2MnqBase, trade.exitReason, trade.contracts2MnqBase, trade.regime]),
+        hovertemplate: '%{text}<br>Entry ET: %{x}<br>Probability: %{y:.1%}<br>P&L: $%{customdata[0]:,.0f}<br>Exit: %{customdata[1]}<br>Contracts: %{customdata[2]}<br>Regime: %{customdata[3]}<extra></extra>'
+      }], {
+        paper_bgcolor: '#07111f',
+        plot_bgcolor: '#07111f',
+        margin: { t: 20, r: 20, b: 60, l: 60 },
+        xaxis: {
+          title: 'Entry time ET',
+          color: '#94a3b8',
+          gridcolor: 'rgba(148,163,184,0.12)',
+          tickvals: [120, 180, 240, 300, 360, 420, 480, 540, 600, 690, 780, 870],
+          ticktext: [120, 180, 240, 300, 360, 420, 480, 540, 600, 690, 780, 870].map(clockLabel),
+        },
+        yaxis: { title: 'Probability', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)', tickformat: '.0%' },
+        font: { color: '#e2e8f0' }
+      }, { responsive: true, displayModeBar: false });
+
+      const list = document.getElementById('trade-list');
+      list.innerHTML = trades.slice(0, 8).map((trade) => `
+        <div class="trade-row">
+          <div class="trade-left">
+            <span class="dot" style="background:${dominantColor(trade.sleeve)}"></span>
+            <strong>${trade.sleeve.toUpperCase()} ${trade.side}</strong>
+            <span>${clockLabel(trade.entryMinuteEt)}</span>
+            <span>${fmtPct(trade.probability)}</span>
+          </div>
+          <div class="trade-right">
+            <span>${trade.contracts2MnqBase} MNQ</span>
+            <span>${trade.exitReason}</span>
+            <span class="${Number(trade.pnlDollars2MnqBase || 0) >= 0 ? 'positive' : 'negative'}">${fmtMoney(trade.pnlDollars2MnqBase)}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function wireSleeveButtons() {
+      document.getElementById('btn-rth').onclick = () => {
+        state.selectedSleeve = 'rth';
+        renderTopFeatures();
+      };
+      document.getElementById('btn-europe').onclick = () => {
+        state.selectedSleeve = 'europe';
+        renderTopFeatures();
+      };
     }
 
     async function main() {
       try {
-        const response = await fetch('./data/dashboard-data.json', { cache: 'no-store' });
+        const response = await fetch('./data/strategy-playground-mlp.json', { cache: 'no-store' });
         const payload = await response.json();
-        const slots = normalizeSlots(payload);
-        setHeadline(slots);
-        renderPnlChart(slots);
-        renderRiskChart(slots);
-        renderEquityChart(slots.slice(0, 5));
+        state.payload = payload;
+        state.selectedDay = payload.dayDefaults.latestDay || payload.dayDefaults.bestDay || (payload.dailyDots[0] && payload.dailyDots[0].day) || null;
+        setHeadline(payload);
+        renderMonthly(payload);
+        renderRisk(payload);
+        renderFeatureSurface(payload);
+        wireSleeveButtons();
+        renderTopFeatures();
+        renderMonteCarlo(payload);
+        buildDayOptions(payload);
+        renderDaily(payload);
+        renderDayFocus();
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        document.getElementById('pg-slot-count').textContent = 'Error';
-        document.getElementById('pg-total-pnl').textContent = message;
-        document.getElementById('pg-avg-winrate').textContent = 'n/a';
-        document.getElementById('pg-avg-dd').textContent = 'n/a';
-        document.getElementById('pg-pnl-chart').innerHTML = `<div class="muted">Failed to load dashboard data: ${message}</div>`;
-        document.getElementById('pg-risk-chart').innerHTML = `<div class="muted">Failed to load dashboard data: ${message}</div>`;
-        document.getElementById('pg-equity-chart').innerHTML = `<div class="muted">Failed to load dashboard data: ${message}</div>`;
+        document.getElementById('kpi-net').textContent = 'Error';
+        document.getElementById('kpi-month').textContent = message;
+        document.getElementById('kpi-mc').textContent = 'n/a';
+        document.getElementById('kpi-skipped').textContent = 'n/a';
+        ['monthly-chart', 'risk-chart', 'feature-surface', 'top-features-chart', 'mc-chart', 'daily-chart', 'day-trades-chart', 'brain-svg'].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.innerHTML = `<div class="muted-note">Failed to load strategy playground data: ${message}</div>`;
+        });
       }
     }
 
