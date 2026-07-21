@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Praxion Research | Regime</title>
-  <meta name="description" content="Regime workbench for Praxion Research, including the SPXW options surface buildout." />
+  <meta name="description" content="Regime workbench for Praxion Research, powered by the daily desktop NQ RVWAP ML dataset." />
   <link rel="stylesheet" href="./styles.css" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
@@ -26,29 +26,29 @@
     <section class="hero">
       <div class="container hero-grid">
         <div class="hero-card">
-          <div class="eyebrow">SPXW Options Surface Lab</div>
-          <h1>Build the regime.<br/>See the surface.</h1>
-          <p class="lead">This page is the Praxion workbench for turning SPXW options data into a usable volatility surface. The first pass is focused on data readiness, strike and expiry coverage, and the assumptions needed to convert raw option prices into implied vol.</p>
+          <div class="eyebrow">Desktop Regime Lab</div>
+          <h1>Build the regime.<br/>See the tape.</h1>
+          <p class="lead">This page now runs off the daily desktop NQ RVWAP ML dataset. It tracks intraday regime strength, chop, VWAP context, higher-timeframe balance, and ORB overlays without depending on the stale spring payloads.</p>
           <div class="actions">
-            <a class="button primary" href="#surface">Open Surface Workbench</a>
+            <a class="button primary" href="#surface">Open Regime Workbench</a>
             <a class="button ghost" href="./dashboard.html">Back to Dashboard</a>
           </div>
         </div>
         <aside class="hero-card hero-side">
           <div class="stat">
             <div class="label">Dataset Status</div>
-            <div class="value">Ingested</div>
-            <div class="small">The SPXW Databento export was opened successfully and converted to local Parquet.</div>
+            <div class="value">Live</div>
+            <div class="small">Fed from the desktop NQ live-safe feature store that the updater refreshes each trading day.</div>
           </div>
           <div class="stat">
-            <div class="label">Rows</div>
-            <div class="value">3.2M</div>
-            <div class="small">1-minute OPRA options bars across one month of SPXW contracts.</div>
+            <div class="label">Top Panel</div>
+            <div class="value">Desktop NQ</div>
+            <div class="small">Recent RTH sessions, intraday feature scores, and selected-session replay all come from the same daily feature build.</div>
           </div>
           <div class="stat">
             <div class="label">Current State</div>
-            <div class="value">3D Snapshot Live</div>
-            <div class="small">The page now loads timestamp snapshots from the SPXW Greeks dataset through the Mac mini data endpoint.</div>
+            <div class="value">Daily Refresh</div>
+            <div class="small">The page is wired to the dataset that already updates on the desktop, so the regime surfaces stay fresh automatically.</div>
           </div>
         </aside>
       </div>
@@ -56,25 +56,25 @@
 
     <section class="section" id="surface">
       <div class="container">
-        <h2 class="section-title">Surface Workbench</h2>
-        <p class="section-copy">This first version sets up the page and the data framing. The next layer is to join the option bars with the underlying and calculate implied vol by expiry and strike so we can render slices, smiles, and a full surface.</p>
+        <h2 class="section-title">Desktop Regime Workbench</h2>
+        <p class="section-copy">The top panel is now fed by the same desktop feature store that updates daily, so the surfaces, selected-session replay, and higher-timeframe context stay aligned with the live RVWAP ML research dataset.</p>
         <div class="band">
           <div class="band-grid">
             <div class="kpi">
-              <div class="label">Symbols</div>
-              <div class="value">24,255</div>
+              <div class="label">Primary Symbol</div>
+              <div class="value">NQ</div>
             </div>
             <div class="kpi">
-              <div class="label">Range</div>
-              <div class="value">1 Month</div>
+              <div class="label">Primary Window</div>
+              <div class="value">Last 60 RTH Sessions</div>
             </div>
             <div class="kpi">
-              <div class="label">Start</div>
-              <div class="value" style="font-size:20px;">2026-03-23</div>
+              <div class="label">Source</div>
+              <div class="value" style="font-size:20px;">Desktop ML Store</div>
             </div>
             <div class="kpi">
-              <div class="label">End</div>
-              <div class="value" style="font-size:20px;">2026-04-20</div>
+              <div class="label">Refresh</div>
+              <div class="value" style="font-size:20px;">Daily</div>
             </div>
           </div>
         </div>
@@ -85,16 +85,16 @@
       <div class="container">
         <div class="grid-3">
           <div class="card">
-            <h3>What We Already Have</h3>
-            <p>SPXW OPRA 1-minute OHLCV in Parquet, with timestamp, symbol, instrument ID, and bar prices. This is enough to start normalizing the contract surface and preparing the strike-expiry grid.</p>
+            <h3>What Feeds It Now</h3>
+            <p>The desktop NQ live-safe feature store supplies timestamped OHLCV, VWAP distance, ADX, regime labels, and ML regime scores. That gives the page a real daily-updating tape instead of placeholder payloads.</p>
           </div>
           <div class="card">
-            <h3>What We Now Have</h3>
-            <p>Underlying SPX has already been paired in from IBKR and a model-derived Greeks dataset has been built, so the page can now render point-in-time 3D IV snapshots with a timestamp slider.</p>
+            <h3>What This Unlocks</h3>
+            <p>The Regime page can now render recent-session context surfaces, selected-session replay, higher-timeframe chop and trend surfaces, and ORB overlays from one coherent source.</p>
           </div>
           <div class="card">
-            <h3>Recommended First Build</h3>
-            <p>Start with a snapshot view for one timestamp, parse strikes and expiries from SPXW symbols, solve implied vol from option close, then render smile slices and an expiry-by-strike surface.</p>
+            <h3>Why This Source Wins</h3>
+            <p>It is already maintained by the desktop updater, so the page can inherit the same daily refresh cadence as the core RVWAP ML research dataset instead of relying on the stale May-era regime payloads.</p>
           </div>
         </div>
       </div>
@@ -106,56 +106,56 @@
           <div class="mock-topbar">
             <div>
               <div class="eyebrow" style="margin-bottom:6px;">Praxion Regime</div>
-              <div class="muted">3D implied-vol snapshot with live timestamp slider.</div>
+              <div class="muted">Desktop-fed intraday regime surfaces with selected-session replay.</div>
             </div>
             <div class="badges">
-              <div class="badge">SPXW</div>
-              <div class="badge">OPRA</div>
-              <div class="badge">IBKR paired</div>
-              <div class="badge">3D view</div>
+              <div class="badge">NQ</div>
+              <div class="badge">Desktop ML</div>
+              <div class="badge">RTH</div>
+              <div class="badge">Daily Refresh</div>
             </div>
           </div>
           <div class="mock-body">
             <div class="slot-panel">
               <div class="slot-header">
                 <div>
-                  <h3>3D Regime Surface</h3>
-                  <p class="muted" style="margin:8px 0 0 0;">Strike on X, days-to-expiry on Y, implied vol on Z. Move the slider to step through time.</p>
+                  <h3>Intraday Regime Surface</h3>
+                  <p class="muted" style="margin:8px 0 0 0;">Recent sessions are stacked into daily surfaces, while the controls below drive the selected-session replay and per-bar regime readout.</p>
                 </div>
               </div>
               <div class="slot-kpis">
-                <div class="slot-kpi"><div class="label">0DTE Day</div><div class="value" id="regime-day-label" style="font-size:18px;">Loading...</div></div>
+                <div class="slot-kpi"><div class="label">Session Day</div><div class="value" id="regime-day-label" style="font-size:18px;">Loading...</div></div>
                 <div class="slot-kpi"><div class="label">Timestamp</div><div class="value" id="regime-ts-label" style="font-size:18px;">Loading...</div></div>
-                <div class="slot-kpi"><div class="label">SPX Spot</div><div class="value" id="regime-spot">n/a</div></div>
-                <div class="slot-kpi"><div class="label">Minutes Left</div><div class="value" id="regime-minutes-left">n/a</div></div>
+                <div class="slot-kpi"><div class="label">NQ Close</div><div class="value" id="regime-spot">n/a</div></div>
+                <div class="slot-kpi"><div class="label">Time (ET)</div><div class="value" id="regime-minutes-left">n/a</div></div>
               </div>
               <div class="slot-kpis" style="margin-top:14px;">
-                <div class="slot-kpi"><div class="label">Pin Strike</div><div class="value" id="regime-pin-strike">n/a</div></div>
-                <div class="slot-kpi"><div class="label">Pinning Area</div><div class="value" id="regime-pin-band" style="font-size:18px;">n/a</div></div>
-                <div class="slot-kpi"><div class="label">Gamma Flip Proxy</div><div class="value" id="regime-gamma-flip">n/a</div></div>
-                <div class="slot-kpi"><div class="label">Proxy Note</div><div class="value" id="regime-proxy-note" style="font-size:14px;">Volume-weighted gamma heuristic</div></div>
+                <div class="slot-kpi"><div class="label">Regime</div><div class="value" id="regime-pin-strike">n/a</div></div>
+                <div class="slot-kpi"><div class="label">Trade Allowed</div><div class="value" id="regime-pin-band" style="font-size:18px;">n/a</div></div>
+                <div class="slot-kpi"><div class="label">ADX 14</div><div class="value" id="regime-gamma-flip">n/a</div></div>
+                <div class="slot-kpi"><div class="label">Source Note</div><div class="value" id="regime-proxy-note" style="font-size:14px;">Desktop live-safe feature store</div></div>
               </div>
               <div class="slot-table-wrap" style="margin-bottom:14px;">
-                <div class="slot-table-title">0DTE Day Selector</div>
+                <div class="slot-table-title">Session Day Selector</div>
                 <select id="regime-day-select" style="width:100%; padding:12px 14px; border-radius:14px; background:#07111f; color:#e5eefc; border:1px solid rgba(148,163,184,0.18);"></select>
               </div>
               <div class="slot-table-wrap" style="margin-bottom:14px;">
-                <div class="slot-table-title">Timestamp Slider</div>
+                <div class="slot-table-title">Intraday Minute Slider</div>
                 <input id="regime-slider" type="range" min="0" max="0" value="0" style="width:100%; accent-color:#60a5fa;" />
               </div>
               <div class="slot-table-wrap">
-                <div class="slot-table-title">Volatility Surface</div>
+                <div class="slot-table-title">Trend Score Surface</div>
                 <div id="regime-surface-plot" style="height:560px;"></div>
               </div>
               <div class="slot-table-wrap" style="margin-top:14px;">
-                <div class="slot-table-title">Option Price Surface</div>
+                <div class="slot-table-title">VWAP Distance Surface</div>
                 <div id="regime-price-plot" style="height:560px;"></div>
               </div>
               <div class="slot-table-wrap" style="margin-top:14px;">
-                <div class="slot-table-title">Full-Day IV Surface</div>
+                <div class="slot-table-title">Selected Session Replay</div>
                 <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
                   <button id="regime-sheet-play" style="padding:10px 14px; border-radius:12px; border:1px solid rgba(148,163,184,0.18); background:#07111f; color:#e5eefc; cursor:pointer;">Play Days</button>
-                  <div class="muted" id="regime-sheet-day-label">Animation Day: Loading...</div>
+                  <div class="muted" id="regime-sheet-day-label">Session Sweep: Loading...</div>
                 </div>
                 <input id="regime-sheet-day-slider" type="range" min="0" max="0" value="0" style="width:100%; margin-bottom:12px; accent-color:#ffffff;" />
                 <div id="regime-selector-sheet-plot" style="height:560px;"></div>
@@ -164,14 +164,14 @@
                 <div class="slot-table-title">Snapshot Notes</div>
                 <table class="table">
                   <tbody>
-                    <tr><td>Parquet root</td><td><code>fund/04_data/spxw_options_1min_with_greeks</code></td></tr>
-                    <tr><td>View</td><td>0DTE blanket surface rendered from the local Greeks dataset</td></tr>
-                    <tr><td>Surface axes</td><td>Strike × Minutes to expiry × Implied vol %</td></tr>
-                    <tr><td>Slice control</td><td>The timestamp slider highlights the selected intraday smile on top of both blankets while keeping the chart field fixed.</td></tr>
-                    <tr><td>Second graph</td><td>Option price uses the same day selector, timestamp slider, and a fixed strike window around spot.</td></tr>
-                    <tr><td>Third graph</td><td>A static full-day IV surface laid out by strike and day progress, with the slider only moving the highlighted current white slice.</td></tr>
-                    <tr><td>Pin / flip box</td><td>Uses a volume-weighted gamma proxy from the same selected 0DTE slice. It is directional context, not a true dealer-position measure.</td></tr>
-                    <tr><td>Current scope</td><td>0DTE days from the one-month SPXW sample, rendered in a fixed ±100 point strike band around the day spot.</td></tr>
+                    <tr><td>Data root</td><td><code>/Users/macmini1/Desktop/Praxion Datasets/NQ_RVWAP_ML/live_safe_feature_store</code></td></tr>
+                    <tr><td>View</td><td>Recent-session intraday regime surfaces rendered from the daily desktop feature build.</td></tr>
+                    <tr><td>Surface axes</td><td>Time of day on X, session index on Y, selected feature value on Z.</td></tr>
+                    <tr><td>Minute control</td><td>The minute slider scrubs the selected session replay and bar-level regime readout.</td></tr>
+                    <tr><td>Second graph</td><td>VWAP distance uses the same recent-session stack, so drift from VWAP can be compared across days.</td></tr>
+                    <tr><td>Third graph</td><td>The replay chart shows the chosen session with price on the left axis and regime scores plus ADX on the right axis.</td></tr>
+                    <tr><td>Regime box</td><td>Shows the current bar regime label, whether the model marks trading as allowed, and the current ADX read.</td></tr>
+                    <tr><td>Current scope</td><td>Regular trading hours only, using the last 60 desktop-fed sessions available to the page.</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -186,11 +186,11 @@
         <div class="mock-shell">
           <div class="mock-topbar">
             <div>
-              <div class="eyebrow" style="margin-bottom:6px;">ES Futures Regime Models</div>
-              <div class="muted">These views come from the deeper ES futures regime dataset, so the page can model higher-timeframe chop without leaning on the one-month SPXW options sample.</div>
+              <div class="eyebrow" style="margin-bottom:6px;">Desktop Futures Regime Models</div>
+              <div class="muted">These views are also built from the desktop NQ feature store, so the higher-timeframe chop and trend surfaces stay on the same daily-updating source as the intraday panel above.</div>
             </div>
             <div class="badges">
-              <div class="badge">ES</div>
+              <div class="badge">NQ</div>
               <div class="badge">1-Minute</div>
               <div class="badge">HTF Chop</div>
               <div class="badge">Regime</div>
@@ -333,14 +333,14 @@
                 <div class="slot-table-title">Model Notes</div>
                 <table class="table">
                   <tbody>
-                    <tr><td>Data root</td><td><code>fund/04_data/es_1min_with_regime_uniform</code></td></tr>
-                    <tr><td>4H / daily chop</td><td>Built from the full ES 1-minute futures tape by combining directional efficiency with an auction-balance score that rewards overlap, VWAP re-acceptance, and flip density.</td></tr>
-                    <tr><td>4H / daily trend</td><td>Uses the same HTF periods, but adds trend alignment and ADX so the surface highlights directional persistence instead of balance.</td></tr>
+                    <tr><td>Data root</td><td><code>/Users/macmini1/Desktop/Praxion Datasets/NQ_RVWAP_ML/live_safe_feature_store</code></td></tr>
+                    <tr><td>4H / daily chop</td><td>Built from the desktop NQ 1-minute futures tape by combining directional efficiency with an auction-balance score that rewards overlap, VWAP re-acceptance, and flip density.</td></tr>
+                    <tr><td>4H / daily trend</td><td>Uses the same higher-timeframe periods, but adds trend alignment and ADX so the surface highlights directional persistence instead of balance.</td></tr>
                     <tr><td>ORB overlays</td><td>Join the current ORB trade stream, preferring Fred's inbound JSON when available, to matching NQ daily regime rows, then show scatter, expectancy buckets, and an equity-curve preview that skips the highest-chop quartile.</td></tr>
-                    <tr><td>Window selector</td><td>Supports the last 2 weeks, 3 weeks, 4 weeks, or the full sample loaded into the page.</td></tr>
+                    <tr><td>Window selector</td><td>Supports the last 2 weeks, 3 weeks, 4 weeks, or the most recent broader sample loaded into the page.</td></tr>
                     <tr><td>VWAP model</td><td>Signed distance from session VWAP in basis points during regular trading hours.</td></tr>
                     <tr><td>Trend model</td><td>ADX 14 across regular trading hours as a direct trend-strength surface.</td></tr>
-                    <tr><td>Reason</td><td>We only have about one month of options data, but we poll ES futures daily and have a deeper regime-ready futures dataset for higher-timeframe classification.</td></tr>
+                    <tr><td>Reason</td><td>The desktop dataset is already refreshed daily, so the regime page can stay current off the same pipeline instead of a stale spring snapshot.</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -356,7 +356,6 @@
   </footer>
 
   <script>
-    const REGIME_DATA_BASE = 'https://data.praxionresearch.com';
     const FUTURES_REGIME_MODELS_PATH = './data/regime-futures-es-models.json';
     const STRIKE_HALF_RANGE = 100;
     const slider = document.getElementById('regime-slider');
@@ -392,14 +391,11 @@
     const orbRangePosLabel = document.getElementById('regime-orb-range-pos');
     const orbRangeNegLabel = document.getElementById('regime-orb-range-neg');
     const orbDowButtons = Array.from(document.querySelectorAll('#regime-orb-dow-toggle [data-dow]'));
-    let regimeDays = null;
-    let dayPayload = null;
     let renderTimer = null;
-    let sheetRenderDay = null;
-    let sheetPayloadCache = new Map();
     let sheetPlayTimer = null;
-    let currentDayScope = null;
     let futuresModelsPayload = null;
+    let selectedIntradayDay = null;
+    let selectedIntradayRows = [];
     const ORB_WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri'];
     let orbDowFilters = new Set(ORB_WEEKDAY_KEYS);
 
@@ -1292,6 +1288,7 @@
       const windowPresets = futuresModelsPayload?.htf_models?.window_presets || [];
       htfWindowSelect.innerHTML = windowPresets.map((preset) => `<option value="${preset.key}">${preset.label}</option>`).join('');
       htfWindowSelect.value = futuresModelsPayload?.htf_models?.default_window || (windowPresets[0]?.key || 'full');
+      initRegimeFromFuturesModels();
       renderHtfModels();
       renderFuturesContextSurface(
         'regime-vwap-model-plot',
@@ -1320,158 +1317,233 @@
       );
     }
 
-    function updatePinningBox(selectedTs, selectedMinutes) {
-      const selectedAllRows = (dayPayload.surface_rows || []).filter((row) => row.timestamp_utc === selectedTs && row.strike != null);
-      spotLabel.textContent = selectedAllRows.length ? Number(selectedAllRows[0].spot).toFixed(2) : 'n/a';
-      minutesLabel.textContent = selectedMinutes == null ? 'n/a' : `${Math.round(selectedMinutes)}`;
-      if (!selectedAllRows.length) {
+    function formatEtTimestamp(value) {
+      if (!value) return 'n/a';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return date.toLocaleString('en-US', {
+        timeZone: 'America/New_York',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).replace(',', '');
+    }
+
+    function renderSelectedSessionReplay(rows, selectedIndex) {
+      const containerId = 'regime-selector-sheet-plot';
+      if (!rows.length) {
+        document.getElementById(containerId).innerHTML = '<div class="muted">No selected-session replay data available yet.</div>';
+        return;
+      }
+      const idx = Math.min(rows.length - 1, Math.max(0, Number(selectedIndex || 0)));
+      const selectedRow = rows[idx] || rows[rows.length - 1];
+      const x = rows.map((row) => row.minute_label);
+      const traces = [
+        {
+          type: 'scatter',
+          mode: 'lines',
+          name: 'NQ Close',
+          x,
+          y: rows.map((row) => toFiniteNumber(row.close)),
+          line: { color: '#f8fafc', width: 2.6 },
+          hovertemplate: '%{x} ET<br>NQ Close %{y:.2f}<extra></extra>',
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          name: 'Trend Score',
+          x,
+          y: rows.map((row) => toFiniteNumber(row.trend_score)),
+          yaxis: 'y2',
+          line: { color: '#22c55e', width: 2.2 },
+          hovertemplate: '%{x} ET<br>Trend %{y:.1f}<extra></extra>',
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          name: 'Chop Score',
+          x,
+          y: rows.map((row) => toFiniteNumber(row.chop_score)),
+          yaxis: 'y2',
+          line: { color: '#38bdf8', width: 2.1 },
+          hovertemplate: '%{x} ET<br>Chop %{y:.1f}<extra></extra>',
+        },
+        {
+          type: 'scatter',
+          mode: 'lines',
+          name: 'ADX 14',
+          x,
+          y: rows.map((row) => toFiniteNumber(row.adx_14)),
+          yaxis: 'y2',
+          line: { color: '#f59e0b', width: 1.8, dash: 'dot' },
+          hovertemplate: '%{x} ET<br>ADX %{y:.1f}<extra></extra>',
+        },
+        {
+          type: 'scatter',
+          mode: 'markers',
+          name: 'Selected Bar',
+          x: [selectedRow.minute_label],
+          y: [toFiniteNumber(selectedRow.close)],
+          marker: { color: '#ffffff', size: 8, line: { color: '#0f172a', width: 1 } },
+          hovertemplate: `${selectedRow.minute_label} ET<br>NQ Close %{y:.2f}<extra></extra>`,
+        },
+      ];
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { l: 48, r: 52, t: 18, b: 42 },
+        xaxis: { title: 'Time of Day (ET)', color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.10)' },
+        yaxis: { title: 'NQ Close', color: '#cbd5e1', gridcolor: 'rgba(148,163,184,0.15)' },
+        yaxis2: {
+          title: 'Score / ADX',
+          color: '#cbd5e1',
+          overlaying: 'y',
+          side: 'right',
+          range: [0, 100],
+          gridcolor: 'rgba(148,163,184,0.0)',
+        },
+        legend: { orientation: 'h', y: 1.06, x: 0 },
+        shapes: [{
+          type: 'line',
+          xref: 'x',
+          yref: 'paper',
+          x0: selectedRow.minute_label,
+          x1: selectedRow.minute_label,
+          y0: 0,
+          y1: 1,
+          line: { color: 'rgba(248,250,252,0.3)', width: 1.5, dash: 'dot' },
+        }],
+        annotations: [{
+          xref: 'paper',
+          yref: 'paper',
+          x: 0.995,
+          y: 1.02,
+          xanchor: 'right',
+          showarrow: false,
+          font: { color: '#cbd5e1', size: 12 },
+          text: `${selectedRow.regime || 'n/a'} • trend ${Number(selectedRow.trend_score || 0).toFixed(1)} • chop ${Number(selectedRow.chop_score || 0).toFixed(1)}`,
+        }],
+      };
+      Plotly.react(containerId, traces, layout, { responsive: true, displayModeBar: false });
+    }
+
+    function updateIntradaySelectionBox(row) {
+      if (!row) {
+        tsLabel.textContent = 'n/a';
+        spotLabel.textContent = 'n/a';
+        minutesLabel.textContent = 'n/a';
         pinStrikeLabel.textContent = 'n/a';
         pinBandLabel.textContent = 'n/a';
         gammaFlipLabel.textContent = 'n/a';
-        proxyNoteLabel.textContent = 'No slice data';
+        proxyNoteLabel.textContent = 'Desktop feature store unavailable';
         return;
       }
+      tsLabel.textContent = formatEtTimestamp(row.timestamp_et);
+      spotLabel.textContent = toFiniteNumber(row.close) != null ? Number(row.close).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 }) : 'n/a';
+      minutesLabel.textContent = row.minute_label || 'n/a';
+      pinStrikeLabel.textContent = row.regime || 'n/a';
+      pinBandLabel.textContent = row.trade_allowed ? 'Allowed' : 'Blocked';
+      gammaFlipLabel.textContent = toFiniteNumber(row.adx_14) != null ? Number(row.adx_14).toFixed(1) : 'n/a';
+      const confidence = toFiniteNumber(row.regime_confidence);
+      proxyNoteLabel.textContent = confidence != null ? `Desktop feature store, confidence ${confidence.toFixed(2)}` : 'Desktop live-safe feature store';
+    }
 
-      const weighted = selectedAllRows
-        .filter((row) => row.gamma != null)
-        .map((row) => ({
-          ...row,
-          gammaProxy: Math.abs(Number(row.gamma)) * Math.max(Number(row.volume || 0), 1),
-          signedGammaProxy: (row.option_type === 'c' ? 1 : -1) * Math.abs(Number(row.gamma || 0)) * Math.max(Number(row.volume || 0), 1),
-        }))
-        .sort((a, b) => a.strike - b.strike);
+    function renderDesktopOverview(payload) {
+      renderFuturesContextSurface(
+        'regime-surface-plot',
+        payload,
+        'trend_score',
+        'Trend Score',
+        'Trend Score',
+        [
+          [0, 'rgb(30, 41, 59)'],
+          [0.35, 'rgb(37, 99, 235)'],
+          [0.65, 'rgb(34, 197, 94)'],
+          [1, 'rgb(250, 204, 21)'],
+        ],
+      );
+      renderFuturesContextSurface(
+        'regime-price-plot',
+        payload,
+        'vwap_distance_bps',
+        'VWAP Distance (bps)',
+        'VWAP Distance',
+        [
+          [0, 'rgb(30, 58, 138)'],
+          [0.5, 'rgb(241, 245, 249)'],
+          [1, 'rgb(153, 27, 27)'],
+        ],
+      );
+    }
 
-      if (!weighted.length) {
-        pinStrikeLabel.textContent = 'n/a';
-        pinBandLabel.textContent = 'n/a';
-        gammaFlipLabel.textContent = 'n/a';
-        proxyNoteLabel.textContent = 'Gamma unavailable in slice';
+    function loadDesktopDay(day, preferredIndex = null) {
+      const rows = futuresModelsPayload?.intraday?.minute_rows?.[day] || [];
+      selectedIntradayDay = day;
+      selectedIntradayRows = rows;
+      dayLabel.textContent = day || 'n/a';
+      sheetDayLabel.textContent = `Session Sweep: ${day || 'n/a'}`;
+      if (!rows.length) {
+        slider.min = '0';
+        slider.max = '0';
+        slider.value = '0';
+        updateIntradaySelectionBox(null);
+        document.getElementById('regime-selector-sheet-plot').innerHTML = '<div class="muted">No intraday rows available for this session.</div>';
         return;
       }
-
-      const top = weighted.slice().sort((a, b) => b.gammaProxy - a.gammaProxy).slice(0, 3);
-      const pinCenter = top.reduce((sum, row) => sum + row.strike * row.gammaProxy, 0) / Math.max(top.reduce((sum, row) => sum + row.gammaProxy, 0), 1e-9);
-      const pinLow = Math.min(...top.map((row) => row.strike));
-      const pinHigh = Math.max(...top.map((row) => row.strike));
-      pinStrikeLabel.textContent = pinCenter.toFixed(2);
-      pinBandLabel.textContent = `${pinLow.toFixed(2)} to ${pinHigh.toFixed(2)}`;
-
-      let running = 0;
-      let prev = null;
-      let flip = null;
-      for (const row of weighted) {
-        running += row.signedGammaProxy;
-        if (prev && ((prev.running <= 0 && running >= 0) || (prev.running >= 0 && running <= 0))) {
-          const span = running - prev.running;
-          const ratio = Math.abs(span) < 1e-9 ? 0 : Math.abs(prev.running) / Math.abs(span);
-          flip = prev.strike + (row.strike - prev.strike) * ratio;
-          break;
-        }
-        prev = { strike: row.strike, running };
-      }
-      gammaFlipLabel.textContent = flip == null ? 'No clear flip' : flip.toFixed(2);
-      proxyNoteLabel.textContent = 'Volume-weighted gamma proxy, not true dealer OI';
-    }
-
-    function pickSheetSelectedTs(payload) {
-      const timestamps = payload?.timestamps_utc || [];
-      if (!timestamps.length) return null;
-      const currentTimestamps = dayPayload?.timestamps_utc || [];
-      const currentMax = Math.max(currentTimestamps.length - 1, 1);
-      const ratio = currentTimestamps.length ? Number(slider.value || 0) / currentMax : 1;
-      const idx = Math.min(timestamps.length - 1, Math.max(0, Math.round(ratio * Math.max(timestamps.length - 1, 0))));
-      return timestamps[idx] || timestamps[timestamps.length - 1] || null;
-    }
-
-    async function ensureSheetPayload(day) {
-      if (!day) return null;
-      if (sheetPayloadCache.has(day)) return sheetPayloadCache.get(day);
-      const payload = await fetchJson(`${REGIME_DATA_BASE}/regime/zero-dte-day?date=${encodeURIComponent(day)}`);
-      sheetPayloadCache.set(day, payload);
-      return payload;
-    }
-
-    async function renderSheetDay(day) {
-      const payload = await ensureSheetPayload(day);
-      sheetRenderDay = day;
-      sheetDayLabel.textContent = `Animation Day: ${day}`;
-      renderSelectorSheetPlot('regime-selector-sheet-plot', payload?.surface_rows || [], pickSheetSelectedTs(payload), buildDayScope(payload?.surface_rows || []));
-    }
-
-    function renderDaySurface(selectedTs) {
-      const rows = dayPayload.surface_rows || [];
-      const ivPlot = renderSurfacePlot('regime-surface-plot', rows, selectedTs, 'iv_pct', 'IV %', 'IV', currentDayScope);
-      renderSurfacePlot('regime-price-plot', rows, selectedTs, 'option_price', 'Option Price', 'Price', currentDayScope);
-      if (sheetRenderDay) {
-        renderSheetDay(sheetRenderDay).catch(() => {});
-      } else {
-        renderSelectorSheetPlot('regime-selector-sheet-plot', rows, selectedTs, currentDayScope);
-      }
-      const selectedMinutes = ivPlot.selectedMinutes;
-      tsLabel.textContent = selectedTs || 'n/a';
-      updatePinningBox(selectedTs, selectedMinutes);
-    }
-
-    async function loadDay(day) {
-      dayLabel.textContent = day;
-      tsLabel.textContent = 'Loading...';
-      dayPayload = await fetchJson(`${REGIME_DATA_BASE}/regime/zero-dte-day?date=${encodeURIComponent(day)}`);
-      currentDayScope = buildDayScope(dayPayload.surface_rows || []);
-      const timestamps = dayPayload.timestamps_utc || [];
+      const maxIndex = Math.max(rows.length - 1, 0);
       slider.min = '0';
-      slider.max = String(Math.max(timestamps.length - 1, 0));
-      slider.value = String(Math.max(timestamps.length - 1, 0));
-      renderDaySurface(timestamps[Number(slider.value)] || null);
+      slider.max = String(maxIndex);
+      const nextIndex = preferredIndex == null ? maxIndex : Math.min(maxIndex, Math.max(0, Number(preferredIndex || 0)));
+      slider.value = String(nextIndex);
+      const dayIndex = (futuresModelsPayload?.session_days || []).indexOf(day);
+      if (dayIndex >= 0) {
+        sheetDaySlider.value = String(dayIndex);
+      }
+      const row = rows[nextIndex] || rows[rows.length - 1] || null;
+      updateIntradaySelectionBox(row);
+      renderSelectedSessionReplay(rows, nextIndex);
     }
 
-    async function initRegime() {
-      regimeDays = await fetchJson(`${REGIME_DATA_BASE}/regime-0dte-days.json`);
-      const days = regimeDays.days || [];
+    function initRegimeFromFuturesModels() {
+      const days = futuresModelsPayload?.session_days || [];
       daySelect.innerHTML = days.map((day) => `<option value="${day}">${day}</option>`).join('');
       sheetDaySlider.min = '0';
       sheetDaySlider.max = String(Math.max(days.length - 1, 0));
-      const defaultDay = regimeDays.default_day || days[days.length - 1];
+      renderDesktopOverview(futuresModelsPayload || {});
+      const defaultDay = futuresModelsPayload?.intraday?.default_day || days[days.length - 1] || null;
       if (defaultDay) {
-        const defaultIdx = Math.max(0, days.indexOf(defaultDay));
         daySelect.value = defaultDay;
-        sheetDaySlider.value = String(defaultIdx);
-        sheetDayLabel.textContent = `Animation Day: ${defaultDay}`;
-        await loadDay(defaultDay);
-        await renderSheetDay(defaultDay);
+        loadDesktopDay(defaultDay);
       }
     }
 
     daySelect.addEventListener('change', () => {
       if (!daySelect.value) return;
-      loadDay(daySelect.value).catch((err) => {
-        tsLabel.textContent = 'Failed to load';
-        document.getElementById('regime-surface-plot').innerHTML = `<div class="muted">Regime surface feed error: ${err.message}</div>`;
-        document.getElementById('regime-price-plot').innerHTML = `<div class="muted">Regime surface feed error: ${err.message}</div>`;
-        document.getElementById('regime-selector-sheet-plot').innerHTML = `<div class="muted">Regime surface feed error: ${err.message}</div>`;
-      });
+      loadDesktopDay(daySelect.value);
     });
 
     slider.addEventListener('input', () => {
-      if (!dayPayload) return;
-      const timestamps = dayPayload.timestamps_utc || [];
+      if (!selectedIntradayRows.length) return;
       const idx = Number(slider.value || 0);
-      tsLabel.textContent = timestamps[idx] || 'Loading...';
+      const row = selectedIntradayRows[idx] || null;
+      updateIntradaySelectionBox(row);
       clearTimeout(renderTimer);
-      renderTimer = setTimeout(() => renderDaySurface(timestamps[idx] || null), 80);
+      renderTimer = setTimeout(() => renderSelectedSessionReplay(selectedIntradayRows, idx), 60);
     });
 
     sheetDaySlider.addEventListener('input', () => {
-      const days = regimeDays?.days || [];
+      const days = futuresModelsPayload?.session_days || [];
       const idx = Number(sheetDaySlider.value || 0);
       const day = days[idx];
       if (!day) return;
-      renderSheetDay(day).catch((err) => {
-        sheetDayLabel.textContent = `Animation Day failed: ${err.message}`;
-      });
+      daySelect.value = day;
+      loadDesktopDay(day);
     });
 
     sheetPlayButton.addEventListener('click', () => {
-      const days = regimeDays?.days || [];
+      const days = futuresModelsPayload?.session_days || [];
       if (!days.length) return;
       if (sheetPlayTimer) {
         clearInterval(sheetPlayTimer);
@@ -1486,7 +1558,9 @@
         idx = idx >= maxIdx ? 0 : idx + 1;
         sheetDaySlider.value = String(idx);
         const day = days[idx];
-        renderSheetDay(day).catch(() => {});
+        if (!day) return;
+        daySelect.value = day;
+        loadDesktopDay(day);
       }, 900);
     });
 
@@ -1544,21 +1618,6 @@
       });
     });
 
-    initRegime().catch((err) => {
-      dayLabel.textContent = 'Failed to load';
-      tsLabel.textContent = 'Failed to load';
-      spotLabel.textContent = 'n/a';
-      minutesLabel.textContent = 'n/a';
-      pinStrikeLabel.textContent = 'n/a';
-      pinBandLabel.textContent = 'n/a';
-      gammaFlipLabel.textContent = 'n/a';
-      proxyNoteLabel.textContent = 'Feed error';
-      document.getElementById('regime-surface-plot').innerHTML = `<div class="muted">Regime surface feed error: ${err.message}</div>`;
-      document.getElementById('regime-price-plot').innerHTML = `<div class="muted">Regime surface feed error: ${err.message}</div>`;
-      document.getElementById('regime-selector-sheet-plot').innerHTML = `<div class="muted">Regime surface feed error: ${err.message}</div>`;
-      sheetDayLabel.textContent = 'Animation Day: Feed error';
-    });
-
     initFuturesModels().catch((err) => {
       htfWindowLabel.textContent = 'Feed error';
       htf4hScoreLabel.textContent = 'n/a';
@@ -1575,6 +1634,18 @@
       document.getElementById('regime-orb-scatter-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
       document.getElementById('regime-orb-bucket-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
       document.getElementById('regime-orb-filter-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
+      dayLabel.textContent = 'Failed to load';
+      tsLabel.textContent = 'Failed to load';
+      spotLabel.textContent = 'n/a';
+      minutesLabel.textContent = 'n/a';
+      pinStrikeLabel.textContent = 'n/a';
+      pinBandLabel.textContent = 'n/a';
+      gammaFlipLabel.textContent = 'n/a';
+      proxyNoteLabel.textContent = 'Feed error';
+      sheetDayLabel.textContent = 'Session Sweep: Feed error';
+      document.getElementById('regime-surface-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
+      document.getElementById('regime-price-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
+      document.getElementById('regime-selector-sheet-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
       document.getElementById('regime-vwap-model-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
       document.getElementById('regime-trend-model-plot').innerHTML = `<div class="muted">Futures regime model error: ${err.message}</div>`;
     });
