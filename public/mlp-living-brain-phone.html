@@ -1,0 +1,1291 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Praxion Research | Living MLP, phone</title>
+  <meta name="description" content="Phone-first living MLP view with focus mode, animated flexing arches, and touch-friendly navigation." />
+  <style>
+    :root {
+      --bg: #030712;
+      --panel: rgba(7, 17, 31, 0.92);
+      --panel-soft: rgba(10, 20, 38, 0.92);
+      --border: rgba(148, 163, 184, 0.15);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --rth: #38bdf8;
+      --europe: #a78bfa;
+      --good: #22c55e;
+      --bad: #f87171;
+      --amber: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.12), transparent 32%),
+        radial-gradient(circle at 85% 12%, rgba(167, 139, 250, 0.12), transparent 26%),
+        linear-gradient(180deg, #020617 0%, #030712 100%);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      padding: max(12px, env(safe-area-inset-top)) 10px max(18px, env(safe-area-inset-bottom));
+    }
+    .app {
+      width: min(100%, 760px);
+      margin: 0 auto;
+      display: grid;
+      gap: 12px;
+    }
+    .card {
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      box-shadow: 0 26px 80px rgba(2, 6, 23, 0.28);
+      overflow: hidden;
+    }
+    .hero {
+      padding: 16px 16px 18px;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(56, 189, 248, 0.18), transparent 30%),
+        linear-gradient(180deg, rgba(7, 17, 31, 0.94), rgba(4, 10, 20, 0.98));
+    }
+    .eyebrow {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 10px;
+    }
+    h1 {
+      margin: 8px 0 10px;
+      font-size: clamp(26px, 8vw, 40px);
+      line-height: 1.02;
+    }
+    .lead {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    .control-stack {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .pill,
+    .button,
+    select {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font: inherit;
+      padding: 11px 14px;
+      min-height: 42px;
+    }
+    .pill.active,
+    .button:active,
+    .button:hover,
+    .pill:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.24);
+    }
+    .pill,
+    .button {
+      cursor: pointer;
+    }
+    .pill.grow,
+    .button.grow,
+    select.grow {
+      flex: 1 1 0;
+      min-width: 0;
+      text-align: center;
+    }
+    .button-icon {
+      padding-inline: 12px;
+      min-width: 44px;
+    }
+    .tiny-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .canvas-card {
+      background:
+        radial-gradient(circle at 50% 40%, rgba(56, 189, 248, 0.08), transparent 42%),
+        linear-gradient(180deg, rgba(7, 17, 31, 0.94), rgba(4, 10, 20, 0.98));
+    }
+    .canvas-head {
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+    }
+    .canvas-title {
+      margin: 0;
+      font-size: 18px;
+    }
+    .canvas-subtitle {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .canvas-wrap {
+      position: relative;
+      min-height: 470px;
+      background:
+        linear-gradient(180deg, rgba(6, 13, 25, 0.38), rgba(2, 6, 23, 0.72)),
+        radial-gradient(circle at center, rgba(56, 189, 248, 0.05), transparent 58%);
+      touch-action: none;
+      cursor: grab;
+    }
+    .canvas-wrap.dragging { cursor: grabbing; }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 470px;
+    }
+    .hud {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      display: grid;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .hud-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: rgba(3, 7, 18, 0.76);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      color: var(--muted);
+      font-size: 11px;
+      backdrop-filter: blur(10px);
+    }
+    .chip strong { color: var(--text); }
+    .meta-grid,
+    .inspector-grid,
+    .family-list,
+    .connection-list {
+      display: grid;
+      gap: 10px;
+    }
+    .meta-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding: 14px;
+    }
+    .mini {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      background: rgba(9, 18, 33, 0.66);
+    }
+    .label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 10px;
+    }
+    .value {
+      margin-top: 8px;
+      font-size: 22px;
+      font-weight: 650;
+      line-height: 1.05;
+    }
+    .sub {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .panel-head {
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+    }
+    .panel-head h2 {
+      margin: 0;
+      font-size: 17px;
+    }
+    .panel-body {
+      padding: 14px;
+    }
+    .inspector-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 12px;
+    }
+    .info-card,
+    .family-card,
+    .connection-card {
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      background: rgba(9, 18, 33, 0.62);
+      padding: 12px;
+    }
+    .name-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .name-row h3 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.08;
+    }
+    .badge {
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .connection-card .top,
+    .family-card .top {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      box-shadow: 0 0 18px currentColor;
+    }
+    .bar {
+      margin-top: 10px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.12);
+      overflow: hidden;
+    }
+    .bar > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(56, 189, 248, 0.98), rgba(167, 139, 250, 0.98));
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.28);
+    }
+    .empty {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px dashed rgba(148, 163, 184, 0.2);
+      background: rgba(9, 18, 33, 0.42);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    @media (max-width: 430px) {
+      .meta-grid,
+      .inspector-grid {
+        grid-template-columns: 1fr;
+      }
+      .value { font-size: 20px; }
+      .canvas-wrap,
+      canvas { min-height: 430px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="card hero">
+      <div class="eyebrow">Praxion Research</div>
+      <h1>Living MLP, phone</h1>
+      <p class="lead">A phone-first version of the living MLP. It opens in a readable focus mode, keeps the flexing arches, and still lets you jump sleeves, hidden hubs, and zoom levels.</p>
+      <div class="control-stack">
+        <div class="row">
+          <button class="pill grow active" type="button" data-sleeve="rth">RTH</button>
+          <button class="pill grow" type="button" data-sleeve="europe">Europe</button>
+        </div>
+        <div class="row">
+          <button class="pill grow active" id="mode-focus" type="button">Focus mode</button>
+          <button class="pill grow" id="mode-overview" type="button">Overview</button>
+        </div>
+        <div class="row">
+          <button class="button button-icon" id="prev-hidden" type="button">◀</button>
+          <select class="grow" id="hidden-select"></select>
+          <button class="button button-icon" id="next-hidden" type="button">▶</button>
+        </div>
+        <div class="row">
+          <button class="button grow" id="fit-view" type="button">Fit view</button>
+          <button class="button grow" id="zoom-in" type="button">Zoom in</button>
+          <button class="button grow" id="zoom-out" type="button">Zoom out</button>
+        </div>
+        <div class="tiny-note">Phone tip: drag to pan. Use zoom buttons for precision. Focus mode shows one hidden hub and its strongest live inputs, which is much more readable on a small screen.</div>
+      </div>
+    </section>
+
+    <section class="card canvas-card">
+      <div class="canvas-head">
+        <h2 class="canvas-title" id="canvas-title">Focus view</h2>
+        <div class="canvas-subtitle" id="canvas-subtitle">Selected hidden hub plus strongest upstream inputs and output path.</div>
+      </div>
+      <div class="canvas-wrap" id="canvas-wrap">
+        <canvas id="brain-canvas"></canvas>
+        <div class="hud">
+          <div class="hud-row">
+            <div class="chip"><strong id="hud-sleeve">RTH</strong> · <span id="hud-mode">Focus</span></div>
+            <div class="chip">Zoom <strong id="hud-zoom">1.00x</strong></div>
+          </div>
+          <div class="hud-row">
+            <div class="chip">Hub <strong id="hud-hidden">-</strong></div>
+            <div class="chip">Hover <strong id="hud-hover">None</strong></div>
+          </div>
+        </div>
+      </div>
+      <div class="meta-grid">
+        <div class="mini"><div class="label">Input nodes shown</div><div class="value" id="kpi-inputs">-</div><div class="sub" id="kpi-inputs-sub">-</div></div>
+        <div class="mini"><div class="label">Hidden hub</div><div class="value" id="kpi-hidden">-</div><div class="sub" id="kpi-hidden-sub">-</div></div>
+        <div class="mini"><div class="label">Output pulse</div><div class="value" id="kpi-output">-</div><div class="sub">Synthetic win-probability pressure</div></div>
+        <div class="mini"><div class="label">Mode</div><div class="value" id="kpi-mode">-</div><div class="sub">Switch to overview for the whole network map</div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="panel-head">
+        <h2>Node inspector</h2>
+      </div>
+      <div class="panel-body">
+        <div id="inspector-empty" class="empty">Loading the phone MLP view…</div>
+        <div id="inspector-body" style="display:none;">
+          <div class="name-row">
+            <div>
+              <h3 id="inspector-name">-</h3>
+              <div class="sub" id="inspector-subtitle">-</div>
+            </div>
+            <div class="badge" id="inspector-badge">-</div>
+          </div>
+          <div class="inspector-grid">
+            <div class="info-card"><div class="label">Activation</div><div class="value" id="inspector-activation">-</div></div>
+            <div class="info-card"><div class="label">Strength</div><div class="value" id="inspector-strength">-</div></div>
+            <div class="info-card"><div class="label">Family / layer</div><div class="value" id="inspector-family">-</div></div>
+            <div class="info-card"><div class="label">Links</div><div class="value" id="inspector-links">-</div></div>
+          </div>
+          <div class="note" id="inspector-note"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="panel-head">
+        <h2>Strongest flex arches</h2>
+      </div>
+      <div class="panel-body">
+        <div id="connection-list" class="connection-list"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="panel-head">
+        <h2>Feature families</h2>
+      </div>
+      <div class="panel-body">
+        <div id="family-list" class="family-list"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const DATA_URL = './data/strategy-playground-mlp.json';
+    const COLORS = {
+      rth: '#38bdf8',
+      europe: '#a78bfa',
+      output: '#22c55e',
+      rvwap: '#a78bfa',
+      trend: '#38bdf8',
+      regime: '#34d399',
+      time: '#fb7185',
+      volatility: '#f59e0b',
+      volume: '#f97316',
+      candle: '#60a5fa',
+      session: '#f472b6',
+      risk: '#ef4444',
+      other: '#94a3b8'
+    };
+
+    const state = {
+      payload: null,
+      sleeve: 'rth',
+      mode: 'focus',
+      hiddenIndex: 0,
+      graphs: {},
+      camera: { x: 0, y: 0, scale: 1 },
+      dragging: false,
+      dragLast: null,
+      hoverNodeId: null,
+      selectedNodeId: null,
+      running: true,
+      flowSpeed: 1.1,
+      lastFrameAt: performance.now(),
+      cachedLayouts: new Map(),
+      activations: null,
+    };
+
+    const canvas = document.getElementById('brain-canvas');
+    const canvasWrap = document.getElementById('canvas-wrap');
+    const ctx = canvas.getContext('2d');
+    const sleeveButtons = [...document.querySelectorAll('[data-sleeve]')];
+    const modeFocusButton = document.getElementById('mode-focus');
+    const modeOverviewButton = document.getElementById('mode-overview');
+    const hiddenSelect = document.getElementById('hidden-select');
+    const prevHiddenButton = document.getElementById('prev-hidden');
+    const nextHiddenButton = document.getElementById('next-hidden');
+    const fitButton = document.getElementById('fit-view');
+    const zoomInButton = document.getElementById('zoom-in');
+    const zoomOutButton = document.getElementById('zoom-out');
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function hashString(value) {
+      let hash = 2166136261;
+      for (let i = 0; i < value.length; i += 1) {
+        hash ^= value.charCodeAt(i);
+        hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+      }
+      return Math.abs(hash >>> 0);
+    }
+
+    function hexToRgba(hex, alpha) {
+      const clean = hex.replace('#', '');
+      const full = clean.length === 3 ? clean.split('').map((ch) => ch + ch).join('') : clean;
+      const int = Number.parseInt(full, 16);
+      const r = (int >> 16) & 255;
+      const g = (int >> 8) & 255;
+      const b = int & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function formatPct(value) {
+      return `${Math.round(clamp(value, 0, 1) * 100)}%`;
+    }
+
+    function formatSigned(value, digits = 2) {
+      const num = Number(value || 0);
+      const sign = num > 0 ? '+' : num < 0 ? '-' : '';
+      return `${sign}${Math.abs(num).toFixed(digits)}`;
+    }
+
+    function formatNumber(value, digits = 0) {
+      return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits });
+    }
+
+    function buildGraph(artifact, sleeve) {
+      const brain = artifact.brainFull;
+      const laneColor = COLORS[sleeve] || COLORS.rth;
+      const inputNodes = (brain.inputNodes || []).map((node, index) => ({
+        ...node,
+        index,
+        layer: 'input',
+        family: node.family || 'other',
+        color: COLORS[node.family] || COLORS.other,
+        strength: Number(node.strength || node.meanAbsWeight || 0),
+      })).sort((a, b) => Number(b.strength || 0) - Number(a.strength || 0));
+
+      const hiddenNodes = (brain.hiddenNodes || []).map((node, index) => ({
+        ...node,
+        index,
+        layer: 'hidden',
+        color: laneColor,
+        score: Number(node.score || node.meanAbsInputWeight || 0),
+      })).sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
+
+      const outputNode = {
+        ...(brain.outputNode || { id: 'out', label: 'Win Prob' }),
+        layer: 'output',
+        color: COLORS.output,
+        radius: 26,
+      };
+
+      const weightMatrix = brain.inputHiddenWeights || [];
+      const hiddenOutputWeights = brain.hiddenOutputWeights || [];
+      const maxInputWeight = weightMatrix.reduce((acc, row) => Math.max(acc, ...(row || []).map((v) => Math.abs(Number(v || 0)))), 0) || 1;
+      const maxHiddenWeight = hiddenOutputWeights.reduce((acc, v) => Math.max(acc, Math.abs(Number(v || 0))), 0) || 1;
+
+      const nodeById = new Map();
+      inputNodes.forEach((node) => nodeById.set(node.id, node));
+      hiddenNodes.forEach((node) => nodeById.set(node.id, node));
+      nodeById.set(outputNode.id, outputNode);
+
+      const hiddenTopInputs = new Map();
+      hiddenNodes.forEach((hidden) => {
+        const edges = inputNodes.map((node) => {
+          const weight = Number((weightMatrix[node.index] || [])[hidden.index] || 0);
+          return {
+            nodeId: node.id,
+            label: node.label,
+            family: node.family,
+            color: node.color,
+            weight,
+            absWeight: Math.abs(weight),
+          };
+        }).sort((a, b) => b.absWeight - a.absWeight);
+        hiddenTopInputs.set(hidden.id, edges);
+      });
+
+      const familySummary = Object.values(inputNodes.reduce((acc, node) => {
+        const key = node.family;
+        if (!acc[key]) {
+          acc[key] = { family: key, color: node.color, count: 0, totalStrength: 0 };
+        }
+        acc[key].count += 1;
+        acc[key].totalStrength += Number(node.strength || 0);
+        return acc;
+      }, {})).sort((a, b) => b.totalStrength - a.totalStrength);
+
+      return { sleeve, laneColor, artifact, inputNodes, hiddenNodes, outputNode, weightMatrix, hiddenOutputWeights, maxInputWeight, maxHiddenWeight, hiddenTopInputs, familySummary, nodeById };
+    }
+
+    function getGraph() {
+      return state.graphs[state.sleeve];
+    }
+
+    function computeActivations(graph, timeMs) {
+      const inputActivation = new Map();
+      const hiddenActivation = new Map();
+      const familyPulse = new Map();
+      graph.familySummary.forEach((family, index) => {
+        familyPulse.set(family.family, 0.5 + 0.5 * Math.sin(timeMs * 0.00046 * state.flowSpeed + index * 0.8));
+      });
+
+      graph.inputNodes.forEach((node) => {
+        const phase = (hashString(node.id) % 6283) / 1000;
+        const famPulse = familyPulse.get(node.family) ?? 0.5;
+        const strength = Math.min(1, Number(node.strength || 0) / Math.max(1, graph.maxInputWeight * 12));
+        const oscillation = 0.5 + 0.5 * Math.sin(timeMs * 0.00125 * state.flowSpeed + phase);
+        inputActivation.set(node.id, clamp(0.12 + famPulse * 0.36 + oscillation * 0.28 + strength * 0.34, 0, 1));
+      });
+
+      graph.hiddenNodes.forEach((node) => {
+        const drivers = (graph.hiddenTopInputs.get(node.id) || []).slice(0, 18);
+        const blended = drivers.reduce((sum, edge, idx) => {
+          const pulse = inputActivation.get(edge.nodeId) ?? 0.4;
+          const signed = edge.weight >= 0 ? pulse : (1 - pulse);
+          return sum + signed * (edge.absWeight / Math.max(graph.maxInputWeight, 1)) * (1 - idx * 0.035);
+        }, 0);
+        hiddenActivation.set(node.id, clamp(1 / (1 + Math.exp(-(blended * 2.4 - 0.86))), 0, 1));
+      });
+
+      let outputBlend = 0;
+      graph.hiddenNodes.forEach((node) => {
+        const pulse = hiddenActivation.get(node.id) ?? 0.4;
+        const weight = Number(graph.hiddenOutputWeights[node.index] || 0);
+        const signed = weight >= 0 ? pulse : (1 - pulse);
+        outputBlend += signed * (Math.abs(weight) / Math.max(graph.maxHiddenWeight, 1));
+      });
+      const outputActivation = clamp(1 / (1 + Math.exp(-(outputBlend * 0.44 - 0.8))), 0, 1);
+      return { inputActivation, hiddenActivation, outputActivation };
+    }
+
+    function computeArcControls(source, target, seed, timeMs, bendScale = 0.2) {
+      const dx = target.x - source.x;
+      const dy = target.y - source.y;
+      const distance = Math.max(1, Math.hypot(dx, dy));
+      const nx = -dy / distance;
+      const ny = dx / distance;
+      const direction = seed > 0.5 ? 1 : -1;
+      const wave = Math.sin(timeMs * 0.0012 * state.flowSpeed + seed * Math.PI * 2);
+      const bend = Math.min(180, Math.max(24, distance * bendScale)) * (0.72 + 0.28 * wave);
+      return {
+        c1x: source.x + dx * 0.24 + nx * bend * direction,
+        c1y: source.y + dy * 0.08 + ny * bend * direction,
+        c2x: source.x + dx * 0.76 + nx * bend * direction,
+        c2y: source.y + dy * 0.92 + ny * bend * direction,
+      };
+    }
+
+    function traceArc(source, target, controls) {
+      ctx.beginPath();
+      ctx.moveTo(source.x, source.y);
+      ctx.bezierCurveTo(controls.c1x, controls.c1y, controls.c2x, controls.c2y, target.x, target.y);
+    }
+
+    function getLayoutKey() {
+      return `${state.sleeve}:${state.mode}:${state.hiddenIndex}`;
+    }
+
+    function buildFocusLayout(graph) {
+      const key = getLayoutKey();
+      if (state.cachedLayouts.has(key)) return state.cachedLayouts.get(key);
+      const hidden = graph.hiddenNodes[state.hiddenIndex] || graph.hiddenNodes[0];
+      const topInputs = (graph.hiddenTopInputs.get(hidden.id) || []).slice(0, 18).map((edge) => graph.nodeById.get(edge.nodeId)).filter(Boolean);
+      const worldWidth = 960;
+      const worldHeight = 640;
+      const inputColumns = 3;
+      const rows = Math.ceil(topInputs.length / inputColumns);
+      const startX = 120;
+      const colGap = 122;
+      const rowGap = 58;
+      const inputTop = Math.max(96, worldHeight / 2 - ((rows - 1) * rowGap) / 2);
+      topInputs.forEach((node, idx) => {
+        const col = Math.floor(idx / rows);
+        const row = idx % rows;
+        node.layoutX = startX + col * colGap;
+        node.layoutY = inputTop + row * rowGap;
+        node.layoutRadius = 12 + Math.min(8, Math.sqrt(Number(node.strength || 0)) * 2);
+      });
+      hidden.layoutX = 610;
+      hidden.layoutY = worldHeight / 2;
+      hidden.layoutRadius = 26;
+      graph.outputNode.layoutX = 850;
+      graph.outputNode.layoutY = worldHeight / 2;
+      graph.outputNode.layoutRadius = 28;
+
+      const activeEdges = topInputs.map((node, idx) => {
+        const row = graph.weightMatrix[node.index] || [];
+        const weight = Number(row[hidden.index] || 0);
+        return {
+          sourceId: node.id,
+          targetId: hidden.id,
+          weight,
+          absWeight: Math.abs(weight),
+          phase: (hashString(`${node.id}:${hidden.id}`) % 1000) / 1000,
+        };
+      }).sort((a, b) => b.absWeight - a.absWeight);
+
+      const outputEdge = {
+        sourceId: hidden.id,
+        targetId: graph.outputNode.id,
+        weight: Number(graph.hiddenOutputWeights[hidden.index] || 0),
+        absWeight: Math.abs(Number(graph.hiddenOutputWeights[hidden.index] || 0)),
+        phase: (hashString(`${hidden.id}:${graph.outputNode.id}`) % 1000) / 1000,
+      };
+
+      const layout = {
+        nodes: [...topInputs, hidden, graph.outputNode],
+        inputs: topInputs,
+        hidden,
+        output: graph.outputNode,
+        inputEdges: activeEdges,
+        outputEdge,
+        bounds: { minX: 40, maxX: 910, minY: 44, maxY: 596 },
+        worldWidth,
+        worldHeight,
+      };
+      state.cachedLayouts.set(key, layout);
+      return layout;
+    }
+
+    function buildOverviewLayout(graph) {
+      const key = `${state.sleeve}:overview`;
+      if (state.cachedLayouts.has(key)) return state.cachedLayouts.get(key);
+      const worldWidth = 980;
+      const worldHeight = 720;
+      const familyOrder = graph.familySummary.map((family) => family.family);
+      const familyRank = new Map(familyOrder.map((family, idx) => [family, idx]));
+      const grouped = familyOrder.map((family) => ({ family, nodes: graph.inputNodes.filter((node) => node.family === family) })).filter((group) => group.nodes.length);
+      const inputColumns = 5;
+      const inputColumnGap = 58;
+      const inputRowGap = 22;
+      const familyGap = 34;
+      const inputStartX = 90;
+      let cursorY = 82;
+      const familyBounds = [];
+      grouped.forEach((group) => {
+        const rows = Math.ceil(group.nodes.length / inputColumns);
+        const startY = cursorY;
+        group.nodes.forEach((node, idx) => {
+          const col = Math.floor(idx / rows);
+          const row = idx % rows;
+          node.layoutX = inputStartX + col * inputColumnGap;
+          node.layoutY = cursorY + row * inputRowGap;
+          node.layoutRadius = 5 + Math.min(5, Math.sqrt(Number(node.strength || 0)) * 1.2);
+        });
+        const height = Math.max(1, rows - 1) * inputRowGap;
+        familyBounds.push({ family: group.family, color: COLORS[group.family] || COLORS.other, x: inputStartX - 34, y: startY - 18, width: inputColumns * inputColumnGap + 34, height: height + 34, count: group.nodes.length });
+        cursorY += height + familyGap;
+      });
+      const hiddenColumns = graph.hiddenNodes.length > 32 ? 3 : graph.hiddenNodes.length > 18 ? 2 : 1;
+      const hiddenRows = Math.ceil(graph.hiddenNodes.length / hiddenColumns);
+      const hiddenStartX = 500;
+      const hiddenGapX = 96;
+      const hiddenGapY = 42;
+      const hiddenTop = Math.max(90, worldHeight / 2 - ((hiddenRows - 1) * hiddenGapY) / 2);
+      graph.hiddenNodes.forEach((node, idx) => {
+        const col = Math.floor(idx / hiddenRows);
+        const row = idx % hiddenRows;
+        node.layoutX = hiddenStartX + col * hiddenGapX;
+        node.layoutY = hiddenTop + row * hiddenGapY;
+        node.layoutRadius = 8 + Math.min(7, Math.sqrt(Number(node.score || 0)) * 2.1);
+      });
+      graph.outputNode.layoutX = 860;
+      graph.outputNode.layoutY = worldHeight / 2;
+      graph.outputNode.layoutRadius = 24;
+      const hotEdges = [];
+      graph.hiddenNodes.slice(0, 12).forEach((hidden) => {
+        (graph.hiddenTopInputs.get(hidden.id) || []).slice(0, 8).forEach((edge) => {
+          hotEdges.push({
+            sourceId: edge.nodeId,
+            targetId: hidden.id,
+            weight: edge.weight,
+            absWeight: edge.absWeight,
+            phase: (hashString(`${edge.nodeId}:${hidden.id}`) % 1000) / 1000,
+          });
+        });
+      });
+      const outputEdges = graph.hiddenNodes.slice(0, 10).map((hidden) => ({
+        sourceId: hidden.id,
+        targetId: graph.outputNode.id,
+        weight: Number(graph.hiddenOutputWeights[hidden.index] || 0),
+        absWeight: Math.abs(Number(graph.hiddenOutputWeights[hidden.index] || 0)),
+        phase: (hashString(`${hidden.id}:${graph.outputNode.id}`) % 1000) / 1000,
+      }));
+      const layout = {
+        nodes: [...graph.inputNodes, ...graph.hiddenNodes, graph.outputNode],
+        inputs: graph.inputNodes,
+        hiddenNodes: graph.hiddenNodes,
+        output: graph.outputNode,
+        familyBounds,
+        inputEdges: hotEdges,
+        outputEdges,
+        bounds: { minX: 34, maxX: 920, minY: 42, maxY: Math.max(cursorY + 20, 670) },
+        worldWidth,
+        worldHeight,
+      };
+      state.cachedLayouts.set(key, layout);
+      return layout;
+    }
+
+    function getLayout(graph) {
+      return state.mode === 'focus' ? buildFocusLayout(graph) : buildOverviewLayout(graph);
+    }
+
+    function fitBounds(bounds, padding = 24) {
+      const width = canvas.clientWidth || 1;
+      const height = canvas.clientHeight || 1;
+      const scale = Math.min((width - padding * 2) / Math.max(1, bounds.maxX - bounds.minX), (height - padding * 2) / Math.max(1, bounds.maxY - bounds.minY));
+      state.camera.scale = clamp(scale, 0.1, 4);
+      state.camera.x = width / 2 - ((bounds.minX + bounds.maxX) / 2) * state.camera.scale;
+      state.camera.y = height / 2 - ((bounds.minY + bounds.maxY) / 2) * state.camera.scale;
+    }
+
+    function toScreen(x, y) {
+      return { x: x * state.camera.scale + state.camera.x, y: y * state.camera.scale + state.camera.y };
+    }
+
+    function toWorld(x, y) {
+      return { x: (x - state.camera.x) / state.camera.scale, y: (y - state.camera.y) / state.camera.scale };
+    }
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvasWrap.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.round(rect.width * dpr));
+      canvas.height = Math.max(1, Math.round(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function drawBackground(width, height) {
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, 'rgba(3, 7, 18, 0.95)');
+      gradient.addColorStop(1, 'rgba(2, 6, 23, 0.98)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+      for (let i = 0; i < 18; i += 1) {
+        const x = (i * 142.7) % width;
+        const y = (i * 111.5) % height;
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.05)';
+        ctx.beginPath();
+        ctx.arc(x, y, 1.1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawGrid(width, height) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.06)';
+      ctx.lineWidth = 1;
+      const step = 66;
+      for (let x = (state.camera.x % step) - step; x < width + step; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = (state.camera.y % step) - step; y < height + step; y += step) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawNode(node, activation, color, worldScale) {
+      const x = node.layoutX;
+      const y = node.layoutY;
+      const baseRadius = node.layoutRadius || node.radius || 10;
+      const radius = baseRadius * (0.95 + activation * 0.24);
+      ctx.save();
+      ctx.fillStyle = hexToRgba(color, 0.36 + activation * 0.4);
+      ctx.shadowColor = hexToRgba(color, 0.95);
+      ctx.shadowBlur = 18 * activation;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = hexToRgba('#ffffff', 0.12 + activation * 0.18);
+      ctx.lineWidth = 1.1 / worldScale;
+      ctx.stroke();
+      if (state.selectedNodeId === node.id || state.hoverNodeId === node.id) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.88)';
+        ctx.lineWidth = 2.2 / worldScale;
+        ctx.beginPath();
+        ctx.arc(x, y, radius + 4 / worldScale, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawLabel(node, text, color, worldScale) {
+      const x = node.layoutX;
+      const y = node.layoutY;
+      ctx.save();
+      ctx.fillStyle = 'rgba(3, 7, 18, 0.84)';
+      ctx.strokeStyle = hexToRgba(color, 0.34);
+      ctx.lineWidth = 1 / worldScale;
+      ctx.font = `${Math.max(12, 13 / worldScale)}px Inter, sans-serif`;
+      const paddingX = 7 / worldScale;
+      const paddingY = 4 / worldScale;
+      const width = ctx.measureText(text).width + paddingX * 2;
+      const height = 16 / worldScale + paddingY * 2;
+      const bx = x + (node.layoutRadius || 8) + 8 / worldScale;
+      const by = y - height / 2;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, width, height, 8 / worldScale);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillText(text, bx + paddingX, by + height - paddingY - 3 / worldScale);
+      ctx.restore();
+    }
+
+    function drawArches(graph, layout, activations, timeMs, worldScale) {
+      const arcs = [];
+      if (state.mode === 'focus') {
+        layout.inputEdges.forEach((edge) => {
+          const source = graph.nodeById.get(edge.sourceId);
+          const target = graph.nodeById.get(edge.targetId);
+          if (!source || !target) return;
+          const sourcePulse = activations.inputActivation.get(source.id) ?? 0.4;
+          const targetPulse = activations.hiddenActivation.get(target.id) ?? 0.4;
+          arcs.push({ source, target, edge, drive: sourcePulse * 0.62 + targetPulse * 0.38, color: edge.weight >= 0 ? source.color : '#f87171', bendScale: 0.18 });
+        });
+        const source = graph.nodeById.get(layout.outputEdge.sourceId);
+        const target = graph.nodeById.get(layout.outputEdge.targetId);
+        if (source && target) {
+          const drive = activations.hiddenActivation.get(source.id) ?? 0.5;
+          arcs.push({ source, target, edge: layout.outputEdge, drive, color: layout.outputEdge.weight >= 0 ? graph.laneColor : '#f87171', bendScale: 0.13, output: true });
+        }
+      } else {
+        layout.inputEdges.forEach((edge) => {
+          const source = graph.nodeById.get(edge.sourceId);
+          const target = graph.nodeById.get(edge.targetId);
+          if (!source || !target) return;
+          const sourcePulse = activations.inputActivation.get(source.id) ?? 0.4;
+          const targetPulse = activations.hiddenActivation.get(target.id) ?? 0.4;
+          arcs.push({ source, target, edge, drive: sourcePulse * 0.56 + targetPulse * 0.44, color: edge.weight >= 0 ? source.color : '#f87171', bendScale: 0.12 });
+        });
+        layout.outputEdges.forEach((edge) => {
+          const source = graph.nodeById.get(edge.sourceId);
+          const target = graph.nodeById.get(edge.targetId);
+          if (!source || !target) return;
+          const drive = activations.hiddenActivation.get(source.id) ?? 0.5;
+          arcs.push({ source, target, edge, drive, color: edge.weight >= 0 ? graph.laneColor : '#f87171', bendScale: 0.1, output: true });
+        });
+      }
+
+      arcs.sort((a, b) => a.drive - b.drive);
+      arcs.forEach((item, idx) => {
+        const controls = computeArcControls({ x: item.source.layoutX, y: item.source.layoutY }, { x: item.target.layoutX, y: item.target.layoutY }, item.edge.phase, timeMs, item.bendScale + item.drive * 0.05);
+        const glowAlpha = clamp(0.08 + item.drive * (item.output ? 0.28 : 0.2), 0.08, item.output ? 0.46 : 0.34);
+        const coreAlpha = clamp(0.24 + item.drive * 0.34, 0.24, 0.72);
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = hexToRgba(item.color, glowAlpha);
+        ctx.lineWidth = ((item.output ? 2.6 : 1.8) + item.drive * (item.output ? 4.8 : 3.4)) / worldScale;
+        traceArc({ x: item.source.layoutX, y: item.source.layoutY }, { x: item.target.layoutX, y: item.target.layoutY }, controls);
+        ctx.stroke();
+
+        ctx.strokeStyle = hexToRgba(item.output ? '#f8fafc' : item.color, coreAlpha);
+        ctx.lineWidth = ((item.output ? 1.1 : 0.8) + item.drive * (item.output ? 1.6 : 1.2)) / worldScale;
+        ctx.setLineDash([Math.max(8, 22 / worldScale), Math.max(7, 14 / worldScale)]);
+        ctx.lineDashOffset = -(timeMs * 0.022 * state.flowSpeed * (0.8 + item.drive) + idx * 24) / worldScale;
+        traceArc({ x: item.source.layoutX, y: item.source.layoutY }, { x: item.target.layoutX, y: item.target.layoutY }, controls);
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+
+    function drawWorld(graph, layout, activations, timeMs) {
+      ctx.save();
+      ctx.translate(state.camera.x, state.camera.y);
+      ctx.scale(state.camera.scale, state.camera.scale);
+      const worldScale = state.camera.scale;
+
+      if (state.mode === 'overview') {
+        (layout.familyBounds || []).forEach((group) => {
+          ctx.fillStyle = hexToRgba(group.color, 0.05);
+          ctx.strokeStyle = hexToRgba(group.color, 0.15);
+          ctx.lineWidth = 1 / worldScale;
+          ctx.beginPath();
+          ctx.roundRect(group.x, group.y, group.width, group.height, 18 / worldScale);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = hexToRgba(group.color, 0.8);
+          ctx.font = `${Math.max(12, 13 / worldScale)}px Inter, sans-serif`;
+          ctx.fillText(`${group.family} · ${group.count}`, group.x + 10, group.y + 16);
+        });
+      }
+
+      drawArches(graph, layout, activations, timeMs, worldScale);
+
+      const allNodes = state.mode === 'focus' ? layout.nodes : [...graph.inputNodes, ...graph.hiddenNodes, graph.outputNode];
+      allNodes.forEach((node) => {
+        const activation = node.layer === 'input'
+          ? (activations.inputActivation.get(node.id) ?? 0.4)
+          : node.layer === 'hidden'
+            ? (activations.hiddenActivation.get(node.id) ?? 0.4)
+            : activations.outputActivation;
+        const color = node.layer === 'input' ? node.color : node.layer === 'hidden' ? graph.laneColor : COLORS.output;
+        drawNode(node, activation, color, worldScale);
+      });
+
+      if (state.mode === 'focus') {
+        layout.inputs.forEach((node) => drawLabel(node, node.label, node.color, worldScale));
+        drawLabel(layout.hidden, layout.hidden.label, graph.laneColor, worldScale);
+        drawLabel(layout.output, layout.output.label, COLORS.output, worldScale);
+      } else {
+        const labeled = [graph.outputNode, ...graph.hiddenNodes.slice(0, 6), ...graph.inputNodes.slice(0, 10)];
+        labeled.forEach((node) => {
+          const color = node.layer === 'input' ? node.color : node.layer === 'hidden' ? graph.laneColor : COLORS.output;
+          drawLabel(node, node.label, color, worldScale);
+        });
+      }
+      ctx.restore();
+    }
+
+    function renderStats(graph, layout, activations) {
+      const selectedHidden = graph.hiddenNodes[state.hiddenIndex] || graph.hiddenNodes[0];
+      document.getElementById('hud-sleeve').textContent = state.sleeve.toUpperCase();
+      document.getElementById('hud-mode').textContent = state.mode === 'focus' ? 'Focus' : 'Overview';
+      document.getElementById('hud-zoom').textContent = `${state.camera.scale.toFixed(2)}x`;
+      document.getElementById('hud-hidden').textContent = selectedHidden ? selectedHidden.label : '-';
+      const hoverNode = graph.nodeById.get(state.hoverNodeId || state.selectedNodeId);
+      document.getElementById('hud-hover').textContent = hoverNode ? hoverNode.label : 'None';
+      document.getElementById('canvas-title').textContent = state.mode === 'focus' ? 'Focus view' : 'Overview';
+      document.getElementById('canvas-subtitle').textContent = state.mode === 'focus'
+        ? 'Selected hidden hub plus strongest upstream inputs and output path.'
+        : 'Compressed whole-network map with the hottest arches highlighted.';
+      document.getElementById('kpi-inputs').textContent = state.mode === 'focus' ? formatNumber(layout.inputs.length) : formatNumber(graph.inputNodes.length);
+      document.getElementById('kpi-inputs-sub').textContent = state.mode === 'focus' ? 'Top live inputs feeding this hidden hub' : 'All trained inputs in the network';
+      document.getElementById('kpi-hidden').textContent = selectedHidden ? selectedHidden.label : '-';
+      document.getElementById('kpi-hidden-sub').textContent = selectedHidden ? `${formatSigned(graph.hiddenOutputWeights[selectedHidden.index] || 0, 3)} output weight` : '-';
+      document.getElementById('kpi-output').textContent = formatPct(activations.outputActivation);
+      document.getElementById('kpi-mode').textContent = state.mode === 'focus' ? 'Focused' : 'Overview';
+    }
+
+    function updateInspector(graph, activations) {
+      let target = null;
+      if (state.selectedNodeId) target = graph.nodeById.get(state.selectedNodeId) || null;
+      if (!target && state.hoverNodeId) target = graph.nodeById.get(state.hoverNodeId) || null;
+      if (!target) target = graph.hiddenNodes[state.hiddenIndex] || graph.hiddenNodes[0] || graph.outputNode;
+      if (!target) return;
+
+      document.getElementById('inspector-empty').style.display = 'none';
+      document.getElementById('inspector-body').style.display = 'block';
+      document.getElementById('inspector-name').textContent = target.label || target.id;
+      document.getElementById('inspector-subtitle').textContent = target.id;
+      document.getElementById('inspector-badge').textContent = target.layer.toUpperCase();
+
+      let activation = 0;
+      let strength = '-';
+      let family = '-';
+      let links = '-';
+      let note = '';
+      let connections = [];
+
+      if (target.layer === 'input') {
+        activation = activations.inputActivation.get(target.id) ?? 0;
+        strength = `${Number(target.strength || 0).toFixed(3)} input pull`;
+        family = `${target.family} / input`;
+        const row = graph.weightMatrix[target.index] || [];
+        connections = graph.hiddenNodes.slice().map((hidden) => ({
+          label: hidden.label,
+          color: graph.laneColor,
+          family: 'hidden',
+          weight: Number(row[hidden.index] || 0),
+          ratio: Math.abs(Number(row[hidden.index] || 0)) / Math.max(graph.maxInputWeight, 1),
+        })).sort((a, b) => Math.abs(b.weight) - Math.abs(a.weight)).slice(0, 8);
+        links = `${connections.length} strongest hidden links`;
+        note = 'In phone focus mode, this is one of the inputs most strongly pushing the selected hidden hub.';
+      } else if (target.layer === 'hidden') {
+        activation = activations.hiddenActivation.get(target.id) ?? 0;
+        strength = `${Number(target.score || 0).toFixed(3)} output pull`;
+        family = `hidden hub / ${state.sleeve.toUpperCase()}`;
+        connections = (graph.hiddenTopInputs.get(target.id) || []).slice(0, 8).map((edge) => ({
+          label: edge.label,
+          color: edge.color,
+          family: edge.family,
+          weight: edge.weight,
+          ratio: edge.absWeight / Math.max(graph.maxInputWeight, 1),
+        }));
+        links = `${connections.length} dominant upstream inputs`;
+        note = 'This hidden hub is the center of the current focus view, with the strongest upstream drivers surfaced below.';
+      } else {
+        activation = activations.outputActivation;
+        strength = `${formatPct(activations.outputActivation)} synthetic confidence`;
+        family = 'output / win probability head';
+        connections = graph.hiddenNodes.slice(0, 8).map((hidden) => ({
+          label: hidden.label,
+          color: graph.laneColor,
+          family: 'hidden',
+          weight: Number(graph.hiddenOutputWeights[hidden.index] || 0),
+          ratio: Math.abs(Number(graph.hiddenOutputWeights[hidden.index] || 0)) / Math.max(graph.maxHiddenWeight, 1),
+        }));
+        links = `${connections.length} strongest hidden contributors`;
+        note = 'The output node is where hidden-node pressure condenses into the synthetic win-probability pulse.';
+      }
+
+      document.getElementById('inspector-activation').textContent = formatPct(activation);
+      document.getElementById('inspector-strength').textContent = strength;
+      document.getElementById('inspector-family').textContent = family;
+      document.getElementById('inspector-links').textContent = links;
+      document.getElementById('inspector-note').textContent = note;
+
+      const list = document.getElementById('connection-list');
+      list.innerHTML = '';
+      connections.forEach((item) => {
+        const card = document.createElement('div');
+        card.className = 'connection-card';
+        card.innerHTML = `
+          <div class="top">
+            <span class="dot" style="color:${item.color}"></span>
+            <div>
+              <div style="font-weight:600; color:#e2e8f0;">${item.label}</div>
+              <div class="sub" style="margin:4px 0 0;">${item.family}</div>
+            </div>
+            <div style="text-align:right; color:${item.weight >= 0 ? '#86efac' : '#fca5a5'}; font-weight:600;">${formatSigned(item.weight, 3)}</div>
+          </div>
+          <div class="bar"><span style="width:${Math.max(8, item.ratio * 100)}%;"></span></div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function updateFamilyPanel(graph) {
+      const list = document.getElementById('family-list');
+      list.innerHTML = '';
+      const strongest = Math.max(1e-9, graph.familySummary[0]?.totalStrength || 1);
+      graph.familySummary.forEach((family) => {
+        const card = document.createElement('div');
+        card.className = 'family-card';
+        card.innerHTML = `
+          <div class="top">
+            <span class="dot" style="color:${family.color}"></span>
+            <div>
+              <div style="font-weight:600; color:#e2e8f0;">${family.family}</div>
+              <div class="sub" style="margin:4px 0 0;">${family.count} inputs</div>
+            </div>
+            <div style="text-align:right; color:#e2e8f0; font-weight:600;">${family.totalStrength.toFixed(2)}</div>
+          </div>
+          <div class="bar"><span style="width:${Math.max(10, (family.totalStrength / strongest) * 100)}%;"></span></div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function findNodeAtScreen(graph, layout, x, y) {
+      const nodes = state.mode === 'focus' ? layout.nodes : [...graph.inputNodes, ...graph.hiddenNodes, graph.outputNode];
+      let winner = null;
+      let best = Infinity;
+      nodes.forEach((node) => {
+        const point = toScreen(node.layoutX, node.layoutY);
+        const radius = Math.max(12, (node.layoutRadius || 8) * state.camera.scale + 6);
+        const distance = Math.hypot(x - point.x, y - point.y);
+        if (distance <= radius && distance < best) {
+          winner = node;
+          best = distance;
+        }
+      });
+      return winner;
+    }
+
+    function renderFrame(timeMs) {
+      const graph = getGraph();
+      if (!graph) {
+        requestAnimationFrame(renderFrame);
+        return;
+      }
+      const layout = getLayout(graph);
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      ctx.clearRect(0, 0, width, height);
+      drawBackground(width, height);
+      drawGrid(width, height);
+      const motionTime = state.running ? timeMs : state.lastFrameAt;
+      const activations = computeActivations(graph, motionTime);
+      state.activations = activations;
+      drawWorld(graph, layout, activations, motionTime);
+      renderStats(graph, layout, activations);
+      updateInspector(graph, activations);
+      if (state.running) state.lastFrameAt = timeMs;
+      requestAnimationFrame(renderFrame);
+    }
+
+    function refreshHiddenSelect() {
+      const graph = getGraph();
+      if (!graph) return;
+      hiddenSelect.innerHTML = '';
+      graph.hiddenNodes.forEach((node, idx) => {
+        const option = document.createElement('option');
+        option.value = String(idx);
+        option.textContent = `${node.label} · ${formatSigned(graph.hiddenOutputWeights[node.index] || 0, 3)}`;
+        hiddenSelect.appendChild(option);
+      });
+      hiddenSelect.value = String(state.hiddenIndex);
+    }
+
+    function applySleeve(sleeve) {
+      state.sleeve = sleeve;
+      state.hiddenIndex = 0;
+      sleeveButtons.forEach((button) => button.classList.toggle('active', button.dataset.sleeve === sleeve));
+      refreshHiddenSelect();
+      state.selectedNodeId = null;
+      fitBounds(getLayout(getGraph()).bounds, 22);
+      updateFamilyPanel(getGraph());
+    }
+
+    function applyMode(mode) {
+      state.mode = mode;
+      modeFocusButton.classList.toggle('active', mode === 'focus');
+      modeOverviewButton.classList.toggle('active', mode === 'overview');
+      fitBounds(getLayout(getGraph()).bounds, 22);
+    }
+
+    function bindUi() {
+      sleeveButtons.forEach((button) => button.addEventListener('click', () => applySleeve(button.dataset.sleeve)));
+      modeFocusButton.addEventListener('click', () => applyMode('focus'));
+      modeOverviewButton.addEventListener('click', () => applyMode('overview'));
+      hiddenSelect.addEventListener('change', () => {
+        state.hiddenIndex = Number(hiddenSelect.value || 0);
+        state.cachedLayouts.delete(getLayoutKey());
+        fitBounds(getLayout(getGraph()).bounds, 22);
+      });
+      prevHiddenButton.addEventListener('click', () => {
+        const graph = getGraph();
+        if (!graph) return;
+        state.hiddenIndex = (state.hiddenIndex - 1 + graph.hiddenNodes.length) % graph.hiddenNodes.length;
+        refreshHiddenSelect();
+        state.cachedLayouts.delete(getLayoutKey());
+        fitBounds(getLayout(graph).bounds, 22);
+      });
+      nextHiddenButton.addEventListener('click', () => {
+        const graph = getGraph();
+        if (!graph) return;
+        state.hiddenIndex = (state.hiddenIndex + 1) % graph.hiddenNodes.length;
+        refreshHiddenSelect();
+        state.cachedLayouts.delete(getLayoutKey());
+        fitBounds(getLayout(graph).bounds, 22);
+      });
+      fitButton.addEventListener('click', () => fitBounds(getLayout(getGraph()).bounds, 22));
+      zoomInButton.addEventListener('click', () => { state.camera.scale = clamp(state.camera.scale * 1.16, 0.1, 5.5); });
+      zoomOutButton.addEventListener('click', () => { state.camera.scale = clamp(state.camera.scale * 0.86, 0.1, 5.5); });
+
+      canvas.addEventListener('pointerdown', (event) => {
+        const rect = canvas.getBoundingClientRect();
+        state.dragging = true;
+        state.dragLast = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+        canvasWrap.classList.add('dragging');
+      });
+      canvas.addEventListener('pointermove', (event) => {
+        const graph = getGraph();
+        if (!graph) return;
+        const layout = getLayout(graph);
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        if (state.dragging && state.dragLast) {
+          state.camera.x += x - state.dragLast.x;
+          state.camera.y += y - state.dragLast.y;
+          state.dragLast = { x, y };
+        }
+        const hovered = findNodeAtScreen(graph, layout, x, y);
+        state.hoverNodeId = hovered ? hovered.id : null;
+      });
+      canvas.addEventListener('pointerup', (event) => {
+        const graph = getGraph();
+        if (!graph) return;
+        const layout = getLayout(graph);
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const target = findNodeAtScreen(graph, layout, x, y);
+        if (target) state.selectedNodeId = target.id;
+        state.dragging = false;
+        state.dragLast = null;
+        canvasWrap.classList.remove('dragging');
+      });
+      canvas.addEventListener('pointerleave', () => {
+        state.hoverNodeId = null;
+        state.dragging = false;
+        state.dragLast = null;
+        canvasWrap.classList.remove('dragging');
+      });
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        const graph = getGraph();
+        if (graph) fitBounds(getLayout(graph).bounds, 22);
+      });
+    }
+
+    async function init() {
+      bindUi();
+      resizeCanvas();
+      try {
+        const response = await fetch(DATA_URL, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Failed to load payload (${response.status})`);
+        state.payload = await response.json();
+        state.graphs.rth = buildGraph(state.payload.artifacts.rth, 'rth');
+        state.graphs.europe = buildGraph(state.payload.artifacts.europe, 'europe');
+        applySleeve('rth');
+        applyMode('focus');
+      } catch (error) {
+        document.getElementById('inspector-empty').textContent = `Could not load the phone MLP payload: ${error.message}`;
+      }
+      requestAnimationFrame(renderFrame);
+    }
+
+    init();
+  </script>
+</body>
+</html>
