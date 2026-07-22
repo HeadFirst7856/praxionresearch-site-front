@@ -7,8 +7,6 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Scatter,
   ScatterChart,
@@ -79,6 +77,8 @@ type DailyDot = {
   negativeTrades: number;
   featureStress: number;
 };
+
+type DayXAxisKey = "avgProbability" | "medianProbability" | "featureStress" | "avgDurationMinutes" | "avgRvwapZAbs" | "winRate" | "trades";
 
 type DayTrade = {
   tradeId: string;
@@ -245,6 +245,72 @@ const fallbackColors: Record<string, string> = {
   mixed: "#f59e0b",
 };
 
+const dayXAxisOptions: Array<{
+  key: DayXAxisKey;
+  label: string;
+  axisLabel: string;
+  tooltipLabel: string;
+  format: (value: number) => string;
+  getValue: (row: DailyDot) => number;
+}> = [
+  {
+    key: "avgProbability",
+    label: "Confidence, recommended",
+    axisLabel: "Avg model confidence",
+    tooltipLabel: "Avg confidence",
+    format: (value) => `${Math.round(value * 100)}%`,
+    getValue: (row) => row.avgProbability,
+  },
+  {
+    key: "medianProbability",
+    label: "Median probability",
+    axisLabel: "Median model confidence",
+    tooltipLabel: "Median confidence",
+    format: (value) => `${Math.round(value * 100)}%`,
+    getValue: (row) => row.medianProbability,
+  },
+  {
+    key: "featureStress",
+    label: "Feature stress",
+    axisLabel: "Feature stress",
+    tooltipLabel: "Feature stress",
+    format: (value) => value.toFixed(2),
+    getValue: (row) => row.featureStress,
+  },
+  {
+    key: "avgDurationMinutes",
+    label: "Avg hold time",
+    axisLabel: "Avg duration (minutes)",
+    tooltipLabel: "Avg duration",
+    format: (value) => `${Math.round(value)}m`,
+    getValue: (row) => row.avgDurationMinutes,
+  },
+  {
+    key: "avgRvwapZAbs",
+    label: "RVWAP stretch",
+    axisLabel: "Avg |RVWAP z|",
+    tooltipLabel: "Avg |RVWAP z|",
+    format: (value) => value.toFixed(2),
+    getValue: (row) => row.avgRvwapZAbs,
+  },
+  {
+    key: "winRate",
+    label: "Day win rate",
+    axisLabel: "Day win rate",
+    tooltipLabel: "Day win rate",
+    format: (value) => `${Math.round(value * 100)}%`,
+    getValue: (row) => row.winRate,
+  },
+  {
+    key: "trades",
+    label: "Trade count",
+    axisLabel: "Trade count",
+    tooltipLabel: "Trade count",
+    format: (value) => Math.round(value).toLocaleString(),
+    getValue: (row) => row.trades,
+  },
+];
+
 function formatMoney(value: number, digits = 0): string {
   const sign = value > 0 ? "+" : value < 0 ? "-" : "";
   return `${sign}$${Math.abs(value).toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits })}`;
@@ -332,6 +398,8 @@ function NeuralBrain({ artifact, color }: { artifact: ArtifactView; color: strin
   lookup.set(outputNode.id, { x: outputNode.x, y: outputNode.y });
   const maxIn = Math.max(...artifact.brain.edgesInputHidden.map((edge) => edge.absWeight), 0.0001);
   const maxOut = Math.max(...artifact.brain.edgesHiddenOutput.map((edge) => edge.absWeight), 0.0001);
+  const animatedInputEdges = [...artifact.brain.edgesInputHidden].sort((a, b) => b.absWeight - a.absWeight).slice(0, 8);
+  const animatedOutputEdges = [...artifact.brain.edgesHiddenOutput].sort((a, b) => b.absWeight - a.absWeight).slice(0, 5);
 
   return (
     <div className="rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_50%_50%,rgba(56,189,248,0.12),transparent_55%),linear-gradient(180deg,rgba(10,17,31,0.96),rgba(6,11,21,0.96))] p-4">
@@ -362,15 +430,37 @@ function NeuralBrain({ artifact, color }: { artifact: ArtifactView; color: strin
             return null;
           }
           const opacity = 0.12 + (edge.absWeight / maxIn) * 0.5;
+          const pathId = `brain-path-in-${artifact.sleeve}-${edge.source}-${edge.target}`;
           return (
             <path
+              id={pathId}
               key={`${edge.source}-${edge.target}`}
               d={`M ${source.x} ${source.y} C ${source.x + 80} ${source.y}, ${target.x - 80} ${target.y}, ${target.x} ${target.y}`}
               fill="none"
               stroke={`url(#brain-glow-${artifact.sleeve})`}
               strokeOpacity={opacity}
               strokeWidth={1 + (edge.absWeight / maxIn) * 3}
-            />
+              strokeDasharray={`${6 + (edge.absWeight / maxIn) * 10} 18`}
+            >
+              <animate attributeName="stroke-dashoffset" from="0" to="-34" dur={`${6.2 - Math.min(3.5, (edge.absWeight / maxIn) * 2.8)}s`} repeatCount="indefinite" />
+            </path>
+          );
+        })}
+
+        {animatedInputEdges.map((edge, index) => {
+          const source = lookup.get(edge.source);
+          const target = lookup.get(edge.target);
+          if (!source || !target) {
+            return null;
+          }
+          const pathId = `brain-path-in-${artifact.sleeve}-${edge.source}-${edge.target}`;
+          return (
+            <circle key={`pulse-in-${edge.source}-${edge.target}`} r={2.6 + (edge.absWeight / maxIn) * 2.2} fill="#f8fafc" fillOpacity="0.88">
+              <animate attributeName="opacity" values="0;1;0" dur={`${2.6 + index * 0.28}s`} repeatCount="indefinite" begin={`${index * 0.18}s`} />
+              <animateMotion dur={`${2.6 + index * 0.28}s`} repeatCount="indefinite" rotate="auto" begin={`${index * 0.18}s`}>
+                <mpath href={`#${pathId}`} />
+              </animateMotion>
+            </circle>
           );
         })}
 
@@ -381,37 +471,71 @@ function NeuralBrain({ artifact, color }: { artifact: ArtifactView; color: strin
             return null;
           }
           const opacity = 0.18 + (edge.absWeight / maxOut) * 0.55;
+          const pathId = `brain-path-out-${artifact.sleeve}-${edge.source}-${edge.target}`;
           return (
             <path
+              id={pathId}
               key={`${edge.source}-${edge.target}`}
               d={`M ${source.x} ${source.y} C ${source.x + 70} ${source.y}, ${target.x - 70} ${target.y}, ${target.x} ${target.y}`}
               fill="none"
               stroke="#f8fafc"
               strokeOpacity={opacity}
               strokeWidth={1 + (edge.absWeight / maxOut) * 4}
-            />
+              strokeDasharray={`${5 + (edge.absWeight / maxOut) * 8} 16`}
+            >
+              <animate attributeName="stroke-dashoffset" from="0" to="-26" dur={`${4.8 - Math.min(2.4, (edge.absWeight / maxOut) * 2)}s`} repeatCount="indefinite" />
+            </path>
+          );
+        })}
+
+        {animatedOutputEdges.map((edge, index) => {
+          const source = lookup.get(edge.source);
+          const target = lookup.get(edge.target);
+          if (!source || !target) {
+            return null;
+          }
+          const pathId = `brain-path-out-${artifact.sleeve}-${edge.source}-${edge.target}`;
+          return (
+            <circle key={`pulse-out-${edge.source}-${edge.target}`} r={3 + (edge.absWeight / maxOut) * 2.8} fill={color} fillOpacity="0.9">
+              <animate attributeName="opacity" values="0;1;0" dur={`${2.1 + index * 0.22}s`} repeatCount="indefinite" begin={`${index * 0.14}s`} />
+              <animateMotion dur={`${2.1 + index * 0.22}s`} repeatCount="indefinite" rotate="auto" begin={`${index * 0.14}s`}>
+                <mpath href={`#${pathId}`} />
+              </animateMotion>
+            </circle>
           );
         })}
 
         {inputNodes.map((node) => (
           <g key={node.id} transform={`translate(${node.x},${node.y})`}>
-            <circle r={8 + (node.strength ?? 0) * 30} fill={color} fillOpacity="0.22" />
-            <circle r={4 + (node.strength ?? 0) * 14} fill={color} filter={`url(#brain-shadow-${artifact.sleeve})`} />
+            <circle r={8 + (node.strength ?? 0) * 30} fill={color} fillOpacity="0.22">
+              <animate attributeName="r" values={`${8 + (node.strength ?? 0) * 30};${10 + (node.strength ?? 0) * 34};${8 + (node.strength ?? 0) * 30}`} dur="3.2s" repeatCount="indefinite" />
+            </circle>
+            <circle r={4 + (node.strength ?? 0) * 14} fill={color} filter={`url(#brain-shadow-${artifact.sleeve})`}>
+              <animate attributeName="opacity" values="0.72;1;0.72" dur="2.4s" repeatCount="indefinite" />
+            </circle>
             <text x={18} y={4} fill="#cbd5e1" fontSize="11">{node.label}</text>
           </g>
         ))}
 
         {hiddenNodes.map((node) => (
           <g key={node.id} transform={`translate(${node.x},${node.y})`}>
-            <circle r={10 + (node.score ?? 0) * 24} fill="#e2e8f0" fillOpacity="0.12" />
-            <circle r={6 + (node.score ?? 0) * 12} fill="#e2e8f0" fillOpacity="0.82" />
+            <circle r={10 + (node.score ?? 0) * 24} fill="#e2e8f0" fillOpacity="0.12">
+              <animate attributeName="r" values={`${10 + (node.score ?? 0) * 24};${12 + (node.score ?? 0) * 28};${10 + (node.score ?? 0) * 24}`} dur="3.6s" repeatCount="indefinite" />
+            </circle>
+            <circle r={6 + (node.score ?? 0) * 12} fill="#e2e8f0" fillOpacity="0.82">
+              <animate attributeName="fill-opacity" values="0.65;0.95;0.65" dur="2.7s" repeatCount="indefinite" />
+            </circle>
             <text x={0} y={32} textAnchor="middle" fill="#94a3b8" fontSize="11">{node.label}</text>
           </g>
         ))}
 
         <g transform={`translate(${outputNode.x},${outputNode.y})`}>
-          <circle r="30" fill={color} fillOpacity="0.16" />
-          <circle r="18" fill={color} filter={`url(#brain-shadow-${artifact.sleeve})`} />
+          <circle r="30" fill={color} fillOpacity="0.16">
+            <animate attributeName="r" values="30;34;30" dur="3s" repeatCount="indefinite" />
+          </circle>
+          <circle r="18" fill={color} filter={`url(#brain-shadow-${artifact.sleeve})`}>
+            <animate attributeName="opacity" values="0.78;1;0.78" dur="2.2s" repeatCount="indefinite" />
+          </circle>
           <text x="0" y="4" textAnchor="middle" fill="#e2e8f0" fontSize="11" fontWeight="600">Win</text>
           <text x="0" y="18" textAnchor="middle" fill="#e2e8f0" fontSize="11" fontWeight="600">Prob</text>
         </g>
@@ -425,6 +549,7 @@ export function StrategyPlaygroundPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSleeve, setSelectedSleeve] = useState<SleeveKey>("rth");
   const [selectedDay, setSelectedDay] = useState<string>("");
+  const [selectedDayXAxis, setSelectedDayXAxis] = useState<DayXAxisKey>("avgProbability");
 
   useEffect(() => {
     let cancelled = false;
@@ -506,16 +631,69 @@ export function StrategyPlaygroundPage() {
     }));
   }, [payload]);
 
+  const selectedDayXAxisOption = useMemo(
+    () => dayXAxisOptions.find((option) => option.key === selectedDayXAxis) ?? dayXAxisOptions[0],
+    [selectedDayXAxis],
+  );
+
+  const dayScatterData = useMemo(
+    () => payload?.dailyDots.map((row) => ({ ...row, xValue: selectedDayXAxisOption.getValue(row) })) ?? [],
+    [payload, selectedDayXAxisOption],
+  );
+
+  const confidenceBuckets = useMemo(() => {
+    const rows = payload?.dailyDots ?? [];
+    if (!rows.length) {
+      return [] as Array<{
+        bucket: string;
+        avgPnl: number;
+        avgWinRate: number;
+        avgStress: number;
+        avgTrades: number;
+        days: number;
+      }>;
+    }
+    const min = Math.min(...rows.map((row) => row.avgProbability));
+    const max = Math.max(...rows.map((row) => row.avgProbability));
+    const bucketCount = 6;
+    const width = Math.max((max - min) / bucketCount, 0.015);
+    const buckets = Array.from({ length: bucketCount }, (_, index) => ({
+      low: min + index * width,
+      high: index === bucketCount - 1 ? max : min + (index + 1) * width,
+      rows: [] as DailyDot[],
+    }));
+    rows.forEach((row) => {
+      const rawIndex = width <= 0 ? 0 : Math.floor((row.avgProbability - min) / width);
+      const index = Math.max(0, Math.min(bucketCount - 1, rawIndex));
+      buckets[index].rows.push(row);
+    });
+    return buckets
+      .filter((bucket) => bucket.rows.length > 0)
+      .map((bucket) => ({
+        bucket: `${Math.round(bucket.low * 100)}-${Math.round(bucket.high * 100)}%`,
+        avgPnl: bucket.rows.reduce((sum, row) => sum + row.pnl, 0) / bucket.rows.length,
+        avgWinRate: bucket.rows.reduce((sum, row) => sum + row.winRate, 0) / bucket.rows.length,
+        avgStress: bucket.rows.reduce((sum, row) => sum + row.featureStress, 0) / bucket.rows.length,
+        avgTrades: bucket.rows.reduce((sum, row) => sum + row.trades, 0) / bucket.rows.length,
+        days: bucket.rows.length,
+      }));
+  }, [payload]);
+
+  const bestConfidenceBucket = useMemo(
+    () => confidenceBuckets.reduce((best, bucket) => (!best || bucket.avgPnl > best.avgPnl ? bucket : best), confidenceBuckets[0]),
+    [confidenceBuckets],
+  );
+
   return (
     <div className="page-container py-14">
       <section className="rounded-[32px] border border-sky-500/20 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.16),transparent_42%),linear-gradient(180deg,rgba(9,18,32,0.98),rgba(7,12,23,0.98))] px-6 py-10 shadow-[0_30px_120px_rgba(2,6,23,0.45)] md:px-10">
         <div className="max-w-5xl">
           <p className="text-xs uppercase tracking-[0.16em] text-sky-300">Strategy Playground</p>
           <h1 className="mt-3 text-[clamp(2.7rem,7vw,5rem)] leading-[0.92] font-semibold tracking-tight text-slate-50">
-            Turn Fred’s MLP into a visual research lab.
+            Turn the RVWAP MLP into a visual research lab.
           </h1>
           <p className="mt-4 max-w-4xl text-lg leading-relaxed text-slate-300">
-            This pass promotes the Fred-parity RVWAP MLP into the Playground with the same spirit as the ORB regime workbench, but aimed at model behavior, feature pressure, overlap distortion, and day-level trade selection.
+            This page is about the strategy itself: feature pressure, sleeve behavior, overlap distortion, neural structure, and day-level trade selection without the extra noise.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link to="/simulations" className={cn(buttonVariants({ variant: "default" }), "rounded-full bg-sky-500/20 px-4 text-sky-100 hover:bg-sky-500/30")}>
@@ -530,7 +708,7 @@ export function StrategyPlaygroundPage() {
         <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetricPill label="No-stack net, 2 MNQ" value={payload ? formatMoney(payload.headline.noStackNetPnl2Mnq) : loading ? "Loading..." : "n/a"} tone="text-emerald-300" />
           <MetricPill label="Average month, 6 MNQ" value={payload ? formatMoney(payload.headline.noStackAvgMonth6Mnq) : loading ? "Loading..." : "n/a"} tone="text-sky-200" />
-          <MetricPill label="24M median, no withdrawal" value={payload ? formatMoney(payload.headline.mcMedian24mNoWithdrawal) : loading ? "Loading..." : "n/a"} tone="text-slate-100" />
+          <MetricPill label="Combined win rate" value={payload ? formatPercent(payload.summaries.noStack.history.trade_stats.win_rate) : loading ? "Loading..." : "n/a"} tone="text-slate-100" />
           <MetricPill label="Overlap trades removed" value={payload ? payload.headline.skippedTrades.toLocaleString() : loading ? "Loading..." : "n/a"} tone="text-amber-300" />
         </div>
       </section>
@@ -540,7 +718,7 @@ export function StrategyPlaygroundPage() {
           <div className="mt-8 grid gap-6 xl:grid-cols-2">
             <PlaygroundCard
               title="Stacked vs no-stack reality"
-              subtitle="This is the first graph I wanted in here, because it shows exactly how much overlap inflated the original Fred-parity replay."
+              subtitle="This is the first graph I wanted in here, because it shows exactly how much overlap inflated the original replay."
             >
               <div className="h-[340px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -739,36 +917,47 @@ export function StrategyPlaygroundPage() {
               </PlaygroundCard>
 
               <PlaygroundCard
-                title="Monte Carlo path bands"
-                subtitle="This carries the same 24-month projection logic from the no-stack report, but puts both cashflow cases on one sheet."
+                title="Confidence ladder"
+                subtitle="This keeps the focus on the strategy. As daily confidence rises, you can see how realized edge, win rate, and feature stress behave."
               >
                 <div className="h-[360px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={payload.monteCarloCompare} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                    <BarChart data={confidenceBuckets} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
                       <CartesianGrid stroke="rgba(148,163,184,0.12)" vertical={false} />
-                      <XAxis dataKey="month" stroke="#94a3b8" tickLine={false} axisLine={false} />
+                      <XAxis dataKey="bucket" stroke="#94a3b8" tickLine={false} axisLine={false} />
                       <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} tickFormatter={formatCompactMoney} />
                       <Tooltip
                         contentStyle={{ background: "#08101b", border: "1px solid rgba(148,163,184,0.18)", borderRadius: 16 }}
-                        formatter={(value, name) => [formatMoney(Number(value ?? 0)), String(name)]}
+                        formatter={(value, name) => {
+                          const numeric = Number(value ?? 0);
+                          if (name === "Avg daily P&L") return [formatMoney(numeric), "Avg daily P&L"];
+                          if (name === "Avg win rate") return [formatPercent(numeric), "Avg win rate"];
+                          return [numeric.toLocaleString(), String(name)];
+                        }}
                       />
-                      <Line type="monotone" dataKey="medianNoWithdrawal" stroke={colors.combined} strokeWidth={3} dot={false} name="Median, no withdrawal" />
-                      <Line type="monotone" dataKey="medianWithWithdrawal" stroke={colors.module48} strokeWidth={3} dot={false} name="Median, with $1.2k withdrawal" />
-                      <Line type="monotone" dataKey="p10NoWithdrawal" stroke={colors.combined} strokeOpacity={0.3} strokeWidth={1.5} dot={false} name="P10, no withdrawal" />
-                      <Line type="monotone" dataKey="p90NoWithdrawal" stroke={colors.combined} strokeOpacity={0.3} strokeWidth={1.5} dot={false} name="P90, no withdrawal" />
-                    </LineChart>
+                      <Bar dataKey="avgPnl" radius={[10, 10, 0, 0]} name="Avg daily P&L">
+                        {confidenceBuckets.map((bucket) => (
+                          <Cell key={bucket.bucket} fill={bucket.avgPnl >= 0 ? colors.combined : "#fb7185"} />
+                        ))}
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   <div className="rounded-2xl border border-white/10 bg-[#091221]/75 p-4">
-                    <div className="text-xs uppercase tracking-[0.14em] text-slate-400">24M median, no withdrawal</div>
-                    <div className="mt-2 text-2xl font-semibold text-emerald-300">{formatMoney(payload.summaries.noStack.monte_carlo.no_withdrawal.median_end_balance)}</div>
-                    <div className="mt-2 text-xs text-slate-400">Bust {formatPercent(payload.summaries.noStack.monte_carlo.no_withdrawal.prob_finish_busted)}</div>
+                    <div className="text-xs uppercase tracking-[0.14em] text-slate-400">Best confidence bucket</div>
+                    <div className="mt-2 text-2xl font-semibold text-emerald-300">{bestConfidenceBucket ? bestConfidenceBucket.bucket : "n/a"}</div>
+                    <div className="mt-2 text-xs text-slate-400">Avg day {bestConfidenceBucket ? formatMoney(bestConfidenceBucket.avgPnl) : "n/a"}</div>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-[#091221]/75 p-4">
-                    <div className="text-xs uppercase tracking-[0.14em] text-slate-400">24M median, with withdrawals</div>
-                    <div className="mt-2 text-2xl font-semibold text-fuchsia-300">{formatMoney(payload.summaries.noStack.monte_carlo.withdraw_1200.median_end_balance)}</div>
-                    <div className="mt-2 text-xs text-slate-400">Bust {formatPercent(payload.summaries.noStack.monte_carlo.withdraw_1200.prob_finish_busted)}</div>
+                    <div className="text-xs uppercase tracking-[0.14em] text-slate-400">Avg bucket win rate</div>
+                    <div className="mt-2 text-2xl font-semibold text-slate-100">{bestConfidenceBucket ? formatPercent(bestConfidenceBucket.avgWinRate) : "n/a"}</div>
+                    <div className="mt-2 text-xs text-slate-400">{bestConfidenceBucket ? `${bestConfidenceBucket.days} days, ${bestConfidenceBucket.avgTrades.toFixed(1)} trades/day` : "Strategy bucket stats unavailable"}</div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-[#091221]/75 p-4">
+                    <div className="text-xs uppercase tracking-[0.14em] text-slate-400">Avg feature stress</div>
+                    <div className="mt-2 text-2xl font-semibold text-amber-300">{bestConfidenceBucket ? bestConfidenceBucket.avgStress.toFixed(2) : "n/a"}</div>
+                    <div className="mt-2 text-xs text-slate-400">Useful for spotting when conviction comes with extra strain.</div>
                   </div>
                 </div>
               </PlaygroundCard>
@@ -778,7 +967,7 @@ export function StrategyPlaygroundPage() {
           <div className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
             <PlaygroundCard
               title="Daily dot plot, selectable"
-              subtitle="I made X = average model confidence, Y = realized day P&L, and bubble size = number of trades. That gives a clean way to pick interesting days fast."
+              subtitle="Pick the X-axis that best answers your question. Confidence is the default, but stress, hold time, RVWAP stretch, and trade count are one click away."
             >
               <div className="mb-4 flex flex-wrap gap-3">
                 <label className="flex min-w-[260px] flex-1 flex-col gap-2">
@@ -791,6 +980,20 @@ export function StrategyPlaygroundPage() {
                     {daySelectorOptions.map((item) => (
                       <option key={item.value} value={item.value}>
                         {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex min-w-[260px] flex-1 flex-col gap-2">
+                  <span className="text-xs uppercase tracking-[0.14em] text-slate-400">Suggested X-axis</span>
+                  <select
+                    value={selectedDayXAxis}
+                    onChange={(event) => setSelectedDayXAxis(event.target.value as DayXAxisKey)}
+                    className="rounded-2xl border border-white/10 bg-[#091221] px-4 py-3 text-sm text-slate-100 outline-none"
+                  >
+                    {dayXAxisOptions.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
                       </option>
                     ))}
                   </select>
@@ -818,7 +1021,7 @@ export function StrategyPlaygroundPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <ScatterChart margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
                     <CartesianGrid stroke="rgba(148,163,184,0.12)" />
-                    <XAxis type="number" dataKey="avgProbability" stroke="#94a3b8" tickLine={false} axisLine={false} tickFormatter={(value) => `${Math.round(Number(value) * 100)}%`} name="Avg model confidence" />
+                    <XAxis type="number" dataKey="xValue" stroke="#94a3b8" tickLine={false} axisLine={false} tickFormatter={(value) => selectedDayXAxisOption.format(Number(value))} name={selectedDayXAxisOption.axisLabel} />
                     <YAxis type="number" dataKey="pnl" stroke="#94a3b8" tickLine={false} axisLine={false} tickFormatter={formatCompactMoney} name="Day P&L" />
                     <ZAxis type="number" dataKey="trades" range={[120, 900]} />
                     <Tooltip
@@ -826,14 +1029,14 @@ export function StrategyPlaygroundPage() {
                       contentStyle={{ background: "#08101b", border: "1px solid rgba(148,163,184,0.18)", borderRadius: 16 }}
                       formatter={(value, name) => {
                         const numeric = Number(value ?? 0);
-                        if (name === "Avg model confidence") return [formatPercent(numeric, 1), "Avg confidence"];
+                        if (name === selectedDayXAxisOption.axisLabel) return [selectedDayXAxisOption.format(numeric), selectedDayXAxisOption.tooltipLabel];
                         if (name === "Day P&L") return [formatMoney(numeric), "Day P&L"];
                         return [numeric.toLocaleString(), String(name)];
                       }}
                       labelFormatter={(_, payloadRows) => String(payloadRows?.[0]?.payload?.day ?? "Day")}
                     />
                     <Scatter
-                      data={payload.dailyDots}
+                      data={dayScatterData}
                       onClick={(point) => {
                         const day = (point?.payload as DailyDot | undefined)?.day;
                         if (day) {
@@ -841,7 +1044,7 @@ export function StrategyPlaygroundPage() {
                         }
                       }}
                     >
-                      {payload.dailyDots.map((day) => {
+                      {dayScatterData.map((day) => {
                         const color = day.dominantSleeve === "mixed" ? colors.mixed ?? colors.stacked : dominantColor(day.dominantSleeve, colors);
                         const active = day.day === selectedDay;
                         return <Cell key={day.day} fill={color} stroke={active ? "#f8fafc" : "transparent"} strokeWidth={active ? 2 : 0} />;
@@ -932,11 +1135,11 @@ export function StrategyPlaygroundPage() {
           <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1fr]">
             <PlaygroundCard
               title="Why the MLP still matters"
-              subtitle="A compact comparison between the current Fred-parity MLP and the strongest public Pine challenger we found so far."
+              subtitle="A compact comparison between the current strategy model and the strongest public Pine challenger we found so far."
             >
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-white/10 bg-[#091221]/75 p-4">
-                  <div className="text-xs uppercase tracking-[0.14em] text-slate-400">Fred-parity MLP, no stack</div>
+                  <div className="text-xs uppercase tracking-[0.14em] text-slate-400">Strategy model, no stack</div>
                   <div className="mt-2 text-2xl font-semibold text-emerald-300">{formatMoney(payload.summaries.noStack.history.trade_stats.net_pnl)}</div>
                   <div className="mt-2 text-xs text-slate-400">
                     {payload.summaries.noStack.history.trade_stats.trades.toLocaleString()} trades · PF {payload.summaries.noStack.history.trade_stats.profit_factor?.toFixed(2)} · DD {formatCompactMoney(-payload.summaries.noStack.history.trade_stats.max_drawdown_closed_equity)}
@@ -957,7 +1160,7 @@ export function StrategyPlaygroundPage() {
                 </div>
               </div>
               <div className="mt-4 rounded-2xl border border-white/10 bg-[#091221]/60 p-4 text-sm leading-relaxed text-slate-300">
-                The main point is not that the MLP wins every beauty contest. It is that once we remove overlap and look at the true Fred-parity event stream, the model still gives us enough edge and enough structure to justify deeper feature and day-level diagnostics here in the Playground.
+                The main point is not that the MLP wins every beauty contest. It is that once we remove overlap and look at the true strategy event stream, the model still gives us enough edge and enough structure to justify deeper feature and day-level diagnostics here in the Playground.
               </div>
             </PlaygroundCard>
 
@@ -981,7 +1184,7 @@ export function StrategyPlaygroundPage() {
                   },
                   {
                     title: "Parity drift overlay",
-                    body: "Overlay local-runner vs Fred-backend differences directly on the same day cloud so any future drift pops visually instead of hiding in logs.",
+                    body: "Overlay local-runner vs reference-backend differences directly on the same day cloud so any future drift pops visually instead of hiding in logs.",
                   },
                 ].map((item) => (
                   <div key={item.title} className="rounded-2xl border border-white/10 bg-[#091221]/75 p-4">

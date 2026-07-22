@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Praxion Research | Strategy Playground</title>
-  <meta name="description" content="Fred-parity RVWAP MLP graph lab for feature analysis, overlap diagnostics, neural structure, and day-level trade exploration." />
+  <meta name="description" content="RVWAP MLP graph lab for feature analysis, overlap diagnostics, neural structure, animated node flow, and day-level trade exploration." />
   <link rel="stylesheet" href="./styles.css" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <style>
@@ -163,9 +163,9 @@
     <section class="hero" id="playground">
       <div class="container hero-grid">
         <div class="hero-card">
-          <div class="eyebrow">Fred-parity MLP Lab</div>
-          <h1>Strategy Playground.<br/>See the model think.</h1>
-          <p class="lead">This workspace reframes the RVWAP MLP the way the ORB regime page reframed ORB, with graphs focused on features, overlap distortion, neural structure, and selectable day-level trade diagnostics.</p>
+          <div class="eyebrow">RVWAP MLP Lab</div>
+          <h1>Strategy Playground.<br/>See the strategy think.</h1>
+          <p class="lead">This workspace keeps the focus on the strategy itself, with graphs centered on features, overlap distortion, neural structure, sleeve behavior, and selectable day-level trade diagnostics.</p>
           <div class="actions">
             <a class="button primary" href="#charts">Open Graphs</a>
             <a class="button ghost" href="./dashboard.html">Back to Dashboard</a>
@@ -174,8 +174,8 @@
         <aside class="hero-card hero-side">
           <div class="stat">
             <div class="label">Model</div>
-            <div class="value">Fred-parity MLP</div>
-            <div class="small">Backtest payload built from the Fred backend event stream, then corrected to a strict no-stacking combined book.</div>
+            <div class="value">RVWAP MLP</div>
+            <div class="small">Research payload rebuilt around the strategy event stream, then corrected to a strict no-stacking combined book.</div>
           </div>
           <div class="stat">
             <div class="label">View</div>
@@ -195,7 +195,7 @@
       <div class="container play-kpis">
         <div class="play-kpi"><div class="label">No-stack net, 2 MNQ</div><div class="value" id="kpi-net">Loading...</div></div>
         <div class="play-kpi"><div class="label">Average month, 6 MNQ</div><div class="value" id="kpi-month">Loading...</div></div>
-        <div class="play-kpi"><div class="label">24M median, no withdrawal</div><div class="value" id="kpi-mc">Loading...</div></div>
+        <div class="play-kpi"><div class="label">Combined win rate</div><div class="value" id="kpi-mc">Loading...</div></div>
         <div class="play-kpi"><div class="label">Overlap trades removed</div><div class="value" id="kpi-skipped">Loading...</div></div>
       </div>
     </section>
@@ -205,7 +205,7 @@
         <div class="play-grid-2">
           <div class="play-card">
             <h2>Stacked vs no-stack reality</h2>
-            <div class="play-subtitle">This chart matters because it shows how much overlap inflated the original Fred-parity replay.</div>
+            <div class="play-subtitle">This chart matters because it shows how much overlap inflated the original replay.</div>
             <div id="monthly-chart" class="plot"></div>
             <div class="play-mini-grid">
               <div class="play-mini"><div class="label">Accepted trades</div><div class="value" id="mini-accepted">-</div></div>
@@ -262,13 +262,13 @@
           </div>
 
           <div class="play-card">
-            <h2>Monte Carlo path bands</h2>
-            <div class="play-subtitle">This carries the 24-month no-stack projection into the Playground, with both cashflow cases visible together.</div>
+            <h2>Confidence ladder</h2>
+            <div class="play-subtitle">This keeps the focus on the strategy. As daily confidence rises, you can see how realized edge, win rate, and feature stress behave.</div>
             <div id="mc-chart" class="plot"></div>
             <div class="play-mini-grid">
-              <div class="play-mini"><div class="label">Median, no withdrawal</div><div class="value" id="mc-no">-</div><div class="muted-note" id="mc-no-bust"></div></div>
-              <div class="play-mini"><div class="label">Median, with withdrawals</div><div class="value" id="mc-wd">-</div><div class="muted-note" id="mc-wd-bust"></div></div>
-              <div class="play-mini"><div class="label">Why it matters</div><div class="muted-note">You can see the distribution shape compress once we stop pretending both sleeves could overlap freely.</div></div>
+              <div class="play-mini"><div class="label">Best confidence bucket</div><div class="value" id="mc-no">-</div><div class="muted-note" id="mc-no-bust"></div></div>
+              <div class="play-mini"><div class="label">Avg bucket win rate</div><div class="value" id="mc-wd">-</div><div class="muted-note" id="mc-wd-bust"></div></div>
+              <div class="play-mini"><div class="label">Why it matters</div><div class="muted-note">Higher confidence should translate into cleaner realized edge, not just prettier account projections.</div></div>
             </div>
           </div>
         </div>
@@ -276,9 +276,10 @@
         <div class="play-grid-2">
           <div class="play-card">
             <h2>Daily dot plot, selectable</h2>
-            <div class="play-subtitle">X is average model confidence, Y is realized day P&amp;L, bubble size is trade count. Click dots or use the selector.</div>
+            <div class="play-subtitle">Pick the X-axis that best answers your question. Confidence is the default, but stress, hold time, RVWAP stretch, and trade count are one click away.</div>
             <div class="day-controls">
               <select id="day-select" class="day-select"></select>
+              <select id="x-axis-select" class="day-select"></select>
               <button class="pill-button" id="jump-best" type="button">Best day</button>
               <button class="pill-button" id="jump-worst" type="button">Worst day</button>
               <button class="pill-button" id="jump-latest" type="button">Latest day</button>
@@ -326,6 +327,7 @@
       payload: null,
       selectedSleeve: 'rth',
       selectedDay: null,
+      selectedDayXAxis: 'avgProbability',
     };
 
     function fmtMoney(value, digits = 0) {
@@ -369,18 +371,61 @@
       return COLORS[key] || '#94a3b8';
     }
 
+    const DAY_X_AXIS_OPTIONS = [
+      { key: 'avgProbability', label: 'Confidence, recommended', axisLabel: 'Average model confidence', tickFormat: (value) => fmtPct(value, 0), hoverFormat: (value) => fmtPct(value, 1), accessor: (row) => Number(row.avgProbability || 0) },
+      { key: 'medianProbability', label: 'Median probability', axisLabel: 'Median model confidence', tickFormat: (value) => fmtPct(value, 0), hoverFormat: (value) => fmtPct(value, 1), accessor: (row) => Number(row.medianProbability || 0) },
+      { key: 'featureStress', label: 'Feature stress', axisLabel: 'Feature stress', tickFormat: (value) => Number(value || 0).toFixed(2), hoverFormat: (value) => Number(value || 0).toFixed(2), accessor: (row) => Number(row.featureStress || 0) },
+      { key: 'avgDurationMinutes', label: 'Avg hold time', axisLabel: 'Avg duration (minutes)', tickFormat: (value) => `${Math.round(Number(value || 0))}m`, hoverFormat: (value) => `${Math.round(Number(value || 0))}m`, accessor: (row) => Number(row.avgDurationMinutes || 0) },
+      { key: 'avgRvwapZAbs', label: 'RVWAP stretch', axisLabel: 'Avg |RVWAP z|', tickFormat: (value) => Number(value || 0).toFixed(2), hoverFormat: (value) => Number(value || 0).toFixed(2), accessor: (row) => Number(row.avgRvwapZAbs || 0) },
+      { key: 'winRate', label: 'Day win rate', axisLabel: 'Day win rate', tickFormat: (value) => fmtPct(value, 0), hoverFormat: (value) => fmtPct(value, 1), accessor: (row) => Number(row.winRate || 0) },
+      { key: 'trades', label: 'Trade count', axisLabel: 'Trade count', tickFormat: (value) => Math.round(Number(value || 0)).toLocaleString(), hoverFormat: (value) => Math.round(Number(value || 0)).toLocaleString(), accessor: (row) => Number(row.trades || 0) },
+    ];
+
+    function getDayXAxisOption() {
+      return DAY_X_AXIS_OPTIONS.find((option) => option.key === state.selectedDayXAxis) || DAY_X_AXIS_OPTIONS[0];
+    }
+
+    function buildConfidenceBuckets(payload) {
+      const rows = payload.dailyDots || [];
+      if (!rows.length) return [];
+      const values = rows.map((row) => Number(row.avgProbability || 0));
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const bucketCount = 6;
+      const width = Math.max((max - min) / bucketCount, 0.015);
+      const buckets = Array.from({ length: bucketCount }, (_, index) => ({
+        low: min + index * width,
+        high: index === bucketCount - 1 ? max : min + (index + 1) * width,
+        rows: [],
+      }));
+      rows.forEach((row) => {
+        const rawIndex = width <= 0 ? 0 : Math.floor((Number(row.avgProbability || 0) - min) / width);
+        const index = Math.max(0, Math.min(bucketCount - 1, rawIndex));
+        buckets[index].rows.push(row);
+      });
+      return buckets.filter((bucket) => bucket.rows.length).map((bucket) => ({
+        bucket: `${Math.round(bucket.low * 100)}-${Math.round(bucket.high * 100)}%`,
+        avgPnl: bucket.rows.reduce((sum, row) => sum + Number(row.pnl || 0), 0) / bucket.rows.length,
+        avgWinRate: bucket.rows.reduce((sum, row) => sum + Number(row.winRate || 0), 0) / bucket.rows.length,
+        avgStress: bucket.rows.reduce((sum, row) => sum + Number(row.featureStress || 0), 0) / bucket.rows.length,
+        avgTrades: bucket.rows.reduce((sum, row) => sum + Number(row.trades || 0), 0) / bucket.rows.length,
+        days: bucket.rows.length,
+      }));
+    }
+
     function setHeadline(payload) {
       document.getElementById('kpi-net').textContent = fmtMoney(payload.headline.noStackNetPnl2Mnq);
       document.getElementById('kpi-month').textContent = fmtMoney(payload.headline.noStackAvgMonth6Mnq);
-      document.getElementById('kpi-mc').textContent = fmtMoney(payload.headline.mcMedian24mNoWithdrawal);
+      document.getElementById('kpi-mc').textContent = fmtPct(payload.summaries.noStack.history.trade_stats.win_rate);
       document.getElementById('kpi-skipped').textContent = Number(payload.headline.skippedTrades || 0).toLocaleString();
       document.getElementById('mini-accepted').textContent = Number(payload.summaries.noStack.history.filter_stats.accepted_trades || 0).toLocaleString();
       document.getElementById('mini-skipped').textContent = Number(payload.summaries.noStack.history.filter_stats.skipped_trades || 0).toLocaleString();
       document.getElementById('mini-dd').textContent = fmtMoney(payload.summaries.noStack.history.trade_stats.max_drawdown_closed_equity);
-      document.getElementById('mc-no').textContent = fmtMoney(payload.summaries.noStack.monte_carlo.no_withdrawal.median_end_balance);
-      document.getElementById('mc-no-bust').textContent = `Bust ${fmtPct(payload.summaries.noStack.monte_carlo.no_withdrawal.prob_finish_busted)}`;
-      document.getElementById('mc-wd').textContent = fmtMoney(payload.summaries.noStack.monte_carlo.withdraw_1200.median_end_balance);
-      document.getElementById('mc-wd-bust').textContent = `Bust ${fmtPct(payload.summaries.noStack.monte_carlo.withdraw_1200.prob_finish_busted)}`;
+      const bestBucket = buildConfidenceBuckets(payload).sort((a, b) => b.avgPnl - a.avgPnl)[0];
+      document.getElementById('mc-no').textContent = bestBucket ? bestBucket.bucket : 'n/a';
+      document.getElementById('mc-no-bust').textContent = bestBucket ? `Avg day ${fmtMoney(bestBucket.avgPnl)}` : 'No confidence bucket stats yet';
+      document.getElementById('mc-wd').textContent = bestBucket ? fmtPct(bestBucket.avgWinRate) : 'n/a';
+      document.getElementById('mc-wd-bust').textContent = bestBucket ? `${bestBucket.days} days, ${bestBucket.avgTrades.toFixed(1)} trades/day` : 'No confidence bucket stats yet';
     }
 
     function renderMonthly(payload) {
@@ -546,6 +591,8 @@
       lookup.set(outputNode.id, { ...outputNode, x: outputX, y: height / 2 });
       const maxIn = Math.max(0.0001, ...edgeIH.map((edge) => Number(edge.absWeight || 0)));
       const maxOut = Math.max(0.0001, ...edgeHO.map((edge) => Number(edge.absWeight || 0)));
+      const animatedInputEdges = [...edgeIH].sort((a, b) => Number(b.absWeight || 0) - Number(a.absWeight || 0)).slice(0, 8);
+      const animatedOutputEdges = [...edgeHO].sort((a, b) => Number(b.absWeight || 0) - Number(a.absWeight || 0)).slice(0, 5);
 
       const svg = [`<svg viewBox="0 0 ${width} ${height}" style="width:100%;height:340px;overflow:visible;">`];
       svg.push(`<defs>
@@ -561,7 +608,16 @@
         if (!source || !target) return;
         const opacity = 0.12 + (Number(edge.absWeight || 0) / maxIn) * 0.5;
         const widthStroke = 1 + (Number(edge.absWeight || 0) / maxIn) * 3;
-        svg.push(`<path d="M ${source.x} ${source.y} C ${source.x + 80} ${source.y}, ${target.x - 80} ${target.y}, ${target.x} ${target.y}" fill="none" stroke="url(#brainGlow)" stroke-opacity="${opacity}" stroke-width="${widthStroke}"></path>`);
+        const dash = 6 + (Number(edge.absWeight || 0) / maxIn) * 10;
+        const pathId = `brain-in-${edge.source}-${edge.target}`;
+        svg.push(`<path id="${pathId}" d="M ${source.x} ${source.y} C ${source.x + 80} ${source.y}, ${target.x - 80} ${target.y}, ${target.x} ${target.y}" fill="none" stroke="url(#brainGlow)" stroke-opacity="${opacity}" stroke-width="${widthStroke}" stroke-dasharray="${dash} 18"><animate attributeName="stroke-dashoffset" from="0" to="-34" dur="${6.2 - Math.min(3.5, (Number(edge.absWeight || 0) / maxIn) * 2.8)}s" repeatCount="indefinite"></animate></path>`);
+      });
+      animatedInputEdges.forEach((edge, index) => {
+        const pathId = `brain-in-${edge.source}-${edge.target}`;
+        const radius = 2.6 + (Number(edge.absWeight || 0) / maxIn) * 2.2;
+        const dur = 2.6 + index * 0.28;
+        const begin = index * 0.18;
+        svg.push(`<circle r="${radius}" fill="#f8fafc" fill-opacity="0.88"><animate attributeName="opacity" values="0;1;0" dur="${dur}s" repeatCount="indefinite" begin="${begin}s"></animate><animateMotion dur="${dur}s" repeatCount="indefinite" rotate="auto" begin="${begin}s"><mpath href="#${pathId}"></mpath></animateMotion></circle>`);
       });
       edgeHO.forEach((edge) => {
         const source = lookup.get(edge.source);
@@ -569,80 +625,62 @@
         if (!source || !target) return;
         const opacity = 0.18 + (Number(edge.absWeight || 0) / maxOut) * 0.58;
         const widthStroke = 1 + (Number(edge.absWeight || 0) / maxOut) * 4;
-        svg.push(`<path d="M ${source.x} ${source.y} C ${source.x + 70} ${source.y}, ${target.x - 70} ${target.y}, ${target.x} ${target.y}" fill="none" stroke="#f8fafc" stroke-opacity="${opacity}" stroke-width="${widthStroke}"></path>`);
+        const dash = 5 + (Number(edge.absWeight || 0) / maxOut) * 8;
+        const pathId = `brain-out-${edge.source}-${edge.target}`;
+        svg.push(`<path id="${pathId}" d="M ${source.x} ${source.y} C ${source.x + 70} ${source.y}, ${target.x - 70} ${target.y}, ${target.x} ${target.y}" fill="none" stroke="#f8fafc" stroke-opacity="${opacity}" stroke-width="${widthStroke}" stroke-dasharray="${dash} 16"><animate attributeName="stroke-dashoffset" from="0" to="-26" dur="${4.8 - Math.min(2.4, (Number(edge.absWeight || 0) / maxOut) * 2)}s" repeatCount="indefinite"></animate></path>`);
+      });
+      animatedOutputEdges.forEach((edge, index) => {
+        const pathId = `brain-out-${edge.source}-${edge.target}`;
+        const radius = 3 + (Number(edge.absWeight || 0) / maxOut) * 2.8;
+        const dur = 2.1 + index * 0.22;
+        const begin = index * 0.14;
+        svg.push(`<circle r="${radius}" fill="${color}" fill-opacity="0.9"><animate attributeName="opacity" values="0;1;0" dur="${dur}s" repeatCount="indefinite" begin="${begin}s"></animate><animateMotion dur="${dur}s" repeatCount="indefinite" rotate="auto" begin="${begin}s"><mpath href="#${pathId}"></mpath></animateMotion></circle>`);
       });
       placedInputs.forEach((node) => {
         const strength = Number(node.strength || 0);
         const outer = 8 + strength * 30;
         const inner = 4 + strength * 14;
-        svg.push(`<g transform="translate(${node.x},${node.y})"><circle r="${outer}" fill="${color}" fill-opacity="0.22"></circle><circle r="${inner}" fill="${color}"></circle><text x="18" y="4" fill="#cbd5e1" font-size="11">${node.label}</text></g>`);
+        svg.push(`<g transform="translate(${node.x},${node.y})"><circle r="${outer}" fill="${color}" fill-opacity="0.22"><animate attributeName="r" values="${outer};${outer * 1.12};${outer}" dur="3.2s" repeatCount="indefinite"></animate></circle><circle r="${inner}" fill="${color}"><animate attributeName="opacity" values="0.72;1;0.72" dur="2.4s" repeatCount="indefinite"></animate></circle><text x="18" y="4" fill="#cbd5e1" font-size="11">${node.label}</text></g>`);
       });
       placedHidden.forEach((node) => {
         const score = Number(node.score || 0);
         const outer = 10 + score * 24;
         const inner = 6 + score * 12;
-        svg.push(`<g transform="translate(${node.x},${node.y})"><circle r="${outer}" fill="#e2e8f0" fill-opacity="0.12"></circle><circle r="${inner}" fill="#e2e8f0" fill-opacity="0.84"></circle><text x="0" y="32" text-anchor="middle" fill="#94a3b8" font-size="11">${node.label}</text></g>`);
+        svg.push(`<g transform="translate(${node.x},${node.y})"><circle r="${outer}" fill="#e2e8f0" fill-opacity="0.12"><animate attributeName="r" values="${outer};${outer * 1.1};${outer}" dur="3.6s" repeatCount="indefinite"></animate></circle><circle r="${inner}" fill="#e2e8f0" fill-opacity="0.84"><animate attributeName="fill-opacity" values="0.65;0.95;0.65" dur="2.7s" repeatCount="indefinite"></animate></circle><text x="0" y="32" text-anchor="middle" fill="#94a3b8" font-size="11">${node.label}</text></g>`);
       });
       const out = lookup.get(outputNode.id);
-      svg.push(`<g transform="translate(${out.x},${out.y})"><circle r="30" fill="${color}" fill-opacity="0.16"></circle><circle r="18" fill="${color}"></circle><text x="0" y="4" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="600">Win</text><text x="0" y="18" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="600">Prob</text></g>`);
+      svg.push(`<g transform="translate(${out.x},${out.y})"><circle r="30" fill="${color}" fill-opacity="0.16"><animate attributeName="r" values="30;34;30" dur="3s" repeatCount="indefinite"></animate></circle><circle r="18" fill="${color}"><animate attributeName="opacity" values="0.78;1;0.78" dur="2.2s" repeatCount="indefinite"></animate></circle><text x="0" y="4" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="600">Win</text><text x="0" y="18" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="600">Prob</text></g>`);
       svg.push('</svg>');
       document.getElementById('brain-title').textContent = `${state.selectedSleeve.toUpperCase()} MLP node brain`;
       document.getElementById('brain-meta').textContent = `${artifact.standardizedFeatureCount} standardized inputs · ${artifact.hiddenSize} hidden nodes`;
       document.getElementById('brain-svg').innerHTML = svg.join('');
     }
 
-    function renderMonteCarlo(payload) {
-      const rows = payload.monteCarloCompare || [];
-      Plotly.react('mc-chart', [
-        {
-          type: 'scatter',
-          mode: 'lines',
-          x: rows.map((row) => row.month),
-          y: rows.map((row) => row.medianNoWithdrawal),
-          name: 'Median, no withdrawal',
-          line: { color: COLORS.combined, width: 3 },
-          hovertemplate: 'Month %{x}<br>%{y:$,.0f}<extra></extra>'
+    function renderConfidenceLadder(payload) {
+      const buckets = buildConfidenceBuckets(payload);
+      Plotly.react('mc-chart', [{
+        type: 'bar',
+        x: buckets.map((row) => row.bucket),
+        y: buckets.map((row) => row.avgPnl),
+        marker: {
+          color: buckets.map((row) => row.avgPnl >= 0 ? COLORS.combined : '#fb7185'),
+          line: { color: 'rgba(255,255,255,0.12)', width: 1 }
         },
-        {
-          type: 'scatter',
-          mode: 'lines',
-          x: rows.map((row) => row.month),
-          y: rows.map((row) => row.medianWithWithdrawal),
-          name: 'Median, with $1.2k withdrawal',
-          line: { color: COLORS.module48, width: 3 },
-          hovertemplate: 'Month %{x}<br>%{y:$,.0f}<extra></extra>'
-        },
-        {
-          type: 'scatter',
-          mode: 'lines',
-          x: rows.map((row) => row.month),
-          y: rows.map((row) => row.p10NoWithdrawal),
-          name: 'P10, no withdrawal',
-          line: { color: 'rgba(34,197,94,0.35)', width: 1.5 },
-          hoverinfo: 'skip'
-        },
-        {
-          type: 'scatter',
-          mode: 'lines',
-          x: rows.map((row) => row.month),
-          y: rows.map((row) => row.p90NoWithdrawal),
-          name: 'P90, no withdrawal',
-          line: { color: 'rgba(34,197,94,0.35)', width: 1.5 },
-          hoverinfo: 'skip'
-        }
-      ], {
+        customdata: buckets.map((row) => [row.avgWinRate, row.avgStress, row.avgTrades, row.days]),
+        hovertemplate: '%{x}<br>Avg daily P&L: $%{y:,.0f}<br>Avg win rate: %{customdata[0]:.1%}<br>Avg feature stress: %{customdata[1]:.2f}<br>Avg trades/day: %{customdata[2]:.1f}<br>Days: %{customdata[3]}<extra></extra>'
+      }], {
         paper_bgcolor: '#07111f',
         plot_bgcolor: '#07111f',
         margin: { t: 20, r: 20, b: 50, l: 60 },
-        xaxis: { title: 'Projection month', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.08)' },
-        yaxis: { color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
-        font: { color: '#e2e8f0' },
-        legend: { orientation: 'h', y: -0.2 }
+        xaxis: { title: 'Average confidence bucket', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.08)' },
+        yaxis: { title: 'Avg daily P&L', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
+        font: { color: '#e2e8f0' }
       }, { responsive: true, displayModeBar: false });
     }
 
     function buildDayOptions(payload) {
       const select = document.getElementById('day-select');
+      const xAxisSelect = document.getElementById('x-axis-select');
       const seen = new Set();
       const priority = [payload.dayDefaults.latestDay, payload.dayDefaults.bestDay, payload.dayDefaults.worstDay].filter(Boolean);
       const ordered = [...priority, ...(payload.dailyDots || []).map((row) => row.day)].filter((day) => {
@@ -657,10 +695,16 @@
         else if (day === payload.dayDefaults.worstDay) suffix = ' · worst';
         return `<option value="${day}">${day}${suffix}</option>`;
       }).join('');
+      xAxisSelect.innerHTML = DAY_X_AXIS_OPTIONS.map((option) => `<option value="${option.key}">${option.label}</option>`).join('');
       if (state.selectedDay) select.value = state.selectedDay;
+      xAxisSelect.value = state.selectedDayXAxis;
       select.onchange = (event) => {
         state.selectedDay = event.target.value;
         renderDayFocus();
+      };
+      xAxisSelect.onchange = (event) => {
+        state.selectedDayXAxis = event.target.value;
+        renderDaily(payload);
       };
       document.getElementById('jump-best').onclick = () => { state.selectedDay = payload.dayDefaults.bestDay; select.value = state.selectedDay; renderDayFocus(); };
       document.getElementById('jump-worst').onclick = () => { state.selectedDay = payload.dayDefaults.worstDay; select.value = state.selectedDay; renderDayFocus(); };
@@ -669,10 +713,11 @@
 
     function renderDaily(payload) {
       const dots = payload.dailyDots || [];
+      const xAxis = getDayXAxisOption();
       Plotly.react('daily-chart', [{
         type: 'scatter',
         mode: 'markers',
-        x: dots.map((row) => row.avgProbability),
+        x: dots.map((row) => xAxis.accessor(row)),
         y: dots.map((row) => row.pnl),
         text: dots.map((row) => row.day),
         marker: {
@@ -684,13 +729,13 @@
           },
           opacity: 0.88,
         },
-        customdata: dots.map((row) => [row.trades, row.winRate, row.featureStress, row.dominantSleeve]),
-        hovertemplate: '%{text}<br>Avg confidence: %{x:.1%}<br>Day P&L: $%{y:,.0f}<br>Trades: %{customdata[0]}<br>Win rate: %{customdata[1]:.1%}<br>Feature stress: %{customdata[2]:.2f}<br>Sleeve mix: %{customdata[3]}<extra></extra>'
+        customdata: dots.map((row) => [row.trades, row.winRate, row.featureStress, row.dominantSleeve, xAxis.hoverFormat(xAxis.accessor(row))]),
+        hovertemplate: `%{text}<br>${xAxis.axisLabel}: %{customdata[4]}<br>Day P&L: $%{y:,.0f}<br>Trades: %{customdata[0]}<br>Win rate: %{customdata[1]:.1%}<br>Feature stress: %{customdata[2]:.2f}<br>Sleeve mix: %{customdata[3]}<extra></extra>`
       }], {
         paper_bgcolor: '#07111f',
         plot_bgcolor: '#07111f',
         margin: { t: 20, r: 20, b: 60, l: 60 },
-        xaxis: { title: 'Average model confidence', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)', tickformat: '.0%' },
+        xaxis: { title: xAxis.axisLabel, color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)', tickformat: ['avgProbability', 'medianProbability', 'winRate'].includes(xAxis.key) ? '.0%' : undefined },
         yaxis: { title: 'Day P&L', color: '#94a3b8', gridcolor: 'rgba(148,163,184,0.12)' },
         font: { color: '#e2e8f0' }
       }, { responsive: true, displayModeBar: false });
@@ -786,7 +831,7 @@
         renderFeatureSurface(payload);
         wireSleeveButtons();
         renderTopFeatures();
-        renderMonteCarlo(payload);
+        renderConfidenceLadder(payload);
         buildDayOptions(payload);
         renderDaily(payload);
         renderDayFocus();
