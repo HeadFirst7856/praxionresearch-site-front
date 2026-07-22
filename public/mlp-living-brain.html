@@ -1,0 +1,1542 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Praxion Research | Living MLP</title>
+  <meta name="description" content="A zoomable living representation of the RVWAP MLP, with all nodes, animated flow, and full-weight inspection." />
+  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    :root {
+      --bg: #030712;
+      --panel: rgba(7, 17, 31, 0.82);
+      --panel-soft: rgba(12, 24, 44, 0.82);
+      --border: rgba(148, 163, 184, 0.14);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #a78bfa;
+      --ok: #22c55e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.12), transparent 34%),
+        radial-gradient(circle at 85% 15%, rgba(167, 139, 250, 0.12), transparent 24%),
+        linear-gradient(180deg, #020617 0%, #030712 100%);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .page {
+      width: min(1680px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 20px 0 28px;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: rgba(5, 12, 24, 0.76);
+      backdrop-filter: blur(18px);
+    }
+    .brand-stack { display: flex; flex-direction: column; gap: 4px; }
+    .eyebrow {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 11px;
+    }
+    .brand-title {
+      margin: 0;
+      font-size: clamp(24px, 4vw, 40px);
+      line-height: 1.02;
+    }
+    .brand-copy {
+      margin: 0;
+      color: var(--muted);
+      max-width: 760px;
+      line-height: 1.5;
+    }
+    .top-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .top-links a,
+    .pill,
+    .control-button {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      padding: 10px 14px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+      font: inherit;
+    }
+    .pill:hover,
+    .pill.active,
+    .control-button:hover,
+    .top-links a:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.26);
+      transform: translateY(-1px);
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.8fr) minmax(340px, 0.92fr);
+      gap: 18px;
+      align-items: stretch;
+      margin-bottom: 18px;
+    }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      background: var(--panel);
+      box-shadow: 0 28px 90px rgba(2, 6, 23, 0.28);
+      overflow: hidden;
+    }
+    .hero-card {
+      padding: 24px;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(56, 189, 248, 0.18), transparent 28%),
+        linear-gradient(180deg, rgba(7, 17, 31, 0.88), rgba(4, 10, 20, 0.96));
+    }
+    .hero-actions,
+    .toolbar,
+    .toolbar-row,
+    .toolbar-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .hero-actions { margin-top: 18px; }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 22px;
+    }
+    .kpi {
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 22px;
+      background: rgba(9, 18, 33, 0.78);
+      padding: 16px;
+    }
+    .kpi .label,
+    .mini .label,
+    .inspector-meta .label,
+    .legend-item .label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 11px;
+    }
+    .kpi .value,
+    .mini .value {
+      margin-top: 8px;
+      font-size: 28px;
+      line-height: 1.05;
+      font-weight: 650;
+    }
+    .hero-side {
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+      background:
+        radial-gradient(circle at 80% 16%, rgba(167, 139, 250, 0.16), transparent 28%),
+        linear-gradient(180deg, rgba(9, 18, 33, 0.96), rgba(4, 10, 20, 0.98));
+    }
+    .mini {
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 22px;
+      background: rgba(9, 18, 33, 0.68);
+      padding: 16px;
+    }
+    .mini p,
+    .legend-item .small,
+    .inspector-note,
+    .empty {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 13px;
+    }
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(330px, 0.84fr);
+      gap: 18px;
+      min-height: 980px;
+    }
+    .brain-shell {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 980px;
+      background:
+        radial-gradient(circle at 50% 40%, rgba(56, 189, 248, 0.08), transparent 40%),
+        linear-gradient(180deg, rgba(7, 17, 31, 0.9), rgba(4, 10, 20, 0.96));
+    }
+    .brain-head {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+    }
+    .brain-head h2,
+    .panel-head h3,
+    .section-title {
+      margin: 0;
+      font-size: 22px;
+    }
+    .subtle {
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+    .toolbar {
+      margin-top: 16px;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .toolbar-row { gap: 10px; }
+    .toolbar-group { gap: 8px; }
+    .slider-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .slider-wrap input[type="range"] { width: 120px; }
+    .search-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .search-box input {
+      min-width: 180px;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      padding: 0 4px;
+    }
+    .search-box input::placeholder { color: rgba(148, 163, 184, 0.7); }
+    .canvas-wrap {
+      position: relative;
+      min-height: 720px;
+      border-top: 1px solid rgba(148, 163, 184, 0.06);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.06);
+      background:
+        linear-gradient(180deg, rgba(6, 13, 25, 0.4), rgba(2, 6, 23, 0.7)),
+        radial-gradient(circle at center, rgba(56, 189, 248, 0.05), transparent 60%);
+      cursor: grab;
+    }
+    .canvas-wrap.dragging { cursor: grabbing; }
+    #brain-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 720px;
+    }
+    .canvas-overlay {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      pointer-events: none;
+    }
+    .overlay-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(4, 10, 20, 0.76);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      color: var(--muted);
+      font-size: 12px;
+      backdrop-filter: blur(10px);
+    }
+    .overlay-chip strong { color: var(--text); }
+    .brain-foot {
+      padding: 14px 18px 18px;
+    }
+    .stat-strip {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .stat-pill {
+      padding: 12px 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      background: rgba(9, 18, 33, 0.62);
+    }
+    .stat-pill .big {
+      margin-top: 8px;
+      font-size: 20px;
+      font-weight: 620;
+      color: var(--text);
+    }
+    .side-stack {
+      display: grid;
+      gap: 18px;
+      align-content: start;
+    }
+    .panel-head {
+      padding: 18px 18px 12px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+    }
+    .panel-body { padding: 18px; }
+    .inspector-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .inspector-title h4 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.1;
+    }
+    .badge {
+      border-radius: 999px;
+      padding: 8px 12px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-size: 12px;
+    }
+    .inspector-meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .inspector-card,
+    .legend-item,
+    .connection-card {
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      background: rgba(9, 18, 33, 0.6);
+      padding: 14px;
+    }
+    .inspector-meta .value,
+    .legend-item .value {
+      margin-top: 8px;
+      font-size: 17px;
+      font-weight: 620;
+      color: var(--text);
+    }
+    .legend-grid,
+    .connection-list,
+    .family-list {
+      display: grid;
+      gap: 10px;
+    }
+    .family-row,
+    .connection-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .family-color,
+    .node-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      box-shadow: 0 0 18px currentColor;
+    }
+    .bar {
+      position: relative;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.12);
+      overflow: hidden;
+    }
+    .bar > span {
+      position: absolute;
+      inset: 0 auto 0 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(56, 189, 248, 0.98), rgba(167, 139, 250, 0.98));
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+    }
+    .small-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .status-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .empty {
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px dashed rgba(148, 163, 184, 0.2);
+      background: rgba(9, 18, 33, 0.42);
+    }
+    .loading {
+      min-height: 480px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    @media (max-width: 1240px) {
+      .hero-grid,
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+      .brain-shell { min-height: auto; }
+    }
+    @media (max-width: 900px) {
+      .page { width: min(100vw - 20px, 1680px); }
+      .kpi-grid,
+      .stat-strip,
+      .small-grid,
+      .inspector-meta {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    @media (max-width: 640px) {
+      .topbar,
+      .toolbar,
+      .toolbar-row,
+      .toolbar-group,
+      .canvas-overlay {
+        align-items: stretch;
+      }
+      .kpi-grid,
+      .stat-strip,
+      .small-grid,
+      .inspector-meta {
+        grid-template-columns: 1fr;
+      }
+      .search-box,
+      .search-box input {
+        width: 100%;
+      }
+      .canvas-wrap,
+      #brain-canvas {
+        min-height: 620px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <div class="brand-stack">
+        <div class="eyebrow">Praxion Research</div>
+        <h1 class="brand-title">Living MLP</h1>
+        <p class="brand-copy">A full-network view of the RVWAP MLP, with every input node, every hidden node, animated flow, zoom, pan, and feature-level inspection.</p>
+      </div>
+      <div class="top-links">
+        <a href="./strategy-playground.html">Strategy Playground</a>
+        <a href="./regime.html">Regime</a>
+        <a href="./dashboard.html">Dashboard</a>
+      </div>
+    </div>
+
+    <div class="hero-grid">
+      <section class="card hero-card">
+        <div class="eyebrow">Model visualization</div>
+        <h2 class="brand-title" style="font-size: clamp(22px, 3vw, 34px);">See the whole network breathe.</h2>
+        <p class="brand-copy">This page uses the actual trained MLP weights, not a toy diagram. Inputs are grouped by feature family, hidden nodes carry their real output weights, and the flow animation gives you a living feel for how signal pressure moves across the graph.</p>
+        <div class="hero-actions">
+          <button class="pill active" type="button" data-sleeve="rth">RTH sleeve</button>
+          <button class="pill" type="button" data-sleeve="europe">Europe sleeve</button>
+          <button class="control-button" id="fit-all-button" type="button">Fit network</button>
+          <button class="control-button" id="center-hidden-button" type="button">Center hidden layer</button>
+          <button class="control-button" id="play-toggle" type="button">Pause motion</button>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="label">Input nodes</div><div class="value" id="kpi-inputs">-</div></div>
+          <div class="kpi"><div class="label">Hidden nodes</div><div class="value" id="kpi-hidden">-</div></div>
+          <div class="kpi"><div class="label">Connections</div><div class="value" id="kpi-edges">-</div></div>
+          <div class="kpi"><div class="label">Synthetic output pulse</div><div class="value" id="kpi-output">-</div></div>
+        </div>
+      </section>
+
+      <aside class="card hero-side">
+        <div class="mini">
+          <div class="label">How to use it</div>
+          <div class="value">Drag, zoom, inspect</div>
+          <p>Scroll to zoom. Drag to pan. Click any node to lock it in the inspector. Use search if you want to jump straight to a feature.</p>
+        </div>
+        <div class="mini">
+          <div class="label">What is moving</div>
+          <div class="value">Real weights, animated flow</div>
+          <p>The structure and connection weights are real. The motion is a visualization layer so the network feels alive rather than frozen.</p>
+        </div>
+        <div class="mini">
+          <div class="label">Best for</div>
+          <div class="value">Feature intuition</div>
+          <p>Use it to spot dominant families, strong hidden hubs, and which inputs lean hardest into the output head.</p>
+        </div>
+      </aside>
+    </div>
+
+    <div class="workspace">
+      <section class="card brain-shell">
+        <div class="brain-head">
+          <h2>Full network canvas</h2>
+          <div class="subtle">All nodes are rendered. Faint lines show the full weight graph, while brighter pulses ride the strongest paths so you can actually read the structure.</div>
+          <div class="toolbar">
+            <div class="toolbar-row">
+              <div class="toolbar-group">
+                <button class="pill active" type="button" data-sleeve="rth">RTH sleeve</button>
+                <button class="pill" type="button" data-sleeve="europe">Europe sleeve</button>
+              </div>
+              <div class="toolbar-group">
+                <button class="control-button" id="zoom-in-button" type="button">Zoom in</button>
+                <button class="control-button" id="zoom-out-button" type="button">Zoom out</button>
+                <button class="control-button" id="fit-button" type="button">Fit all</button>
+              </div>
+            </div>
+            <div class="toolbar-row">
+              <div class="slider-wrap">
+                Flow density
+                <input id="density-slider" type="range" min="0.2" max="1.3" step="0.05" value="0.75" />
+                <strong id="density-value">0.75</strong>
+              </div>
+              <div class="slider-wrap">
+                Flow speed
+                <input id="speed-slider" type="range" min="0.4" max="2.4" step="0.05" value="1.1" />
+                <strong id="speed-value">1.10x</strong>
+              </div>
+              <div class="search-box">
+                <input id="node-search" type="text" placeholder="Jump to a feature, e.g. session_z" />
+                <button class="control-button" id="search-button" type="button">Find</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="canvas-wrap" id="canvas-wrap">
+          <canvas id="brain-canvas"></canvas>
+          <div class="canvas-overlay">
+            <div class="overlay-chip"><strong id="overlay-sleeve">RTH</strong> · <span id="overlay-counts">-</span></div>
+            <div class="overlay-chip">Hover: <strong id="overlay-hover">None</strong></div>
+            <div class="overlay-chip">Zoom: <strong id="overlay-zoom">1.00x</strong></div>
+          </div>
+        </div>
+
+        <div class="brain-foot">
+          <div class="stat-strip">
+            <div class="stat-pill"><div class="label">Strongest family</div><div class="big" id="family-leader">-</div></div>
+            <div class="stat-pill"><div class="label">Largest hidden hub</div><div class="big" id="hidden-leader">-</div></div>
+            <div class="stat-pill"><div class="label">Top output weight</div><div class="big" id="output-leader">-</div></div>
+            <div class="stat-pill"><div class="label">Weight density</div><div class="big" id="weight-density">-</div></div>
+            <div class="stat-pill"><div class="label">Model rows</div><div class="big" id="artifact-rows">-</div></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="side-stack">
+        <section class="card">
+          <div class="panel-head">
+            <h3>Node inspector</h3>
+            <div class="subtle">Click a node to lock it. If nothing is selected, the strongest input for the active sleeve stays in focus.</div>
+          </div>
+          <div class="panel-body">
+            <div id="inspector-empty" class="empty">Loading the network…</div>
+            <div id="inspector-body" style="display:none;">
+              <div class="inspector-title">
+                <div>
+                  <h4 id="inspector-name">-</h4>
+                  <div class="status-line">
+                    <span class="node-color" id="inspector-color" style="color:#38bdf8"></span>
+                    <span id="inspector-subtitle">-</span>
+                  </div>
+                </div>
+                <div class="badge" id="inspector-badge">-</div>
+              </div>
+              <div class="inspector-meta">
+                <div class="inspector-card"><div class="label">Activation pulse</div><div class="value" id="inspector-activation">-</div></div>
+                <div class="inspector-card"><div class="label">Strength</div><div class="value" id="inspector-strength">-</div></div>
+                <div class="inspector-card"><div class="label">Family / layer</div><div class="value" id="inspector-family">-</div></div>
+                <div class="inspector-card"><div class="label">Link summary</div><div class="value" id="inspector-links">-</div></div>
+              </div>
+              <div class="inspector-note" id="inspector-note"></div>
+              <div style="margin-top:16px;">
+                <div class="section-title" style="font-size:16px; margin-bottom:10px;">Strongest connections</div>
+                <div id="connection-list" class="connection-list"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="panel-head">
+            <h3>Feature families</h3>
+            <div class="subtle">The input layer is grouped by family so you can see where the network leans hardest.</div>
+          </div>
+          <div class="panel-body">
+            <div id="family-list" class="family-list"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="panel-head">
+            <h3>Legend + caveat</h3>
+            <div class="subtle">What is exact here, and what is intentionally stylized.</div>
+          </div>
+          <div class="panel-body">
+            <div class="legend-grid">
+              <div class="legend-item">
+                <div class="label">Exact</div>
+                <div class="value">All nodes and all weights</div>
+                <p class="small">Input count, hidden count, output weights, and edge structure come directly from the trained artifact.</p>
+              </div>
+              <div class="legend-item">
+                <div class="label">Stylized</div>
+                <div class="value">Living motion</div>
+                <p class="small">The pulse and particle motion are synthetic, built to make the network readable and alive instead of frozen.</p>
+              </div>
+              <div class="legend-item">
+                <div class="label">Tip</div>
+                <div class="value">Use search</div>
+                <p class="small">Search is the fastest way to zoom straight into a specific feature when the network is fully expanded.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const DATA_URL = './data/strategy-playground-mlp.json';
+    const COLORS = {
+      rth: '#38bdf8',
+      europe: '#a78bfa',
+      output: '#22c55e',
+      rvwap: '#a78bfa',
+      trend: '#38bdf8',
+      regime: '#34d399',
+      time: '#fb7185',
+      volatility: '#f59e0b',
+      volume: '#f97316',
+      candle: '#60a5fa',
+      session: '#f472b6',
+      risk: '#ef4444',
+      other: '#94a3b8'
+    };
+
+    const state = {
+      payload: null,
+      sleeve: 'rth',
+      running: true,
+      flowDensity: 0.75,
+      flowSpeed: 1.1,
+      camera: { x: 0, y: 0, scale: 1 },
+      pointer: { x: 0, y: 0 },
+      dragging: false,
+      dragLast: null,
+      hoverNodeId: null,
+      selectedNodeId: null,
+      graphs: {},
+      activationCache: null,
+      lastFrameAt: performance.now(),
+      selectedSearch: '',
+    };
+
+    const canvas = document.getElementById('brain-canvas');
+    const canvasWrap = document.getElementById('canvas-wrap');
+    const ctx = canvas.getContext('2d');
+    const pillButtons = [...document.querySelectorAll('[data-sleeve]')];
+    const playToggle = document.getElementById('play-toggle');
+    const fitButton = document.getElementById('fit-button');
+    const fitAllButton = document.getElementById('fit-all-button');
+    const centerHiddenButton = document.getElementById('center-hidden-button');
+    const zoomInButton = document.getElementById('zoom-in-button');
+    const zoomOutButton = document.getElementById('zoom-out-button');
+    const densitySlider = document.getElementById('density-slider');
+    const speedSlider = document.getElementById('speed-slider');
+    const densityValue = document.getElementById('density-value');
+    const speedValue = document.getElementById('speed-value');
+    const searchInput = document.getElementById('node-search');
+    const searchButton = document.getElementById('search-button');
+    const inspectorEmpty = document.getElementById('inspector-empty');
+    const inspectorBody = document.getElementById('inspector-body');
+    const overlayHover = document.getElementById('overlay-hover');
+    const overlayCounts = document.getElementById('overlay-counts');
+    const overlayZoom = document.getElementById('overlay-zoom');
+    const overlaySleeve = document.getElementById('overlay-sleeve');
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function hexToRgba(hex, alpha) {
+      const clean = hex.replace('#', '');
+      const full = clean.length === 3 ? clean.split('').map((ch) => ch + ch).join('') : clean;
+      const int = Number.parseInt(full, 16);
+      const r = (int >> 16) & 255;
+      const g = (int >> 8) & 255;
+      const b = int & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function hashString(value) {
+      let hash = 2166136261;
+      for (let i = 0; i < value.length; i += 1) {
+        hash ^= value.charCodeAt(i);
+        hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+      }
+      return Math.abs(hash >>> 0);
+    }
+
+    function formatNumber(value, digits = 0) {
+      return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits });
+    }
+
+    function formatPct(value) {
+      return `${Math.round(clamp(value, 0, 1) * 100)}%`;
+    }
+
+    function formatSigned(value, digits = 2) {
+      const num = Number(value || 0);
+      const sign = num > 0 ? '+' : num < 0 ? '-' : '';
+      return `${sign}${Math.abs(num).toFixed(digits)}`;
+    }
+
+    function buildGraph(artifact, sleeve) {
+      const brain = artifact.brainFull;
+      const familyOrder = brain.familyOrder || ['rvwap', 'trend', 'regime', 'time', 'volatility', 'volume', 'candle', 'session', 'risk', 'other'];
+      const familyRank = new Map(familyOrder.map((family, index) => [family, index]));
+      const laneColor = COLORS[sleeve] || COLORS.rth;
+      const inputsRaw = (brain.inputNodes || []).map((node, index) => ({
+        ...node,
+        index,
+        family: node.family || 'other',
+        layer: 'input',
+        color: COLORS[node.family] || COLORS.other,
+        strength: Number(node.strength || node.meanAbsWeight || 0),
+      }));
+      inputsRaw.sort((a, b) => {
+        const fam = (familyRank.get(a.family) ?? 999) - (familyRank.get(b.family) ?? 999);
+        if (fam !== 0) return fam;
+        const diff = Number(b.strength || 0) - Number(a.strength || 0);
+        if (Math.abs(diff) > 1e-9) return diff;
+        return String(a.id).localeCompare(String(b.id));
+      });
+
+      const hiddenRaw = (brain.hiddenNodes || []).map((node, index) => ({
+        ...node,
+        index,
+        layer: 'hidden',
+        color: laneColor,
+        score: Number(node.score || node.meanAbsInputWeight || 0),
+      }));
+      hiddenRaw.sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
+
+      const familyGroups = familyOrder.map((family) => ({
+        family,
+        nodes: inputsRaw.filter((node) => node.family === family),
+      })).filter((group) => group.nodes.length > 0);
+      const leftovers = inputsRaw.filter((node) => !familyOrder.includes(node.family));
+      if (leftovers.length) familyGroups.push({ family: 'other', nodes: leftovers });
+
+      const inputColumns = 4;
+      const inputColumnGap = 88;
+      const inputRowGap = 24;
+      const groupGap = 52;
+      const inputStartX = 110;
+      let cursorY = 100;
+      const familyBounds = [];
+      familyGroups.forEach((group) => {
+        const rows = Math.ceil(group.nodes.length / inputColumns);
+        const groupStartY = cursorY;
+        group.nodes.forEach((node, idx) => {
+          const column = Math.floor(idx / rows);
+          const row = idx % rows;
+          node.x = inputStartX + column * inputColumnGap;
+          node.y = cursorY + row * inputRowGap;
+          node.radius = 5.5 + Math.min(7, Math.sqrt(Number(node.strength || 0)) * 1.2);
+        });
+        const groupHeight = Math.max(1, rows - 1) * inputRowGap;
+        familyBounds.push({
+          family: group.family,
+          color: COLORS[group.family] || COLORS.other,
+          label: group.family,
+          x: inputStartX - 44,
+          y: groupStartY - 28,
+          width: inputColumns * inputColumnGap + 48,
+          height: groupHeight + 56,
+          count: group.nodes.length,
+          totalStrength: group.nodes.reduce((sum, node) => sum + Number(node.strength || 0), 0),
+        });
+        cursorY += groupHeight + groupGap;
+      });
+
+      const worldHeight = Math.max(cursorY + 80, 950);
+      const hiddenColumns = hiddenRaw.length > 28 ? 2 : 1;
+      const hiddenRows = Math.ceil(hiddenRaw.length / hiddenColumns);
+      const hiddenStartX = 630;
+      const hiddenColumnGap = 110;
+      const hiddenRowGap = 48;
+      const hiddenHeight = Math.max(0, hiddenRows - 1) * hiddenRowGap;
+      const hiddenTop = Math.max(100, (worldHeight - hiddenHeight) / 2);
+      hiddenRaw.forEach((node, idx) => {
+        const column = Math.floor(idx / hiddenRows);
+        const row = idx % hiddenRows;
+        node.x = hiddenStartX + column * hiddenColumnGap;
+        node.y = hiddenTop + row * hiddenRowGap;
+        node.radius = 8 + Math.min(8, Math.sqrt(Number(node.score || 0)) * 2.4);
+      });
+
+      const outputNode = {
+        ...(brain.outputNode || { id: 'out', label: 'Win Prob' }),
+        layer: 'output',
+        color: COLORS.output,
+        x: 1030,
+        y: worldHeight / 2,
+        radius: 22,
+      };
+
+      const bounds = {
+        minX: 40,
+        maxX: 1100,
+        minY: 40,
+        maxY: worldHeight + 40,
+      };
+
+      const nodeById = new Map();
+      inputsRaw.forEach((node) => nodeById.set(node.id, node));
+      hiddenRaw.forEach((node) => nodeById.set(node.id, node));
+      nodeById.set(outputNode.id, outputNode);
+
+      const weightMatrix = brain.inputHiddenWeights || [];
+      const hiddenOutputWeights = brain.hiddenOutputWeights || [];
+      const maxInputWeight = weightMatrix.reduce((acc, row) => {
+        const local = row.reduce((rowMax, weight) => Math.max(rowMax, Math.abs(Number(weight || 0))), 0);
+        return Math.max(acc, local);
+      }, 0) || 1;
+      const maxHiddenWeight = hiddenOutputWeights.reduce((acc, weight) => Math.max(acc, Math.abs(Number(weight || 0))), 0) || 1;
+
+      const flowEdges = [];
+      inputsRaw.forEach((node) => {
+        const row = weightMatrix[node.index] || [];
+        hiddenRaw.forEach((hidden) => {
+          const weight = Number(row[hidden.index] || 0);
+          flowEdges.push({
+            sourceId: node.id,
+            targetId: hidden.id,
+            sourceIndex: node.index,
+            targetIndex: hidden.index,
+            weight,
+            absWeight: Math.abs(weight),
+            phase: (hashString(`${node.id}:${hidden.id}`) % 1000) / 1000,
+          });
+        });
+      });
+      flowEdges.sort((a, b) => b.absWeight - a.absWeight);
+
+      const hiddenTopInputs = new Map();
+      hiddenRaw.forEach((hidden) => {
+        const edges = inputsRaw.map((node) => {
+          const weight = Number((weightMatrix[node.index] || [])[hidden.index] || 0);
+          return { nodeId: node.id, weight, absWeight: Math.abs(weight), family: node.family };
+        }).sort((a, b) => b.absWeight - a.absWeight).slice(0, 12);
+        hiddenTopInputs.set(hidden.id, edges);
+      });
+
+      const inputTopHidden = new Map();
+      inputsRaw.forEach((node) => {
+        const row = weightMatrix[node.index] || [];
+        const edges = hiddenRaw.map((hidden) => {
+          const weight = Number(row[hidden.index] || 0);
+          return { nodeId: hidden.id, weight, absWeight: Math.abs(weight) };
+        }).sort((a, b) => b.absWeight - a.absWeight).slice(0, 10);
+        inputTopHidden.set(node.id, edges);
+      });
+
+      const familySummary = familyBounds.map((item) => ({
+        family: item.family,
+        color: item.color,
+        count: item.count,
+        totalStrength: item.totalStrength,
+      })).sort((a, b) => b.totalStrength - a.totalStrength);
+
+      return {
+        sleeve,
+        laneColor,
+        artifact,
+        inputNodes: inputsRaw,
+        hiddenNodes: hiddenRaw,
+        outputNode,
+        familyBounds,
+        familySummary,
+        bounds,
+        worldHeight,
+        worldWidth: bounds.maxX - bounds.minX,
+        nodeById,
+        weightMatrix,
+        hiddenOutputWeights,
+        maxInputWeight,
+        maxHiddenWeight,
+        flowEdges,
+        particleEdges: flowEdges.slice(0, Math.min(520, flowEdges.length)),
+        hiddenTopInputs,
+        inputTopHidden,
+      };
+    }
+
+    function getGraph() {
+      return state.graphs[state.sleeve];
+    }
+
+    function fitBounds(bounds, padding = 40) {
+      const width = canvas.clientWidth || 1;
+      const height = canvas.clientHeight || 1;
+      const worldWidth = Math.max(1, bounds.maxX - bounds.minX);
+      const worldHeight = Math.max(1, bounds.maxY - bounds.minY);
+      const scale = Math.min(
+        (width - padding * 2) / worldWidth,
+        (height - padding * 2) / worldHeight,
+      );
+      state.camera.scale = clamp(scale, 0.05, 4);
+      state.camera.x = width / 2 - ((bounds.minX + bounds.maxX) / 2) * state.camera.scale;
+      state.camera.y = height / 2 - ((bounds.minY + bounds.maxY) / 2) * state.camera.scale;
+    }
+
+    function focusNode(node, targetScale = 0.88) {
+      const width = canvas.clientWidth || 1;
+      const height = canvas.clientHeight || 1;
+      state.camera.scale = clamp(targetScale, 0.08, 5.5);
+      state.camera.x = width / 2 - node.x * state.camera.scale;
+      state.camera.y = height / 2 - node.y * state.camera.scale;
+    }
+
+    function centerHiddenLayer() {
+      const graph = getGraph();
+      if (!graph) return;
+      const xs = graph.hiddenNodes.map((node) => node.x);
+      const ys = graph.hiddenNodes.map((node) => node.y);
+      fitBounds({
+        minX: Math.min(...xs) - 180,
+        maxX: Math.max(...xs) + 180,
+        minY: Math.min(...ys) - 180,
+        maxY: Math.max(...ys) + 180,
+      }, 44);
+    }
+
+    function toScreen(x, y) {
+      return {
+        x: x * state.camera.scale + state.camera.x,
+        y: y * state.camera.scale + state.camera.y,
+      };
+    }
+
+    function toWorld(x, y) {
+      return {
+        x: (x - state.camera.x) / state.camera.scale,
+        y: (y - state.camera.y) / state.camera.scale,
+      };
+    }
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvasWrap.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.round(rect.width * dpr));
+      canvas.height = Math.max(1, Math.round(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function computeActivations(graph, timeMs) {
+      const inputActivation = new Map();
+      const hiddenActivation = new Map();
+      const familyPulse = new Map();
+      graph.familySummary.forEach((family, index) => {
+        familyPulse.set(
+          family.family,
+          0.5 + 0.5 * Math.sin(timeMs * 0.00043 * state.flowSpeed + index * 0.9),
+        );
+      });
+
+      graph.inputNodes.forEach((node) => {
+        const phase = (hashString(node.id) % 6283) / 1000;
+        const famPulse = familyPulse.get(node.family) ?? 0.5;
+        const strength = Math.min(1, Number(node.strength || 0) / Math.max(1, graph.maxInputWeight * 12));
+        const oscillation = 0.5 + 0.5 * Math.sin(timeMs * 0.0011 * state.flowSpeed + phase);
+        inputActivation.set(node.id, clamp(0.12 + famPulse * 0.38 + oscillation * 0.28 + strength * 0.34, 0, 1));
+      });
+
+      graph.hiddenNodes.forEach((node) => {
+        const drivers = graph.hiddenTopInputs.get(node.id) || [];
+        const blended = drivers.reduce((sum, edge, idx) => {
+          const pulse = inputActivation.get(edge.nodeId) ?? 0.4;
+          const signed = edge.weight >= 0 ? pulse : (1 - pulse);
+          return sum + signed * (edge.absWeight / Math.max(graph.maxInputWeight, 1)) * (1 - idx * 0.045);
+        }, 0);
+        const normalized = 1 / (1 + Math.exp(-(blended * 2.6 - 0.9)));
+        hiddenActivation.set(node.id, clamp(normalized, 0, 1));
+      });
+
+      let outputBlend = 0;
+      graph.hiddenNodes.forEach((node) => {
+        const hiddenPulse = hiddenActivation.get(node.id) ?? 0.4;
+        const weight = Number(graph.hiddenOutputWeights[node.index] || 0);
+        const signed = weight >= 0 ? hiddenPulse : (1 - hiddenPulse);
+        outputBlend += signed * (Math.abs(weight) / Math.max(graph.maxHiddenWeight, 1));
+      });
+      const outputActivation = clamp(1 / (1 + Math.exp(-(outputBlend * 0.45 - 0.8))), 0, 1);
+
+      return { inputActivation, hiddenActivation, outputActivation };
+    }
+
+    function drawBackground(width, height) {
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, 'rgba(3, 7, 18, 0.95)');
+      gradient.addColorStop(1, 'rgba(2, 6, 23, 0.98)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+
+      for (let i = 0; i < 32; i += 1) {
+        const x = (i * 181.3) % width;
+        const y = (i * 127.7) % height;
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.055)';
+        ctx.beginPath();
+        ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawGrid(width, height) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.06)';
+      ctx.lineWidth = 1;
+      const step = 80;
+      for (let x = (state.camera.x % step) - step; x < width + step; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = (state.camera.y % step) - step; y < height + step; y += step) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawWorld(graph, activations, width, height, timeMs) {
+      ctx.save();
+      ctx.translate(state.camera.x, state.camera.y);
+      ctx.scale(state.camera.scale, state.camera.scale);
+
+      graph.familyBounds.forEach((group) => {
+        ctx.fillStyle = hexToRgba(group.color, 0.05);
+        ctx.strokeStyle = hexToRgba(group.color, 0.16);
+        ctx.lineWidth = 1 / state.camera.scale;
+        const r = 24;
+        const x = group.x;
+        const y = group.y;
+        const w = group.width;
+        const h = group.height;
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = hexToRgba(group.color, 0.78);
+        ctx.font = `${Math.max(14, 15 / state.camera.scale)}px Inter, sans-serif`;
+        ctx.fillText(`${group.family} · ${group.count}`, group.x + 12, group.y + 20);
+      });
+
+      ctx.lineCap = 'round';
+      graph.inputNodes.forEach((inputNode) => {
+        const row = graph.weightMatrix[inputNode.index] || [];
+        graph.hiddenNodes.forEach((hiddenNode) => {
+          const weight = Number(row[hiddenNode.index] || 0);
+          const absWeight = Math.abs(weight);
+          const alpha = 0.015 + 0.09 * (absWeight / Math.max(graph.maxInputWeight, 1));
+          if (alpha <= 0.016) return;
+          ctx.strokeStyle = weight >= 0 ? hexToRgba(inputNode.color, alpha) : 'rgba(248, 113, 113, 0.03)';
+          ctx.lineWidth = (0.35 + 1.1 * (absWeight / Math.max(graph.maxInputWeight, 1))) / state.camera.scale;
+          ctx.beginPath();
+          ctx.moveTo(inputNode.x, inputNode.y);
+          ctx.lineTo(hiddenNode.x, hiddenNode.y);
+          ctx.stroke();
+        });
+      });
+
+      graph.hiddenNodes.forEach((hiddenNode) => {
+        const weight = Number(graph.hiddenOutputWeights[hiddenNode.index] || 0);
+        const absWeight = Math.abs(weight);
+        ctx.strokeStyle = weight >= 0 ? hexToRgba(graph.laneColor, 0.14 + 0.24 * (absWeight / Math.max(graph.maxHiddenWeight, 1))) : 'rgba(248, 113, 113, 0.18)';
+        ctx.lineWidth = (0.8 + 2.2 * (absWeight / Math.max(graph.maxHiddenWeight, 1))) / state.camera.scale;
+        ctx.beginPath();
+        ctx.moveTo(hiddenNode.x, hiddenNode.y);
+        ctx.lineTo(graph.outputNode.x, graph.outputNode.y);
+        ctx.stroke();
+      });
+
+      const particleCount = Math.max(80, Math.round(graph.particleEdges.length * state.flowDensity));
+      for (let i = 0; i < particleCount; i += 1) {
+        const edge = graph.particleEdges[i % graph.particleEdges.length];
+        const source = graph.nodeById.get(edge.sourceId);
+        const target = graph.nodeById.get(edge.targetId);
+        if (!source || !target) continue;
+        const sourcePulse = activations.inputActivation.get(source.id) ?? 0.45;
+        const targetPulse = activations.hiddenActivation.get(target.id) ?? 0.45;
+        const progress = (timeMs * 0.00011 * state.flowSpeed * (1 + edge.absWeight * 2.8) + edge.phase * 5.0 + (i % 3) * 0.24) % 1;
+        const x = lerp(source.x, target.x, progress);
+        const y = lerp(source.y, target.y, progress);
+        const glow = clamp((sourcePulse + targetPulse) / 2, 0.2, 1);
+        const radius = (1.5 + edge.absWeight * 2.6 + glow * 1.6) / Math.sqrt(state.camera.scale);
+        ctx.fillStyle = hexToRgba(source.color, 0.3 + glow * 0.45);
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const outputPulse = activations.outputActivation;
+      graph.inputNodes.forEach((node) => drawNode(node, activations.inputActivation.get(node.id) ?? 0.4, node.color));
+      graph.hiddenNodes.forEach((node) => drawNode(node, activations.hiddenActivation.get(node.id) ?? 0.4, graph.laneColor));
+      drawNode(graph.outputNode, outputPulse, COLORS.output, true);
+
+      if (state.camera.scale > 0.52) {
+        drawLabels(graph, activations);
+      } else if (state.selectedNodeId || state.hoverNodeId) {
+        const focus = graph.nodeById.get(state.selectedNodeId || state.hoverNodeId);
+        if (focus) drawSingleLabel(focus, focus.layer === 'input' ? focus.color : focus.layer === 'hidden' ? graph.laneColor : COLORS.output);
+      }
+
+      ctx.restore();
+    }
+
+    function drawNode(node, activation, color, isOutput = false) {
+      const radius = node.radius * (0.95 + activation * (isOutput ? 0.38 : 0.22));
+      ctx.save();
+      ctx.fillStyle = hexToRgba(color, 0.38 + activation * 0.38);
+      ctx.shadowColor = hexToRgba(color, 0.95);
+      ctx.shadowBlur = 18 * activation;
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = hexToRgba('#ffffff', 0.1 + activation * 0.18);
+      ctx.lineWidth = 1.1 / state.camera.scale;
+      ctx.stroke();
+
+      if (state.selectedNodeId === node.id || state.hoverNodeId === node.id) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.lineWidth = 2.2 / state.camera.scale;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius + 4 / state.camera.scale, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawLabels(graph) {
+      const activeNodes = [];
+      graph.inputNodes.forEach((node) => {
+        if ((state.selectedNodeId && state.selectedNodeId === node.id) || (state.hoverNodeId && state.hoverNodeId === node.id) || Number(node.strength || 0) > 0.8) {
+          activeNodes.push({ node, color: node.color });
+        }
+      });
+      graph.hiddenNodes.forEach((node) => {
+        if ((state.selectedNodeId && state.selectedNodeId === node.id) || (state.hoverNodeId && state.hoverNodeId === node.id) || Number(node.score || 0) > 0.22) {
+          activeNodes.push({ node, color: graph.laneColor });
+        }
+      });
+      if (activeNodes.length > 40) activeNodes.length = 40;
+      activeNodes.forEach(({ node, color }) => drawSingleLabel(node, color));
+      drawSingleLabel(graph.outputNode, COLORS.output);
+    }
+
+    function drawSingleLabel(node, color) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(3, 7, 18, 0.82)';
+      ctx.strokeStyle = hexToRgba(color, 0.38);
+      ctx.lineWidth = 1 / state.camera.scale;
+      const label = String(node.label || node.id);
+      ctx.font = `${Math.max(13, 14 / state.camera.scale)}px Inter, sans-serif`;
+      const paddingX = 8 / state.camera.scale;
+      const paddingY = 5 / state.camera.scale;
+      const metrics = ctx.measureText(label);
+      const boxW = metrics.width + paddingX * 2;
+      const boxH = 18 / state.camera.scale + paddingY * 2;
+      const x = node.x + node.radius + 8 / state.camera.scale;
+      const y = node.y - boxH / 2;
+      ctx.beginPath();
+      ctx.roundRect(x, y, boxW, boxH, 10 / state.camera.scale);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillText(label, x + paddingX, y + boxH - paddingY - 4 / state.camera.scale);
+      ctx.restore();
+    }
+
+    function findNodeAtScreen(screenX, screenY) {
+      const graph = getGraph();
+      if (!graph) return null;
+      let winner = null;
+      let bestDistance = Infinity;
+      [...graph.inputNodes, ...graph.hiddenNodes, graph.outputNode].forEach((node) => {
+        const point = toScreen(node.x, node.y);
+        const radius = Math.max(10, node.radius * state.camera.scale + 6);
+        const distance = Math.hypot(screenX - point.x, screenY - point.y);
+        if (distance <= radius && distance < bestDistance) {
+          winner = node;
+          bestDistance = distance;
+        }
+      });
+      return winner;
+    }
+
+    function updateInspector(graph, activations) {
+      let target = null;
+      if (state.selectedNodeId) target = graph.nodeById.get(state.selectedNodeId) || null;
+      if (!target && state.hoverNodeId) target = graph.nodeById.get(state.hoverNodeId) || null;
+      if (!target) {
+        target = graph.inputNodes.slice().sort((a, b) => Number(b.strength || 0) - Number(a.strength || 0))[0] || graph.outputNode;
+      }
+      if (!target) return;
+
+      inspectorEmpty.style.display = 'none';
+      inspectorBody.style.display = 'block';
+
+      document.getElementById('inspector-name').textContent = target.label || target.id;
+      document.getElementById('inspector-color').style.color = target.layer === 'input' ? target.color : target.layer === 'hidden' ? graph.laneColor : COLORS.output;
+      document.getElementById('inspector-subtitle').textContent = target.id;
+      document.getElementById('inspector-badge').textContent = target.layer.toUpperCase();
+
+      let activation = 0;
+      let strengthText = '-';
+      let familyText = '-';
+      let linksText = '-';
+      let note = '';
+      let connections = [];
+
+      if (target.layer === 'input') {
+        activation = activations.inputActivation.get(target.id) ?? 0;
+        strengthText = `${Number(target.strength || 0).toFixed(3)} input pull`;
+        familyText = `${target.family} / input`;
+        const top = graph.inputTopHidden.get(target.id) || [];
+        connections = top.map((item) => {
+          const hidden = graph.nodeById.get(item.nodeId);
+          return {
+            label: hidden ? hidden.label : item.nodeId,
+            family: 'hidden',
+            color: graph.laneColor,
+            weight: item.weight,
+            ratio: item.absWeight / Math.max(graph.maxInputWeight, 1),
+          };
+        });
+        linksText = `${top.length} strongest hidden links`;
+        note = 'This feature is part of the live trained input vector. The displayed links are the strongest direct pushes into hidden neurons.';
+      } else if (target.layer === 'hidden') {
+        activation = activations.hiddenActivation.get(target.id) ?? 0;
+        strengthText = `${Number(target.score || 0).toFixed(3)} output pull`;
+        familyText = `hidden hub / ${state.sleeve.toUpperCase()}`;
+        const topInputs = graph.hiddenTopInputs.get(target.id) || [];
+        connections = topInputs.map((item) => {
+          const inputNode = graph.nodeById.get(item.nodeId);
+          return {
+            label: inputNode ? inputNode.label : item.nodeId,
+            family: inputNode ? inputNode.family : item.family,
+            color: inputNode ? inputNode.color : COLORS.other,
+            weight: item.weight,
+            ratio: item.absWeight / Math.max(graph.maxInputWeight, 1),
+          };
+        });
+        linksText = `${topInputs.length} dominant upstream inputs`;
+        note = 'Hidden nodes act like feature mixers. The inspector surfaces the strongest upstream inputs feeding this neuron.';
+      } else {
+        activation = activations.outputActivation;
+        strengthText = `${formatPct(activations.outputActivation)} synthetic confidence`;
+        familyText = 'output / win probability head';
+        connections = graph.hiddenNodes.slice().map((node) => ({
+          label: node.label,
+          family: 'hidden',
+          color: graph.laneColor,
+          weight: Number(graph.hiddenOutputWeights[node.index] || 0),
+          ratio: Math.abs(Number(graph.hiddenOutputWeights[node.index] || 0)) / Math.max(graph.maxHiddenWeight, 1),
+        })).sort((a, b) => Math.abs(b.weight) - Math.abs(a.weight)).slice(0, 12);
+        linksText = `${connections.length} strongest hidden contributors`;
+        note = 'The output head is where hidden nodes cash out into win-probability pressure.';
+      }
+
+      document.getElementById('inspector-activation').textContent = formatPct(activation);
+      document.getElementById('inspector-strength').textContent = strengthText;
+      document.getElementById('inspector-family').textContent = familyText;
+      document.getElementById('inspector-links').textContent = linksText;
+      document.getElementById('inspector-note').textContent = note;
+
+      const connectionList = document.getElementById('connection-list');
+      connectionList.innerHTML = '';
+      connections.slice(0, 12).forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'connection-card';
+        row.innerHTML = `
+          <div class="connection-row">
+            <span class="node-color" style="color:${item.color}"></span>
+            <div>
+              <div style="font-weight:600; color:#e2e8f0;">${item.label}</div>
+              <div class="small" style="color:#94a3b8; margin-top:4px;">${item.family}</div>
+            </div>
+            <div style="text-align:right; color:${item.weight >= 0 ? '#86efac' : '#fca5a5'}; font-weight:600;">${formatSigned(item.weight, 3)}</div>
+          </div>
+          <div class="bar" style="margin-top:10px;"><span style="width:${Math.max(6, item.ratio * 100)}%;"></span></div>
+        `;
+        connectionList.appendChild(row);
+      });
+    }
+
+    function updateFamilyPanel(graph) {
+      const familyList = document.getElementById('family-list');
+      familyList.innerHTML = '';
+      graph.familySummary.forEach((family) => {
+        const row = document.createElement('div');
+        row.className = 'legend-item';
+        const strongestShare = family.totalStrength / Math.max(1e-9, graph.familySummary[0].totalStrength || 1);
+        row.innerHTML = `
+          <div class="family-row">
+            <span class="family-color" style="color:${family.color}"></span>
+            <div>
+              <div style="font-weight:600; color:#e2e8f0;">${family.family}</div>
+              <div class="small">${family.count} inputs</div>
+            </div>
+            <div style="text-align:right; color:#e2e8f0; font-weight:600;">${family.totalStrength.toFixed(2)}</div>
+          </div>
+          <div class="bar" style="margin-top:10px;"><span style="width:${Math.max(10, strongestShare * 100)}%; background:linear-gradient(90deg, ${hexToRgba(family.color, 0.95)}, rgba(255,255,255,0.8));"></span></div>
+        `;
+        familyList.appendChild(row);
+      });
+    }
+
+    function updateHud(graph, activations) {
+      const connectionCount = graph.inputNodes.length * graph.hiddenNodes.length + graph.hiddenNodes.length;
+      document.getElementById('kpi-inputs').textContent = formatNumber(graph.inputNodes.length);
+      document.getElementById('kpi-hidden').textContent = formatNumber(graph.hiddenNodes.length);
+      document.getElementById('kpi-edges').textContent = formatNumber(connectionCount);
+      document.getElementById('kpi-output').textContent = formatPct(activations.outputActivation);
+      document.getElementById('family-leader').textContent = graph.familySummary[0] ? graph.familySummary[0].family : '-';
+      document.getElementById('hidden-leader').textContent = graph.hiddenNodes[0] ? graph.hiddenNodes[0].label : '-';
+      document.getElementById('output-leader').textContent = graph.hiddenNodes[0] ? formatSigned(graph.hiddenOutputWeights[graph.hiddenNodes[0].index] || 0, 3) : '-';
+      document.getElementById('weight-density').textContent = `${(graph.flowEdges.filter((edge) => edge.absWeight > graph.maxInputWeight * 0.3).length / Math.max(graph.flowEdges.length, 1) * 100).toFixed(1)}% hot`;
+      document.getElementById('artifact-rows').textContent = formatNumber(graph.artifact.artifactRows || 0);
+      overlaySleeve.textContent = state.sleeve.toUpperCase();
+      overlayCounts.textContent = `${formatNumber(graph.inputNodes.length)} inputs · ${formatNumber(graph.hiddenNodes.length)} hidden · ${formatNumber(connectionCount)} links`;
+      overlayZoom.textContent = `${state.camera.scale.toFixed(2)}x`;
+      const hoverNode = graph.nodeById.get(state.hoverNodeId || state.selectedNodeId);
+      overlayHover.textContent = hoverNode ? `${hoverNode.label || hoverNode.id}` : 'None';
+    }
+
+    function renderFrame(timeMs) {
+      const graph = getGraph();
+      if (!graph) {
+        requestAnimationFrame(renderFrame);
+        return;
+      }
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      ctx.clearRect(0, 0, width, height);
+      drawBackground(width, height);
+      drawGrid(width, height);
+      const motionTime = state.running ? timeMs : state.lastFrameAt;
+      const activations = computeActivations(graph, motionTime);
+      state.activationCache = activations;
+      drawWorld(graph, activations, width, height, motionTime);
+      updateHud(graph, activations);
+      updateInspector(graph, activations);
+      if (state.running) state.lastFrameAt = timeMs;
+      requestAnimationFrame(renderFrame);
+    }
+
+    function applySleeve(sleeve) {
+      if (!state.payload) return;
+      state.sleeve = sleeve;
+      pillButtons.forEach((button) => button.classList.toggle('active', button.dataset.sleeve === sleeve));
+      const graph = getGraph();
+      if (!graph) return;
+      fitBounds(graph.bounds, 48);
+      const defaultNode = graph.inputNodes.slice().sort((a, b) => Number(b.strength || 0) - Number(a.strength || 0))[0];
+      state.selectedNodeId = defaultNode ? defaultNode.id : null;
+      updateFamilyPanel(graph);
+    }
+
+    function handleWheel(event) {
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+      const worldBefore = toWorld(mouseX, mouseY);
+      const zoomFactor = event.deltaY < 0 ? 1.12 : 0.9;
+      state.camera.scale = clamp(state.camera.scale * zoomFactor, 0.045, 6.5);
+      state.camera.x = mouseX - worldBefore.x * state.camera.scale;
+      state.camera.y = mouseY - worldBefore.y * state.camera.scale;
+    }
+
+    function handlePointerMove(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      state.pointer = { x, y };
+      if (state.dragging && state.dragLast) {
+        const dx = x - state.dragLast.x;
+        const dy = y - state.dragLast.y;
+        state.camera.x += dx;
+        state.camera.y += dy;
+        state.dragLast = { x, y };
+      }
+      const hovered = findNodeAtScreen(x, y);
+      state.hoverNodeId = hovered ? hovered.id : null;
+    }
+
+    function handlePointerDown(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      state.dragging = true;
+      state.dragLast = { x, y };
+      canvasWrap.classList.add('dragging');
+    }
+
+    function handlePointerUp(event) {
+      if (!state.dragging) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const moved = state.dragLast ? Math.hypot(x - state.dragLast.x, y - state.dragLast.y) : 0;
+      state.dragging = false;
+      canvasWrap.classList.remove('dragging');
+      if (moved < 6) {
+        const target = findNodeAtScreen(x, y);
+        state.selectedNodeId = target ? target.id : state.selectedNodeId;
+      }
+      state.dragLast = null;
+    }
+
+    function searchNode() {
+      const graph = getGraph();
+      if (!graph) return;
+      const query = String(searchInput.value || '').trim().toLowerCase();
+      if (!query) return;
+      const node = [...graph.inputNodes, ...graph.hiddenNodes].find((item) =>
+        String(item.id).toLowerCase().includes(query) || String(item.label || '').toLowerCase().includes(query)
+      );
+      if (!node) return;
+      state.selectedNodeId = node.id;
+      focusNode(node, node.layer === 'input' ? 0.95 : 1.15);
+    }
+
+    function bindUi() {
+      pillButtons.forEach((button) => {
+        button.addEventListener('click', () => applySleeve(button.dataset.sleeve));
+      });
+      playToggle.addEventListener('click', () => {
+        state.running = !state.running;
+        playToggle.textContent = state.running ? 'Pause motion' : 'Resume motion';
+      });
+      fitButton.addEventListener('click', () => {
+        const graph = getGraph();
+        if (graph) fitBounds(graph.bounds, 48);
+      });
+      fitAllButton.addEventListener('click', () => {
+        const graph = getGraph();
+        if (graph) fitBounds(graph.bounds, 48);
+      });
+      centerHiddenButton.addEventListener('click', centerHiddenLayer);
+      zoomInButton.addEventListener('click', () => { state.camera.scale = clamp(state.camera.scale * 1.18, 0.045, 6.5); });
+      zoomOutButton.addEventListener('click', () => { state.camera.scale = clamp(state.camera.scale * 0.86, 0.045, 6.5); });
+      densitySlider.addEventListener('input', () => {
+        state.flowDensity = Number(densitySlider.value);
+        densityValue.textContent = Number(state.flowDensity).toFixed(2);
+      });
+      speedSlider.addEventListener('input', () => {
+        state.flowSpeed = Number(speedSlider.value);
+        speedValue.textContent = `${Number(state.flowSpeed).toFixed(2)}x`;
+      });
+      searchButton.addEventListener('click', searchNode);
+      searchInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') searchNode();
+      });
+      canvas.addEventListener('wheel', handleWheel, { passive: false });
+      canvas.addEventListener('pointermove', handlePointerMove);
+      canvas.addEventListener('pointerdown', handlePointerDown);
+      canvas.addEventListener('pointerup', handlePointerUp);
+      canvas.addEventListener('pointerleave', () => {
+        state.hoverNodeId = null;
+        state.dragging = false;
+        state.dragLast = null;
+        canvasWrap.classList.remove('dragging');
+      });
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        const graph = getGraph();
+        if (graph) fitBounds(graph.bounds, 48);
+      });
+    }
+
+    async function init() {
+      bindUi();
+      resizeCanvas();
+      densityValue.textContent = Number(state.flowDensity).toFixed(2);
+      speedValue.textContent = `${Number(state.flowSpeed).toFixed(2)}x`;
+      try {
+        const response = await fetch(DATA_URL, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Failed to load payload (${response.status})`);
+        state.payload = await response.json();
+        state.graphs.rth = buildGraph(state.payload.artifacts.rth, 'rth');
+        state.graphs.europe = buildGraph(state.payload.artifacts.europe, 'europe');
+        applySleeve('rth');
+      } catch (error) {
+        inspectorEmpty.textContent = `Could not load the living MLP payload: ${error.message}`;
+      }
+      requestAnimationFrame(renderFrame);
+    }
+
+    init();
+  </script>
+</body>
+</html>
