@@ -30,7 +30,7 @@
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     .page {
-      width: min(1680px, calc(100vw - 28px));
+      width: min(2440px, calc(100vw - 18px));
       margin: 0 auto;
       padding: 20px 0 28px;
     }
@@ -92,7 +92,7 @@
     }
     .hero-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.8fr) minmax(340px, 0.92fr);
+      grid-template-columns: 1fr;
       gap: 18px;
       align-items: stretch;
       margin-bottom: 18px;
@@ -150,6 +150,7 @@
     }
     .hero-side {
       display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 14px;
       padding: 18px;
       background:
@@ -173,14 +174,14 @@
     }
     .workspace {
       display: grid;
-      grid-template-columns: minmax(0, 1.6fr) minmax(330px, 0.84fr);
+      grid-template-columns: 1fr;
       gap: 18px;
       min-height: 980px;
     }
     .brain-shell {
       display: grid;
       grid-template-rows: auto 1fr auto;
-      min-height: 980px;
+      min-height: 1060px;
       background:
         radial-gradient(circle at 50% 40%, rgba(56, 189, 248, 0.08), transparent 40%),
         linear-gradient(180deg, rgba(7, 17, 31, 0.9), rgba(4, 10, 20, 0.96));
@@ -241,7 +242,7 @@
     .search-box input::placeholder { color: rgba(148, 163, 184, 0.7); }
     .canvas-wrap {
       position: relative;
-      min-height: 720px;
+      min-height: 860px;
       border-top: 1px solid rgba(148, 163, 184, 0.06);
       border-bottom: 1px solid rgba(148, 163, 184, 0.06);
       background:
@@ -254,7 +255,7 @@
       display: block;
       width: 100%;
       height: 100%;
-      min-height: 720px;
+      min-height: 860px;
     }
     .canvas-overlay {
       position: absolute;
@@ -302,6 +303,7 @@
     }
     .side-stack {
       display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 18px;
       align-content: start;
     }
@@ -411,6 +413,12 @@
       color: var(--muted);
       font-size: 15px;
     }
+    @media (max-width: 1480px) {
+      .hero-side,
+      .side-stack {
+        grid-template-columns: 1fr;
+      }
+    }
     @media (max-width: 1240px) {
       .hero-grid,
       .workspace {
@@ -419,7 +427,7 @@
       .brain-shell { min-height: auto; }
     }
     @media (max-width: 900px) {
-      .page { width: min(100vw - 20px, 1680px); }
+      .page { width: min(100vw - 14px, 2440px); }
       .kpi-grid,
       .stat-strip,
       .small-grid,
@@ -772,12 +780,13 @@
       const leftovers = inputsRaw.filter((node) => !familyOrder.includes(node.family));
       if (leftovers.length) familyGroups.push({ family: 'other', nodes: leftovers });
 
-      const inputColumns = 4;
-      const inputColumnGap = 88;
-      const inputRowGap = 24;
-      const groupGap = 52;
-      const inputStartX = 110;
-      let cursorY = 100;
+      const inputColumns = inputsRaw.length > 320 ? 9 : 8;
+      const inputColumnGap = 102;
+      const inputRowGap = 26;
+      const groupGap = 60;
+      const inputStartX = 140;
+      const inputLaneWidth = 92 + Math.max(0, inputColumns - 1) * inputColumnGap;
+      let cursorY = 110;
       const familyBounds = [];
       familyGroups.forEach((group) => {
         const rows = Math.ceil(group.nodes.length / inputColumns);
@@ -794,22 +803,22 @@
           family: group.family,
           color: COLORS[group.family] || COLORS.other,
           label: group.family,
-          x: inputStartX - 44,
-          y: groupStartY - 28,
-          width: inputColumns * inputColumnGap + 48,
-          height: groupHeight + 56,
+          x: inputStartX - 56,
+          y: groupStartY - 32,
+          width: inputLaneWidth + 72,
+          height: groupHeight + 64,
           count: group.nodes.length,
           totalStrength: group.nodes.reduce((sum, node) => sum + Number(node.strength || 0), 0),
         });
         cursorY += groupHeight + groupGap;
       });
 
-      const worldHeight = Math.max(cursorY + 80, 950);
-      const hiddenColumns = hiddenRaw.length > 28 ? 2 : 1;
+      const worldHeight = Math.max(cursorY + 110, 980);
+      const hiddenColumns = hiddenRaw.length > 32 ? 3 : hiddenRaw.length > 18 ? 2 : 1;
       const hiddenRows = Math.ceil(hiddenRaw.length / hiddenColumns);
-      const hiddenStartX = 630;
-      const hiddenColumnGap = 110;
-      const hiddenRowGap = 48;
+      const hiddenStartX = inputStartX + inputLaneWidth + 330;
+      const hiddenColumnGap = 138;
+      const hiddenRowGap = 54;
       const hiddenHeight = Math.max(0, hiddenRows - 1) * hiddenRowGap;
       const hiddenTop = Math.max(100, (worldHeight - hiddenHeight) / 2);
       hiddenRaw.forEach((node, idx) => {
@@ -824,14 +833,14 @@
         ...(brain.outputNode || { id: 'out', label: 'Win Prob' }),
         layer: 'output',
         color: COLORS.output,
-        x: 1030,
+        x: hiddenStartX + Math.max(0, hiddenColumns - 1) * hiddenColumnGap + 380,
         y: worldHeight / 2,
         radius: 22,
       };
 
       const bounds = {
         minX: 40,
-        maxX: 1100,
+        maxX: outputNode.x + 170,
         minY: 40,
         maxY: worldHeight + 40,
       };
@@ -921,7 +930,7 @@
       return state.graphs[state.sleeve];
     }
 
-    function fitBounds(bounds, padding = 40) {
+    function fitBounds(bounds, padding = 28) {
       const width = canvas.clientWidth || 1;
       const height = canvas.clientHeight || 1;
       const worldWidth = Math.max(1, bounds.maxX - bounds.minX);
