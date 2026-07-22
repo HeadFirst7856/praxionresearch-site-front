@@ -518,7 +518,7 @@
       <section class="card brain-shell">
         <div class="brain-head">
           <h2>Full network canvas</h2>
-          <div class="subtle">All nodes are rendered. Faint lines show the full weight graph, while brighter pulses ride the strongest paths so you can actually read the structure.</div>
+          <div class="subtle">All nodes are rendered. Faint lines show the full weight graph, while brighter flexing arches ride the strongest paths so you can actually read the structure.</div>
           <div class="toolbar">
             <div class="toolbar-row">
               <div class="toolbar-group">
@@ -629,7 +629,7 @@
               <div class="legend-item">
                 <div class="label">Stylized</div>
                 <div class="value">Living motion</div>
-                <p class="small">The pulse and particle motion are synthetic, built to make the network readable and alive instead of frozen.</p>
+                <p class="small">The flexing arches and changing flow paths are synthetic, built to make the network readable and alive instead of frozen.</p>
               </div>
               <div class="legend-item">
                 <div class="label">Tip</div>
@@ -920,7 +920,7 @@
         maxInputWeight,
         maxHiddenWeight,
         flowEdges,
-        particleEdges: flowEdges.slice(0, Math.min(520, flowEdges.length)),
+        flowArcCandidates: flowEdges.slice(0, Math.min(1400, flowEdges.length)),
         hiddenTopInputs,
         inputTopHidden,
       };
@@ -1066,6 +1066,117 @@
       ctx.restore();
     }
 
+    function computeFlexArcControls(source, target, seed, timeMs, bendScale = 0.18) {
+      const dx = target.x - source.x;
+      const dy = target.y - source.y;
+      const distance = Math.max(1, Math.hypot(dx, dy));
+      const nx = -dy / distance;
+      const ny = dx / distance;
+      const direction = seed > 0.5 ? 1 : -1;
+      const wave = Math.sin(timeMs * 0.00115 * state.flowSpeed + seed * Math.PI * 2);
+      const bend = Math.min(260, Math.max(28, distance * bendScale)) * (0.72 + 0.28 * wave);
+      return {
+        c1x: source.x + dx * 0.24 + nx * bend * direction,
+        c1y: source.y + dy * 0.08 + ny * bend * direction,
+        c2x: source.x + dx * 0.76 + nx * bend * direction,
+        c2y: source.y + dy * 0.92 + ny * bend * direction,
+      };
+    }
+
+    function traceFlexArc(source, target, controls) {
+      ctx.beginPath();
+      ctx.moveTo(source.x, source.y);
+      ctx.bezierCurveTo(controls.c1x, controls.c1y, controls.c2x, controls.c2y, target.x, target.y);
+    }
+
+    function collectActiveFlowArcs(graph, activations) {
+      const inputArcs = [];
+      const arcPool = graph.flowArcCandidates || graph.flowEdges;
+      for (const edge of arcPool) {
+        if (edge.absWeight < graph.maxInputWeight * 0.14) continue;
+        const sourcePulse = activations.inputActivation.get(edge.sourceId) ?? 0.4;
+        const targetPulse = activations.hiddenActivation.get(edge.targetId) ?? 0.4;
+        const drive = (sourcePulse * 0.58 + targetPulse * 0.42) * (0.45 + edge.absWeight / Math.max(graph.maxInputWeight, 1));
+        inputArcs.push({ ...edge, sourcePulse, targetPulse, drive });
+      }
+      inputArcs.sort((a, b) => b.drive - a.drive);
+
+      const outputArcs = graph.hiddenNodes.map((hiddenNode, idx) => {
+        const weight = Number(graph.hiddenOutputWeights[hiddenNode.index] || 0);
+        const absWeight = Math.abs(weight);
+        const hiddenPulse = activations.hiddenActivation.get(hiddenNode.id) ?? 0.4;
+        return {
+          sourceId: hiddenNode.id,
+          targetId: graph.outputNode.id,
+          weight,
+          absWeight,
+          phase: (hashString(`${hiddenNode.id}:${graph.outputNode.id}`) % 1000) / 1000,
+          drive: hiddenPulse * (0.45 + absWeight / Math.max(graph.maxHiddenWeight, 1)),
+        };
+      }).sort((a, b) => b.drive - a.drive);
+
+      return {
+        input: inputArcs.slice(0, Math.max(16, Math.round(18 + state.flowDensity * 24))),
+        output: outputArcs.slice(0, Math.max(6, Math.round(6 + state.flowDensity * 8))),
+      };
+    }
+
+    function drawActiveFlexArcs(graph, activations, timeMs) {
+      const activeArcs = collectActiveFlowArcs(graph, activations);
+
+      activeArcs.input.forEach((edge, idx) => {
+        const source = graph.nodeById.get(edge.sourceId);
+        const target = graph.nodeById.get(edge.targetId);
+        if (!source || !target) return;
+        const controls = computeFlexArcControls(source, target, edge.phase, timeMs, 0.16 + edge.drive * 0.1);
+        const color = edge.weight >= 0 ? source.color : '#f87171';
+        const glowAlpha = clamp(0.08 + edge.drive * 0.22, 0.08, 0.34);
+        const coreAlpha = clamp(0.22 + edge.drive * 0.34, 0.22, 0.66);
+        const glowWidth = (1.8 + edge.drive * 4.4) / state.camera.scale;
+        const coreWidth = (0.8 + edge.drive * 2.1) / state.camera.scale;
+
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = hexToRgba(color, glowAlpha);
+        ctx.lineWidth = glowWidth;
+        traceFlexArc(source, target, controls);
+        ctx.stroke();
+
+        ctx.strokeStyle = hexToRgba(color, coreAlpha);
+        ctx.lineWidth = coreWidth;
+        ctx.setLineDash([Math.max(7, 22 / state.camera.scale), Math.max(6, 14 / state.camera.scale)]);
+        ctx.lineDashOffset = -(timeMs * 0.021 * state.flowSpeed * (0.7 + edge.drive) + idx * 26) / state.camera.scale;
+        traceFlexArc(source, target, controls);
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      activeArcs.output.forEach((edge, idx) => {
+        const source = graph.nodeById.get(edge.sourceId);
+        const target = graph.nodeById.get(edge.targetId);
+        if (!source || !target) return;
+        const controls = computeFlexArcControls(source, target, edge.phase, timeMs, 0.1 + edge.drive * 0.08);
+        const color = edge.weight >= 0 ? graph.laneColor : '#f87171';
+        const glowAlpha = clamp(0.12 + edge.drive * 0.26, 0.12, 0.42);
+        const coreAlpha = clamp(0.28 + edge.drive * 0.3, 0.28, 0.72);
+
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = hexToRgba(color, glowAlpha);
+        ctx.lineWidth = (2.2 + edge.drive * 5.4) / state.camera.scale;
+        traceFlexArc(source, target, controls);
+        ctx.stroke();
+
+        ctx.strokeStyle = hexToRgba('#f8fafc', coreAlpha);
+        ctx.lineWidth = (0.9 + edge.drive * 1.8) / state.camera.scale;
+        ctx.setLineDash([Math.max(8, 26 / state.camera.scale), Math.max(8, 18 / state.camera.scale)]);
+        ctx.lineDashOffset = -(timeMs * 0.025 * state.flowSpeed * (0.8 + edge.drive) + idx * 34) / state.camera.scale;
+        traceFlexArc(source, target, controls);
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+
     function drawWorld(graph, activations, width, height, timeMs) {
       ctx.save();
       ctx.translate(state.camera.x, state.camera.y);
@@ -1127,24 +1238,7 @@
         ctx.stroke();
       });
 
-      const particleCount = Math.max(80, Math.round(graph.particleEdges.length * state.flowDensity));
-      for (let i = 0; i < particleCount; i += 1) {
-        const edge = graph.particleEdges[i % graph.particleEdges.length];
-        const source = graph.nodeById.get(edge.sourceId);
-        const target = graph.nodeById.get(edge.targetId);
-        if (!source || !target) continue;
-        const sourcePulse = activations.inputActivation.get(source.id) ?? 0.45;
-        const targetPulse = activations.hiddenActivation.get(target.id) ?? 0.45;
-        const progress = (timeMs * 0.00011 * state.flowSpeed * (1 + edge.absWeight * 2.8) + edge.phase * 5.0 + (i % 3) * 0.24) % 1;
-        const x = lerp(source.x, target.x, progress);
-        const y = lerp(source.y, target.y, progress);
-        const glow = clamp((sourcePulse + targetPulse) / 2, 0.2, 1);
-        const radius = (1.5 + edge.absWeight * 2.6 + glow * 1.6) / Math.sqrt(state.camera.scale);
-        ctx.fillStyle = hexToRgba(source.color, 0.3 + glow * 0.45);
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      drawActiveFlexArcs(graph, activations, timeMs);
 
       const outputPulse = activations.outputActivation;
       graph.inputNodes.forEach((node) => drawNode(node, activations.inputActivation.get(node.id) ?? 0.4, node.color));
