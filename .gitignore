@@ -44,6 +44,7 @@ coverage/
 .turbo/
 .vercel/
 .output/
+.netlify/
 
 # Editor & IDE
 .vscode/*
