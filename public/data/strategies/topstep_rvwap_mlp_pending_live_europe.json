@@ -1,0 +1,927 @@
+{
+ "strategy": "topstep_rvwap_mlp_pending_live_europe",
+ "starting_balance": 50000.0,
+ "ending_balance": 50223.0,
+ "closed_pnl_dollars": 223.0,
+ "open_pnl_dollars": 0,
+ "continuous_pnl_dollars": 223.0,
+ "current_position": "Flat",
+ "metrics": {
+  "trades": 34,
+  "open_trades": 0,
+  "win_rate": 0.7059,
+  "profit_factor": 1.7433,
+  "max_drawdown": 130.5
+ },
+ "equity_curve": [
+  {
+   "t": null,
+   "equity": 50000.0
+  },
+  {
+   "t": "2026-07-23T11:05:00-04:00",
+   "equity": 49977.0
+  },
+  {
+   "t": "2026-07-23T11:05:00-04:00",
+   "equity": 49952.0
+  },
+  {
+   "t": "2026-07-23T11:05:00-04:00",
+   "equity": 49927.0
+  },
+  {
+   "t": "2026-07-23T11:05:00-04:00",
+   "equity": 49951.5
+  },
+  {
+   "t": "2026-07-23T11:05:00-04:00",
+   "equity": 49915.0
+  },
+  {
+   "t": "2026-07-23T11:05:00-04:00",
+   "equity": 49869.5
+  },
+  {
+   "t": "2026-07-24T02:16:00-04:00",
+   "equity": 49891.0
+  },
+  {
+   "t": "2026-07-24T05:48:00-04:00",
+   "equity": 49911.0
+  },
+  {
+   "t": "2026-07-24T05:49:00-04:00",
+   "equity": 49922.0
+  },
+  {
+   "t": "2026-07-24T09:09:00-04:00",
+   "equity": 49943.0
+  },
+  {
+   "t": "2026-07-24T09:09:00-04:00",
+   "equity": 49964.5
+  },
+  {
+   "t": "2026-07-24T09:09:00-04:00",
+   "equity": 49988.5
+  },
+  {
+   "t": "2026-07-24T09:09:00-04:00",
+   "equity": 50017.0
+  },
+  {
+   "t": "2026-07-24T09:09:00-04:00",
+   "equity": 49991.5
+  },
+  {
+   "t": "2026-07-24T09:09:00-04:00",
+   "equity": 50015.0
+  },
+  {
+   "t": "2026-07-24T09:09:00-04:00",
+   "equity": 50037.0
+  },
+  {
+   "t": "2026-07-24T09:09:00-04:00",
+   "equity": 50058.0
+  },
+  {
+   "t": "2026-07-24T09:09:00-04:00",
+   "equity": 50032.0
+  },
+  {
+   "t": "2026-07-24T09:09:00-04:00",
+   "equity": 50006.5
+  },
+  {
+   "t": "2026-07-27T04:35:00-04:00",
+   "equity": 50026.0
+  },
+  {
+   "t": "2026-07-27T04:35:00-04:00",
+   "equity": 50045.0
+  },
+  {
+   "t": "2026-07-27T04:52:00-04:00",
+   "equity": 50058.0
+  },
+  {
+   "t": "2026-07-27T05:00:00-04:00",
+   "equity": 50074.0
+  },
+  {
+   "t": "2026-07-27T05:00:00-04:00",
+   "equity": 50090.0
+  },
+  {
+   "t": "2026-07-28T02:46:00-04:00",
+   "equity": 50118.0
+  },
+  {
+   "t": "2026-07-29T02:55:00-04:00",
+   "equity": 50081.5
+  },
+  {
+   "t": "2026-07-29T04:30:00-04:00",
+   "equity": 50112.0
+  },
+  {
+   "t": "2026-07-29T07:25:00-04:00",
+   "equity": 50141.5
+  },
+  {
+   "t": "2026-07-29T07:29:00-04:00",
+   "equity": 50149.0
+  },
+  {
+   "t": "2026-07-30T05:29:00-04:00",
+   "equity": 50177.0
+  },
+  {
+   "t": "2026-07-30T05:30:00-04:00",
+   "equity": 50205.5
+  },
+  {
+   "t": "2026-07-31T05:10:00-04:00",
+   "equity": 50174.0
+  },
+  {
+   "t": "2026-07-31T05:16:00-04:00",
+   "equity": 50199.0
+  },
+  {
+   "t": "2026-07-31T05:16:00-04:00",
+   "equity": 50223.0
+  }
+ ],
+ "weekly_rows": [
+  {
+   "period": "2026-W30",
+   "start_balance": 50000.0,
+   "end_balance": 50006.5,
+   "pnl_dollars": 6.5,
+   "closed_trades": 19,
+   "wins": 11,
+   "losses": 8,
+   "win_rate": 0.5789,
+   "gross_profit": 238.5,
+   "gross_loss": 232.0,
+   "profit_factor": 1.028,
+   "max_drawdown": 130.5,
+   "first_trade_time": "2026-07-23T11:05:00-04:00",
+   "last_trade_time": "2026-07-24T09:09:00-04:00",
+   "week": "2026-W30"
+  },
+  {
+   "period": "2026-W31",
+   "start_balance": 50006.5,
+   "end_balance": 50223.0,
+   "pnl_dollars": 216.5,
+   "closed_trades": 15,
+   "wins": 13,
+   "losses": 2,
+   "win_rate": 0.8667,
+   "gross_profit": 284.5,
+   "gross_loss": 68.0,
+   "profit_factor": 4.1838,
+   "max_drawdown": 36.5,
+   "first_trade_time": "2026-07-27T04:35:00-04:00",
+   "last_trade_time": "2026-07-31T05:16:00-04:00",
+   "week": "2026-W31"
+  }
+ ],
+ "daily_rows": [
+  {
+   "period": "2026-07-23",
+   "start_balance": 50000.0,
+   "end_balance": 49869.5,
+   "pnl_dollars": -130.5,
+   "closed_trades": 6,
+   "wins": 1,
+   "losses": 5,
+   "win_rate": 0.1667,
+   "gross_profit": 24.5,
+   "gross_loss": 155.0,
+   "profit_factor": 0.1581,
+   "max_drawdown": 130.5,
+   "first_trade_time": "2026-07-23T11:05:00-04:00",
+   "last_trade_time": "2026-07-23T11:05:00-04:00",
+   "day": "2026-07-23"
+  },
+  {
+   "period": "2026-07-24",
+   "start_balance": 49869.5,
+   "end_balance": 50006.5,
+   "pnl_dollars": 137.0,
+   "closed_trades": 13,
+   "wins": 10,
+   "losses": 3,
+   "win_rate": 0.7692,
+   "gross_profit": 214.0,
+   "gross_loss": 77.0,
+   "profit_factor": 2.7792,
+   "max_drawdown": 51.5,
+   "first_trade_time": "2026-07-24T02:16:00-04:00",
+   "last_trade_time": "2026-07-24T09:09:00-04:00",
+   "day": "2026-07-24"
+  },
+  {
+   "period": "2026-07-27",
+   "start_balance": 50006.5,
+   "end_balance": 50090.0,
+   "pnl_dollars": 83.5,
+   "closed_trades": 5,
+   "wins": 5,
+   "losses": 0,
+   "win_rate": 1.0,
+   "gross_profit": 83.5,
+   "gross_loss": 0.0,
+   "profit_factor": 83.5,
+   "max_drawdown": 0.0,
+   "first_trade_time": "2026-07-27T04:35:00-04:00",
+   "last_trade_time": "2026-07-27T05:00:00-04:00",
+   "day": "2026-07-27"
+  },
+  {
+   "period": "2026-07-28",
+   "start_balance": 50090.0,
+   "end_balance": 50118.0,
+   "pnl_dollars": 28.0,
+   "closed_trades": 1,
+   "wins": 1,
+   "losses": 0,
+   "win_rate": 1.0,
+   "gross_profit": 28.0,
+   "gross_loss": 0.0,
+   "profit_factor": 28.0,
+   "max_drawdown": 0.0,
+   "first_trade_time": "2026-07-28T02:46:00-04:00",
+   "last_trade_time": "2026-07-28T02:46:00-04:00",
+   "day": "2026-07-28"
+  },
+  {
+   "period": "2026-07-29",
+   "start_balance": 50118.0,
+   "end_balance": 50149.0,
+   "pnl_dollars": 31.0,
+   "closed_trades": 4,
+   "wins": 3,
+   "losses": 1,
+   "win_rate": 0.75,
+   "gross_profit": 67.5,
+   "gross_loss": 36.5,
+   "profit_factor": 1.8493,
+   "max_drawdown": 36.5,
+   "first_trade_time": "2026-07-29T02:55:00-04:00",
+   "last_trade_time": "2026-07-29T07:29:00-04:00",
+   "day": "2026-07-29"
+  },
+  {
+   "period": "2026-07-30",
+   "start_balance": 50149.0,
+   "end_balance": 50205.5,
+   "pnl_dollars": 56.5,
+   "closed_trades": 2,
+   "wins": 2,
+   "losses": 0,
+   "win_rate": 1.0,
+   "gross_profit": 56.5,
+   "gross_loss": 0.0,
+   "profit_factor": 56.5,
+   "max_drawdown": 0.0,
+   "first_trade_time": "2026-07-30T05:29:00-04:00",
+   "last_trade_time": "2026-07-30T05:30:00-04:00",
+   "day": "2026-07-30"
+  },
+  {
+   "period": "2026-07-31",
+   "start_balance": 50205.5,
+   "end_balance": 50223.0,
+   "pnl_dollars": 17.5,
+   "closed_trades": 3,
+   "wins": 2,
+   "losses": 1,
+   "win_rate": 0.6667,
+   "gross_profit": 49.0,
+   "gross_loss": 31.5,
+   "profit_factor": 1.5556,
+   "max_drawdown": 31.5,
+   "first_trade_time": "2026-07-31T05:10:00-04:00",
+   "last_trade_time": "2026-07-31T05:16:00-04:00",
+   "day": "2026-07-31"
+  }
+ ],
+ "monthly_rows": [
+  {
+   "period": "2026-07",
+   "start_balance": 50000.0,
+   "end_balance": 50223.0,
+   "pnl_dollars": 223.0,
+   "closed_trades": 34,
+   "wins": 24,
+   "losses": 10,
+   "win_rate": 0.7059,
+   "gross_profit": 523.0,
+   "gross_loss": 300.0,
+   "profit_factor": 1.7433,
+   "max_drawdown": 130.5,
+   "first_trade_time": "2026-07-23T11:05:00-04:00",
+   "last_trade_time": "2026-07-31T05:16:00-04:00"
+  }
+ ],
+ "yearly_rows": [
+  {
+   "period": "2026",
+   "start_balance": 50000.0,
+   "end_balance": 50223.0,
+   "pnl_dollars": 223.0,
+   "closed_trades": 34,
+   "wins": 24,
+   "losses": 10,
+   "win_rate": 0.7059,
+   "gross_profit": 523.0,
+   "gross_loss": 300.0,
+   "profit_factor": 1.7433,
+   "max_drawdown": 130.5,
+   "first_trade_time": "2026-07-23T11:05:00-04:00",
+   "last_trade_time": "2026-07-31T05:16:00-04:00"
+  }
+ ],
+ "all_trades": [
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "long",
+   "entry_time": "2026-07-23T05:59:00-04:00",
+   "entry_price": 29054.5,
+   "exit_time": "2026-07-23T11:05:00-04:00",
+   "exit_price": 29043.0,
+   "exit_reason": "stop",
+   "size": 1,
+   "pnl_points": -11.5,
+   "pnl_dollars": -23.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "long",
+   "entry_time": "2026-07-23T06:01:00-04:00",
+   "entry_price": 29052.75,
+   "exit_time": "2026-07-23T11:05:00-04:00",
+   "exit_price": 29040.25,
+   "exit_reason": "stop",
+   "size": 1,
+   "pnl_points": -12.5,
+   "pnl_dollars": -25.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "long",
+   "entry_time": "2026-07-23T06:12:00-04:00",
+   "entry_price": 29045.0,
+   "exit_time": "2026-07-23T11:05:00-04:00",
+   "exit_price": 29032.5,
+   "exit_reason": "stop",
+   "size": 1,
+   "pnl_points": -12.5,
+   "pnl_dollars": -25.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-23T06:34:00-04:00",
+   "entry_price": 29093.25,
+   "exit_time": "2026-07-23T11:05:00-04:00",
+   "exit_price": 29081.0,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 12.25,
+   "pnl_dollars": 24.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "long",
+   "entry_time": "2026-07-23T07:47:00-04:00",
+   "entry_price": 28927.5,
+   "exit_time": "2026-07-23T11:05:00-04:00",
+   "exit_price": 28909.25,
+   "exit_reason": "stop",
+   "size": 1,
+   "pnl_points": -18.25,
+   "pnl_dollars": -36.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "long",
+   "entry_time": "2026-07-23T08:21:00-04:00",
+   "entry_price": 28894.75,
+   "exit_time": "2026-07-23T11:05:00-04:00",
+   "exit_price": 28872.0,
+   "exit_reason": "stop",
+   "size": 1,
+   "pnl_points": -22.75,
+   "pnl_dollars": -45.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "long",
+   "entry_time": "2026-07-24T02:15:00-04:00",
+   "entry_price": 28513.5,
+   "exit_time": "2026-07-24T02:16:00-04:00",
+   "exit_price": 28524.25,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 10.75,
+   "pnl_dollars": 21.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-24T05:46:00-04:00",
+   "entry_price": 28696.0,
+   "exit_time": "2026-07-24T05:48:00-04:00",
+   "exit_price": 28686.0,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 10.0,
+   "pnl_dollars": 20.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-24T05:47:00-04:00",
+   "entry_price": 28691.0,
+   "exit_time": "2026-07-24T05:49:00-04:00",
+   "exit_price": 28685.5,
+   "exit_reason": "rvwap_touch",
+   "size": 1,
+   "pnl_points": 5.5,
+   "pnl_dollars": 11.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "long",
+   "entry_time": "2026-07-24T02:12:00-04:00",
+   "entry_price": 28517.25,
+   "exit_time": "2026-07-24T09:09:00-04:00",
+   "exit_price": 28527.75,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 10.5,
+   "pnl_dollars": 21.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "long",
+   "entry_time": "2026-07-24T02:14:00-04:00",
+   "entry_price": 28509.25,
+   "exit_time": "2026-07-24T09:09:00-04:00",
+   "exit_price": 28520.0,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 10.75,
+   "pnl_dollars": 21.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "long",
+   "entry_time": "2026-07-24T02:50:00-04:00",
+   "entry_price": 28492.75,
+   "exit_time": "2026-07-24T09:09:00-04:00",
+   "exit_price": 28504.75,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 12.0,
+   "pnl_dollars": 24.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-24T03:26:00-04:00",
+   "entry_price": 28648.25,
+   "exit_time": "2026-07-24T09:09:00-04:00",
+   "exit_price": 28634.0,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 14.25,
+   "pnl_dollars": 28.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "long",
+   "entry_time": "2026-07-24T04:03:00-04:00",
+   "entry_price": 28604.0,
+   "exit_time": "2026-07-24T09:09:00-04:00",
+   "exit_price": 28591.25,
+   "exit_reason": "stop",
+   "size": 1,
+   "pnl_points": -12.75,
+   "pnl_dollars": -25.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-24T05:33:00-04:00",
+   "entry_price": 28681.75,
+   "exit_time": "2026-07-24T09:09:00-04:00",
+   "exit_price": 28670.0,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 11.75,
+   "pnl_dollars": 23.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-24T05:40:00-04:00",
+   "entry_price": 28687.25,
+   "exit_time": "2026-07-24T09:09:00-04:00",
+   "exit_price": 28676.25,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 11.0,
+   "pnl_dollars": 22.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-24T05:44:00-04:00",
+   "entry_price": 28696.0,
+   "exit_time": "2026-07-24T09:09:00-04:00",
+   "exit_price": 28685.5,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 10.5,
+   "pnl_dollars": 21.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "long",
+   "entry_time": "2026-07-24T07:49:00-04:00",
+   "entry_price": 28615.25,
+   "exit_time": "2026-07-24T09:09:00-04:00",
+   "exit_price": 28602.25,
+   "exit_reason": "stop",
+   "size": 1,
+   "pnl_points": -13.0,
+   "pnl_dollars": -26.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "long",
+   "entry_time": "2026-07-24T07:57:00-04:00",
+   "entry_price": 28609.75,
+   "exit_time": "2026-07-24T09:09:00-04:00",
+   "exit_price": 28597.0,
+   "exit_reason": "stop",
+   "size": 1,
+   "pnl_points": -12.75,
+   "pnl_dollars": -25.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-27T04:31:00-04:00",
+   "entry_price": 28715.75,
+   "exit_time": "2026-07-27T04:35:00-04:00",
+   "exit_price": 28706.0,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 9.75,
+   "pnl_dollars": 19.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-27T04:33:00-04:00",
+   "entry_price": 28713.25,
+   "exit_time": "2026-07-27T04:35:00-04:00",
+   "exit_price": 28703.75,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 9.5,
+   "pnl_dollars": 19.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-27T04:45:00-04:00",
+   "entry_price": 28732.0,
+   "exit_time": "2026-07-27T04:52:00-04:00",
+   "exit_price": 28725.5,
+   "exit_reason": "rvwap_touch",
+   "size": 1,
+   "pnl_points": 6.5,
+   "pnl_dollars": 13.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-27T04:56:00-04:00",
+   "entry_price": 28740.0,
+   "exit_time": "2026-07-27T05:00:00-04:00",
+   "exit_price": 28732.0,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 8.0,
+   "pnl_dollars": 16.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-27T04:58:00-04:00",
+   "entry_price": 28741.75,
+   "exit_time": "2026-07-27T05:00:00-04:00",
+   "exit_price": 28733.75,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 8.0,
+   "pnl_dollars": 16.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-28T02:44:00-04:00",
+   "entry_price": 27918.0,
+   "exit_time": "2026-07-28T02:46:00-04:00",
+   "exit_price": 27904.0,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 14.0,
+   "pnl_dollars": 28.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-29T02:51:00-04:00",
+   "entry_price": 27922.25,
+   "exit_time": "2026-07-29T02:55:00-04:00",
+   "exit_price": 27940.5,
+   "exit_reason": "stop",
+   "size": 1,
+   "pnl_points": -18.25,
+   "pnl_dollars": -36.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "long",
+   "entry_time": "2026-07-29T04:29:00-04:00",
+   "entry_price": 27841.0,
+   "exit_time": "2026-07-29T04:30:00-04:00",
+   "exit_price": 27856.25,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 15.25,
+   "pnl_dollars": 30.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-29T07:21:00-04:00",
+   "entry_price": 28014.5,
+   "exit_time": "2026-07-29T07:25:00-04:00",
+   "exit_price": 27999.75,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 14.75,
+   "pnl_dollars": 29.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-29T07:22:00-04:00",
+   "entry_price": 28006.75,
+   "exit_time": "2026-07-29T07:29:00-04:00",
+   "exit_price": 28003.0,
+   "exit_reason": "rvwap_touch",
+   "size": 1,
+   "pnl_points": 3.75,
+   "pnl_dollars": 7.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-30T05:27:00-04:00",
+   "entry_price": 27565.0,
+   "exit_time": "2026-07-30T05:29:00-04:00",
+   "exit_price": 27551.0,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 14.0,
+   "pnl_dollars": 28.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-30T05:28:00-04:00",
+   "entry_price": 27553.75,
+   "exit_time": "2026-07-30T05:30:00-04:00",
+   "exit_price": 27539.5,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 14.25,
+   "pnl_dollars": 28.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-31T05:08:00-04:00",
+   "entry_price": 28620.25,
+   "exit_time": "2026-07-31T05:10:00-04:00",
+   "exit_price": 28636.0,
+   "exit_reason": "stop",
+   "size": 1,
+   "pnl_points": -15.75,
+   "pnl_dollars": -31.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-31T05:12:00-04:00",
+   "entry_price": 28634.0,
+   "exit_time": "2026-07-31T05:16:00-04:00",
+   "exit_price": 28621.5,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 12.5,
+   "pnl_dollars": 25.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-31T05:13:00-04:00",
+   "entry_price": 28628.5,
+   "exit_time": "2026-07-31T05:16:00-04:00",
+   "exit_price": 28616.5,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 12.0,
+   "pnl_dollars": 24.0,
+   "is_open": false
+  }
+ ],
+ "recent_trades": [
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-28T02:44:00-04:00",
+   "entry_price": 27918.0,
+   "exit_time": "2026-07-28T02:46:00-04:00",
+   "exit_price": 27904.0,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 14.0,
+   "pnl_dollars": 28.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-29T02:51:00-04:00",
+   "entry_price": 27922.25,
+   "exit_time": "2026-07-29T02:55:00-04:00",
+   "exit_price": 27940.5,
+   "exit_reason": "stop",
+   "size": 1,
+   "pnl_points": -18.25,
+   "pnl_dollars": -36.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "long",
+   "entry_time": "2026-07-29T04:29:00-04:00",
+   "entry_price": 27841.0,
+   "exit_time": "2026-07-29T04:30:00-04:00",
+   "exit_price": 27856.25,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 15.25,
+   "pnl_dollars": 30.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-29T07:21:00-04:00",
+   "entry_price": 28014.5,
+   "exit_time": "2026-07-29T07:25:00-04:00",
+   "exit_price": 27999.75,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 14.75,
+   "pnl_dollars": 29.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-29T07:22:00-04:00",
+   "entry_price": 28006.75,
+   "exit_time": "2026-07-29T07:29:00-04:00",
+   "exit_price": 28003.0,
+   "exit_reason": "rvwap_touch",
+   "size": 1,
+   "pnl_points": 3.75,
+   "pnl_dollars": 7.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-30T05:27:00-04:00",
+   "entry_price": 27565.0,
+   "exit_time": "2026-07-30T05:29:00-04:00",
+   "exit_price": 27551.0,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 14.0,
+   "pnl_dollars": 28.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-30T05:28:00-04:00",
+   "entry_price": 27553.75,
+   "exit_time": "2026-07-30T05:30:00-04:00",
+   "exit_price": 27539.5,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 14.25,
+   "pnl_dollars": 28.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-31T05:08:00-04:00",
+   "entry_price": 28620.25,
+   "exit_time": "2026-07-31T05:10:00-04:00",
+   "exit_price": 28636.0,
+   "exit_reason": "stop",
+   "size": 1,
+   "pnl_points": -15.75,
+   "pnl_dollars": -31.5,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-31T05:12:00-04:00",
+   "entry_price": 28634.0,
+   "exit_time": "2026-07-31T05:16:00-04:00",
+   "exit_price": 28621.5,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 12.5,
+   "pnl_dollars": 25.0,
+   "is_open": false
+  },
+  {
+   "strategy": "topstep_rvwap_mlp_pending_live_europe",
+   "side": "short",
+   "entry_time": "2026-07-31T05:13:00-04:00",
+   "entry_price": 28628.5,
+   "exit_time": "2026-07-31T05:16:00-04:00",
+   "exit_price": 28616.5,
+   "exit_reason": "target",
+   "size": 1,
+   "pnl_points": 12.0,
+   "pnl_dollars": 24.0,
+   "is_open": false
+  }
+ ]
+}

@@ -1,0 +1,58 @@
+[
+  {
+    "time": "2026-07-31T13:39:00-04:00",
+    "event": "sim_trade",
+    "strategy": "rvwap_unfiltered",
+    "status": "info",
+    "context": "short 1 | entry 28478.75 | exit 28459.295495324197 | pnl 38.91"
+  },
+  {
+    "time": "2026-07-31T14:17:00-04:00",
+    "event": "sim_trade",
+    "strategy": "rvwap_unfiltered",
+    "status": "info",
+    "context": "long 1 | entry 28407.25 | exit 28428.02666543375 | pnl 41.55"
+  },
+  {
+    "time": "2026-07-31T14:17:00-04:00",
+    "event": "sim_trade",
+    "strategy": "rvwap_bar_chop",
+    "status": "info",
+    "context": "long 1 | entry 28407.25 | exit 28428.02666543375 | pnl 41.55"
+  },
+  {
+    "time": "2026-07-31T15:22:00-04:00",
+    "event": "sim_trade",
+    "strategy": "orb",
+    "status": "info",
+    "context": "short 1 | entry 28399.0 | exit 28488.25 | pnl -178.5"
+  },
+  {
+    "time": "2026-07-31T15:22:00-04:00",
+    "event": "sim_trade",
+    "strategy": "orb_forward_gate",
+    "status": "info",
+    "context": "short 1 | entry 28399.0 | exit 28488.25 | pnl -178.5"
+  },
+  {
+    "time": "2026-07-31T15:22:00-04:00",
+    "event": "sim_trade",
+    "strategy": "orb-martingale-1",
+    "status": "info",
+    "context": "short 1 | entry 28399.0 | exit 28488.25 | pnl -178.5"
+  },
+  {
+    "time": "2026-07-31T15:22:00-04:00",
+    "event": "sim_trade",
+    "strategy": "orb-martingale-2",
+    "status": "info",
+    "context": "short 2 | entry 28399.0 | exit 28488.25 | pnl -357.0"
+  },
+  {
+    "time": "2026-07-31T15:22:00-04:00",
+    "event": "sim_trade",
+    "strategy": "orb-martingale-3",
+    "status": "info",
+    "context": "short 1 | entry 28399.0 | exit 28488.25 | pnl -178.5"
+  }
+]

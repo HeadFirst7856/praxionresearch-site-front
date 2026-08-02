@@ -92,10 +92,17 @@ const SLOT_ORDER = [
   "orb-martingale-1",
   "orb-martingale-2",
   "orb-martingale-3",
+  "orb_forward_gate",
   "iq_trendshift",
   "fvg",
   "asia_meanrev",
   "opendrive",
+  "topstep_rvwap_mlp_live",
+  "topstep_rvwap_mlp_live_europe",
+  "topstep_rvwap_mlp_pending_live",
+  "topstep_rvwap_mlp_pending_live_europe",
+  "topstep_rvwap_mlp_open_bar_exit_live",
+  "topstep_rvwap_mlp_open_bar_exit_live_europe",
 ] as const;
 
 const MARTINGALE_SLOT_KEYS = new Set(["orb-martingale-1", "orb-martingale-2", "orb-martingale-3"]);
@@ -208,8 +215,8 @@ function formatDuration(entry: string | null | undefined, exit: string | null | 
 
 function mapMode(raw: string | undefined): StrategyMode {
   const u = (raw || "SIMULATED").toUpperCase();
-  if (u === "LIVE" || u === "SHADOW" || u === "SIMULATED") {
-    return u;
+  if (u === "LIVE" || u === "SHADOW" || u === "LIVE_SIGNAL" || u === "SIMULATED") {
+    return u === "LIVE_SIGNAL" ? "LIVE" : u;
   }
   return "SIMULATED";
 }

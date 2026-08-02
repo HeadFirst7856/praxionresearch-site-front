@@ -1,26 +1,36 @@
 import { apiFetch } from "@/lib/api";
 
+// Backend contract (app/api/routes/auth.py):
+//   POST /auth/login  {name?, email, password}  -> {token, user:{id,name,email,created_at_utc}}
+//   POST /auth/signup {name, email, password}   -> {token, user:{...}}
+// Frontend sends the email field; the backend derives username/display from user.name.
+
 export type LoginPayload = {
-  username: string;
+  email: string;
   password: string;
 };
 
-export type LoginResponse = {
-  access_token: string;
-  token_type: string;
-  username: string;
+export type AuthUser = {
+  id: string;
   name: string;
+  email: string;
+  created_at_utc?: string;
+};
+
+export type LoginResponse = {
+  token: string;
+  user: AuthUser;
 };
 
 export type SignupPayload = {
-  username: string;
   name: string;
+  email: string;
   password: string;
 };
 
 export type SignupResponse = {
-  username: string;
-  name: string;
+  token: string;
+  user: AuthUser;
 };
 
 export function extractApiError(text: string): string {

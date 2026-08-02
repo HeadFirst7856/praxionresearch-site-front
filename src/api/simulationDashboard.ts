@@ -16,19 +16,19 @@ export async function fetchSimulationDashboard(params?: SimulationDateRangeParam
   const qs = search.toString();
   const path = qs ? `/api/v1/simulation/dashboard?${qs}` : "/api/v1/simulation/dashboard";
 
-  const res = await apiFetch(path);
-  if (!res.ok) {
-    const text = await res.text();
-    let detail = text;
-    try {
-      const j = JSON.parse(text) as { detail?: unknown };
-      if (j.detail != null) {
-        detail = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
-      }
-    } catch {
-      /* ignore */
+  try {
+    const res = await apiFetch(path);
+    if (!res.ok) {
+      throw new Error(`${res.status} ${res.statusText}`);
     }
-    throw new Error(`${res.status} ${res.statusText}: ${detail}`);
+    return await res.json();
+  } catch {
+    // Static-site fallback: the site ships daily-generated dashboard artifacts at
+    // /data/dashboard-data.json, so the dashboard renders with zero backend.
+    const staticRes = await fetch("/data/dashboard-data.json", { cache: "no-store" });
+    if (!staticRes.ok) {
+      throw new Error(`${staticRes.status} ${staticRes.statusText}: dashboard data unavailable`);
+    }
+    return staticRes.json();
   }
-  return res.json() as Promise<unknown>;
 }
