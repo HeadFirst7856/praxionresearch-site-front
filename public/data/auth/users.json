@@ -4,7 +4,7 @@
       "id": "4d7524a3-3d85-4c50-ba0e-c41dc3794600",
       "name": "Fred",
       "email": "frederico.graz@gmail.com",
-      "password_hash": "pbkdf2_sha256$210000$HSFE7WhMmHZJV2R6tv+XYA==$5RfIkFNNHP6S95xoH5oOi5VLENvTli7IDYCX0NGPTp4=",
+      "password_hash": "pbkdf2_sha256$210000$KT5pz0O+TLfmegv08jQmiQ==$fnvKY5p5c9jcw8eWDViRLGUhtW/Va6kpvQpBf7HG2ks=",
       "created_at_utc": "2026-07-13T19:34:16Z"
     },
     "ws-test-1784044733638@local.test": {
@@ -20,6 +20,13 @@
       "email": "desk@example.com",
       "password_hash": "pbkdf2_sha256$210000$Oq9D2VfU9JrJwnjedaJlPA==$8H/vUbFGE4HeGZVv6vYv7iBE8xiz3lRnZatPaNWz3Lg=",
       "created_at_utc": "2026-07-16T02:31:43Z"
+    },
+    "headbfirst@praxeon.local": {
+      "id": "0e174646-11fa-410c-bcc5-23d87b9b4316",
+      "name": "EDP",
+      "email": "headbfirst@praxeon.local",
+      "password_hash": "pbkdf2_sha256$210000$mRWoN3u1wEg3RX1ZgdaZQg==$tZzB3HNIu6o10XYb1GrYeiI/TEF/eeRJMj8IqVPGq0U=",
+      "created_at_utc": "2026-08-02T23:40:00Z"
     }
   }
 }
