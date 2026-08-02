@@ -9,7 +9,7 @@ type AuthContextValue = {
   token: string | null;
   name: string | null;
   isAuthenticated: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -40,21 +40,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, [navigate, token]);
 
-  const login = useCallback(async (usernameInput: string, passwordInput: string) => {
-    const payload = await loginRequest({
-      name: "",
-      email: usernameInput.trim(),
-      password: passwordInput,
-    });
-    const token = payload.token ?? payload.access_token ?? null;
-    const name =
-      payload.user?.name ?? payload.name ?? payload.username ?? payload.user?.email ?? usernameInput.trim();
-    if (!token) {
-      throw new Error("Login succeeded but no token was returned");
-    }
-    saveAuthSession(token, name);
-    setToken(token);
-    setName(name);
+  const login = useCallback(async (emailInput: string, passwordInput: string) => {
+    const payload = await loginRequest({ email: emailInput.trim(), password: passwordInput });
+    saveAuthSession(payload.token, payload.user.name);
+    setToken(payload.token);
+    setName(payload.user.name);
     toast.success("Signed in successfully.");
   }, []);
 

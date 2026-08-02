@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 export function SignupForm() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -19,7 +19,7 @@ export function SignupForm() {
     try {
       await signup({
         name: name.trim(),
-        username: username.trim(),
+        email: email.trim(),
         password,
       });
       toast.success("Account created successfully. Please sign in to continue.");
@@ -29,7 +29,7 @@ export function SignupForm() {
       if (message.includes("signup_disabled:")) {
         toast.error("Signup is disabled on the server.");
       } else if (message.includes("409")) {
-        toast.error("Username is already in use.");
+        toast.error("Email is already in use.");
       } else {
         toast.error(`Sign-up failed: ${message}`);
       }
@@ -56,17 +56,18 @@ export function SignupForm() {
         />
       </div>
       <div className="space-y-2">
-        <label htmlFor="username" className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
-          Username
+        <label htmlFor="email" className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+          Email
         </label>
         <Input
-          id="username"
-          name="username"
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
+          id="email"
+          name="email"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           required
-          autoComplete="username"
-          placeholder="Choose a username"
+          autoComplete="email"
+          placeholder="you@example.com"
           disabled={submitting}
         />
       </div>

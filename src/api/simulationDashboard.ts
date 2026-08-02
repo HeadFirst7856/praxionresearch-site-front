@@ -23,8 +23,8 @@ export async function fetchSimulationDashboard(params?: SimulationDateRangeParam
     }
     return await res.json();
   } catch {
-    // Static-site fallback: the site is fully static (no always-on backend);
-    // dashboard artifacts are regenerated daily and shipped to /data/dashboard-data.json.
+    // Static-site fallback: the site ships daily-generated dashboard artifacts at
+    // /data/dashboard-data.json, so the dashboard renders with zero backend.
     const staticRes = await fetch("/data/dashboard-data.json", { cache: "no-store" });
     if (!staticRes.ok) {
       throw new Error(`${staticRes.status} ${staticRes.statusText}: dashboard data unavailable`);

@@ -13,6 +13,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      // Frontend calls /api/v1/* ; backend now mounts at /api/v1 (same path, no rewrite).
+      "/api/v1": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
       "/api": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
