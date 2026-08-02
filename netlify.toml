@@ -1,0 +1,14 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/api/v1/auth/*"
+  to = "/.netlify/functions/auth"
+  status = 200
+
+# SPA fallback (keep the rest static-first)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
