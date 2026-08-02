@@ -1,0 +1,25 @@
+{
+  "users_by_email": {
+    "frederico.graz@gmail.com": {
+      "id": "4d7524a3-3d85-4c50-ba0e-c41dc3794600",
+      "name": "Fred",
+      "email": "frederico.graz@gmail.com",
+      "password_hash": "pbkdf2_sha256$210000$HSFE7WhMmHZJV2R6tv+XYA==$5RfIkFNNHP6S95xoH5oOi5VLENvTli7IDYCX0NGPTp4=",
+      "created_at_utc": "2026-07-13T19:34:16Z"
+    },
+    "ws-test-1784044733638@local.test": {
+      "id": "a6dab7c6-20f4-4a8c-88b9-74d400773906",
+      "name": "WS Test",
+      "email": "ws-test-1784044733638@local.test",
+      "password_hash": "pbkdf2_sha256$210000$OTyLZdwPchG0csRQdmAaaA==$QuTqLMWnLqjv9wCVVSuF2bZiKmFVLixWE5JdeHG9OnM=",
+      "created_at_utc": "2026-07-14T15:58:53Z"
+    },
+    "desk@example.com": {
+      "id": "8d9ffc76-dfbe-4061-b37c-33500d5d11fb",
+      "name": "Desk One",
+      "email": "desk@example.com",
+      "password_hash": "pbkdf2_sha256$210000$Oq9D2VfU9JrJwnjedaJlPA==$8H/vUbFGE4HeGZVv6vYv7iBE8xiz3lRnZatPaNWz3Lg=",
+      "created_at_utc": "2026-07-16T02:31:43Z"
+    }
+  }
+}

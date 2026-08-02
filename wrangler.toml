@@ -1,0 +1,15 @@
+# Praxion auth worker (serverless login) — deploy via GitHub Actions
+# Needs repo secrets: CLOUDFLARE_API_TOKEN (Workers Scripts + Workers Routes edit),
+# CLOUDFLARE_ACCOUNT_ID, and worker secret SIGNAL_JWT_SECRET (= backend .env value).
+name = "praxion-auth"
+main = "worker/worker.js"
+compatibility_date = "2026-07-01"
+
+# Route only the auth paths on the zone; everything else stays on the static site.
+routes = [
+  { pattern = "praxionresearch.com/api/v1/auth/*", zone_name = "praxionresearch.com" },
+  { pattern = "www.praxionresearch.com/api/v1/auth/*", zone_name = "praxionresearch.com" },
+]
+
+[observability]
+enabled = true
