@@ -1,15 +1,18 @@
 import { apiFetch } from "@/lib/api";
 
 export type LoginPayload = {
-  username: string;
+  name?: string;
+  email: string;
   password: string;
 };
 
 export type LoginResponse = {
-  access_token: string;
-  token_type: string;
-  username: string;
-  name: string;
+  access_token?: string;
+  token?: string;
+  token_type?: string;
+  username?: string;
+  name?: string;
+  user?: { id?: string; name?: string; email?: string };
 };
 
 export type SignupPayload = {

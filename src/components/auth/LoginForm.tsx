@@ -38,16 +38,17 @@ export function LoginForm() {
     <form className="mt-6 space-y-4" onSubmit={onSubmit}>
       <div className="space-y-2">
         <label htmlFor="username" className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
-          Username
+          Email
         </label>
         <Input
           id="username"
-          name="username"
+          name="email"
+          type="email"
           value={username}
           onChange={(event) => setUsername(event.target.value)}
           required
-          autoComplete="username"
-          placeholder="Enter your username"
+          autoComplete="email"
+          placeholder="Enter your email"
           disabled={submitting}
         />
       </div>

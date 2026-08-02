@@ -41,10 +41,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [navigate, token]);
 
   const login = useCallback(async (usernameInput: string, passwordInput: string) => {
-    const payload = await loginRequest({ username: usernameInput.trim(), password: passwordInput });
-    saveAuthSession(payload.access_token, payload.name || payload.username);
-    setToken(payload.access_token);
-    setName(payload.name || payload.username);
+    const payload = await loginRequest({
+      name: "",
+      email: usernameInput.trim(),
+      password: passwordInput,
+    });
+    const token = payload.token ?? payload.access_token ?? null;
+    const name =
+      payload.user?.name ?? payload.name ?? payload.username ?? payload.user?.email ?? usernameInput.trim();
+    if (!token) {
+      throw new Error("Login succeeded but no token was returned");
+    }
+    saveAuthSession(token, name);
+    setToken(token);
+    setName(name);
     toast.success("Signed in successfully.");
   }, []);
 
