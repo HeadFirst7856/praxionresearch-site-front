@@ -1,16 +1,16 @@
 {
   "strategy": "orb-martingale-2",
   "starting_balance": 50000.0,
-  "ending_balance": 41442.0,
-  "closed_pnl_dollars": -8558.0,
+  "ending_balance": 41783.0,
+  "closed_pnl_dollars": -8217.0,
   "open_pnl_dollars": 0,
-  "continuous_pnl_dollars": -8558.0,
+  "continuous_pnl_dollars": -8217.0,
   "current_position": "Flat",
   "metrics": {
     "trades": 104,
     "open_trades": 0,
     "win_rate": 0.4038,
-    "profit_factor": 0.7953,
+    "profit_factor": 0.8019,
     "max_drawdown": 16301.0
   },
   "equity_curve": [
@@ -431,8 +431,8 @@
       "equity": 41799.0
     },
     {
-      "t": "2026-07-31T15:22:00-04:00",
-      "equity": 41442.0
+      "t": "2026-07-31T15:59:00-04:00",
+      "equity": 41783.0
     }
   ],
   "weekly_rows": [
@@ -796,18 +796,18 @@
     {
       "period": "2026-W31",
       "start_balance": 39259.0,
-      "end_balance": 41442.0,
-      "pnl_dollars": 2183.0,
+      "end_balance": 41783.0,
+      "pnl_dollars": 2524.0,
       "closed_trades": 5,
       "wins": 3,
       "losses": 2,
       "win_rate": 0.6,
       "gross_profit": 3665.0,
-      "gross_loss": 1482.0,
-      "profit_factor": 2.473,
+      "gross_loss": 1141.0,
+      "profit_factor": 3.2121,
       "max_drawdown": 1125.0,
       "first_trade_time": "2026-07-27T10:35:00-04:00",
-      "last_trade_time": "2026-07-31T15:22:00-04:00",
+      "last_trade_time": "2026-07-31T15:59:00-04:00",
       "week": "2026-W31"
     }
   ],
@@ -2566,18 +2566,18 @@
     {
       "period": "2026-07-31",
       "start_balance": 41799.0,
-      "end_balance": 41442.0,
-      "pnl_dollars": -357.0,
+      "end_balance": 41783.0,
+      "pnl_dollars": -16.0,
       "closed_trades": 1,
       "wins": 0,
       "losses": 1,
       "win_rate": 0.0,
       "gross_profit": 0.0,
-      "gross_loss": 357.0,
+      "gross_loss": 16.0,
       "profit_factor": 0.0,
-      "max_drawdown": 357.0,
-      "first_trade_time": "2026-07-31T15:22:00-04:00",
-      "last_trade_time": "2026-07-31T15:22:00-04:00",
+      "max_drawdown": 16.0,
+      "first_trade_time": "2026-07-31T15:59:00-04:00",
+      "last_trade_time": "2026-07-31T15:59:00-04:00",
       "day": "2026-07-31"
     }
   ],
@@ -2649,36 +2649,36 @@
     {
       "period": "2026-07",
       "start_balance": 42194.0,
-      "end_balance": 41442.0,
-      "pnl_dollars": -752.0,
+      "end_balance": 41783.0,
+      "pnl_dollars": -411.0,
       "closed_trades": 22,
       "wins": 9,
       "losses": 13,
       "win_rate": 0.4091,
       "gross_profit": 8439.0,
-      "gross_loss": 9191.0,
-      "profit_factor": 0.9182,
+      "gross_loss": 8850.0,
+      "profit_factor": 0.9536,
       "max_drawdown": 5905.0,
       "first_trade_time": "2026-07-01T15:57:00-04:00",
-      "last_trade_time": "2026-07-31T15:22:00-04:00"
+      "last_trade_time": "2026-07-31T15:59:00-04:00"
     }
   ],
   "yearly_rows": [
     {
       "period": "2026",
       "start_balance": 50000.0,
-      "end_balance": 41442.0,
-      "pnl_dollars": -8558.0,
+      "end_balance": 41783.0,
+      "pnl_dollars": -8217.0,
       "closed_trades": 104,
       "wins": 42,
       "losses": 62,
       "win_rate": 0.4038,
       "gross_profit": 33255.5,
-      "gross_loss": 41813.5,
-      "profit_factor": 0.7953,
+      "gross_loss": 41472.5,
+      "profit_factor": 0.8019,
       "max_drawdown": 16301.0,
       "first_trade_time": "2026-03-02T15:59:00-05:00",
-      "last_trade_time": "2026-07-31T15:22:00-04:00"
+      "last_trade_time": "2026-07-31T15:59:00-04:00"
     }
   ],
   "all_trades": [
@@ -4026,12 +4026,12 @@
       "side": "short",
       "entry_time": "2026-07-31T09:47:00-04:00",
       "entry_price": 28399.0,
-      "exit_time": "2026-07-31T15:22:00-04:00",
-      "exit_price": 28488.25,
+      "exit_time": "2026-07-31T15:59:00-04:00",
+      "exit_price": 28403.0,
       "exit_reason": "eod_flat",
       "size": 2,
-      "pnl_points": -89.25,
-      "pnl_dollars": -357.0,
+      "pnl_points": -4.0,
+      "pnl_dollars": -16.0,
       "is_open": false
     }
   ],
@@ -4158,12 +4158,12 @@
       "side": "short",
       "entry_time": "2026-07-31T09:47:00-04:00",
       "entry_price": 28399.0,
-      "exit_time": "2026-07-31T15:22:00-04:00",
-      "exit_price": 28488.25,
+      "exit_time": "2026-07-31T15:59:00-04:00",
+      "exit_price": 28403.0,
       "exit_reason": "eod_flat",
       "size": 2,
-      "pnl_points": -89.25,
-      "pnl_dollars": -357.0,
+      "pnl_points": -4.0,
+      "pnl_dollars": -16.0,
       "is_open": false
     }
   ]
