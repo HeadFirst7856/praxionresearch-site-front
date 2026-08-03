@@ -9,8 +9,10 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatMoney, formatPercent, formatTime } from "@/lib/format";
+import { formatDateRangeLabel } from "@/lib/mapSimulationDashboard";
 import type { PositionRow, StrategySlot } from "@/mocks/dashboardMocks";
 import { ChevronDown } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
@@ -32,6 +34,8 @@ type StrategySlotCardProps = {
   onToggle: () => void;
   contractInput?: string;
   onContractInputChange?: (value: string) => void;
+  selectedContract?: string;
+  onContractSelectionChange?: (contract: string) => void;
 };
 
 function parseTimeMs(value: string | null | undefined): number | null {
@@ -131,6 +135,56 @@ function ContractSizeInput({
   );
 }
 
+function ContractDropdown({
+  slot,
+  selectedContract,
+  onContractSelectionChange,
+}: {
+  slot: StrategySlot;
+  selectedContract?: string;
+  onContractSelectionChange?: (contract: string) => void;
+}) {
+  const contractsData = slot.contractsData;
+  const keys = contractsData ? Object.keys(contractsData) : [];
+  if (!contractsData || keys.length === 0) {
+    return null;
+  }
+  const active = selectedContract && contractsData[selectedContract] ? selectedContract : keys[0];
+  const activeRange = formatDateRangeLabel(contractsData[active]?.dataRange);
+  return (
+    <div className="flex items-stretch gap-2">
+      <Select
+        value={active}
+        onValueChange={(value) => onContractSelectionChange?.(String(value))}
+      >
+        <SelectTrigger
+          aria-label="Contract"
+          size="sm"
+          className="h-9 w-[230px] border-white/10 bg-white/[0.04] text-slate-100 hover:bg-white/[0.08]"
+        >
+          <SelectValue placeholder="Contract" />
+        </SelectTrigger>
+        <SelectContent className="border-white/10 bg-[#0b1424] text-slate-100" positionerClassName="z-[110]">
+          {keys.map((key) => {
+            const range = formatDateRangeLabel(contractsData[key]?.dataRange);
+            return (
+              <SelectItem key={key} value={key}>
+                <span className="font-mono">{key}</span>
+                {range ? <span className="ml-2 text-xs text-muted-foreground">· {range}</span> : null}
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
+      {activeRange ? (
+        <span className="hidden items-center whitespace-nowrap text-xs text-muted-foreground sm:flex">
+          max {activeRange}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 function StrategySlotSummary({
   slot,
   index,
@@ -138,6 +192,8 @@ function StrategySlotSummary({
   onToggle,
   contractInput = "1",
   onContractInputChange,
+  selectedContract,
+  onContractSelectionChange,
 }: StrategySlotCardProps) {
   const modeTone =
     slot.mode === "LIVE"
@@ -170,6 +226,11 @@ function StrategySlotSummary({
               disabled={contractLocked}
               onChange={contractLocked ? undefined : onContractInputChange}
               className="sm:w-[170px]"
+            />
+            <ContractDropdown
+              slot={slot}
+              selectedContract={selectedContract}
+              onContractSelectionChange={onContractSelectionChange}
             />
           </div>
           {slot.description ? <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{slot.description}</p> : null}
@@ -270,7 +331,14 @@ function StrategySlotDetails({ slot }: { slot: StrategySlot }) {
     <div className="mt-5 border-t border-white/10 pt-5">
       <div className="grid min-w-0 gap-4 xl:grid-cols-[1.65fr_0.85fr]">
         <div className="min-w-0 rounded-2xl border border-white/10 bg-muted/70 p-4">
-          <div className="mb-3 text-xs uppercase tracking-[0.12em] text-muted-foreground">P&L Curve</div>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="text-xs uppercase tracking-[0.12em] text-muted-foreground">P&L Curve</div>
+            {formatDateRangeLabel(slot.maxDateRange) ? (
+              <div className="rounded-full border border-sky-400/20 bg-sky-400/10 px-2.5 py-0.5 text-[11px] font-medium text-sky-200">
+                Max data range: {formatDateRangeLabel(slot.maxDateRange)}
+              </div>
+            ) : null}
+          </div>
           <ChartContainer
             config={chartConfig}
             className="h-64 w-full overflow-hidden rounded-xl border border-white/10 bg-linear-to-b from-slate-900/80 to-slate-950"

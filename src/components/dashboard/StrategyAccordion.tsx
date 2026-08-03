@@ -7,9 +7,18 @@ type Props = {
   loading?: boolean;
   contractInputs?: Record<string, string>;
   onContractInputChange?: (strategyKey: string, value: string) => void;
+  contractSelections?: Record<string, string>;
+  onContractSelectionChange?: (strategyKey: string, contract: string) => void;
 };
 
-export function StrategyAccordion({ slots, loading, contractInputs = {}, onContractInputChange }: Props) {
+export function StrategyAccordion({
+  slots,
+  loading,
+  contractInputs = {},
+  onContractInputChange,
+  contractSelections = {},
+  onContractSelectionChange,
+}: Props) {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set());
 
   const toggleExpanded = (key: string) => {
@@ -55,6 +64,8 @@ export function StrategyAccordion({ slots, loading, contractInputs = {}, onContr
             onToggle={() => toggleExpanded(slot.key)}
             contractInput={contractInputs[slot.key] ?? "1"}
             onContractInputChange={(value) => onContractInputChange?.(slot.key, value)}
+            selectedContract={contractSelections[slot.key]}
+            onContractSelectionChange={(contract) => onContractSelectionChange?.(slot.key, contract)}
           />
         ))}
       </div>

@@ -34,6 +34,36 @@ export type PositionRow = {
   isOpen?: boolean;
 };
 
+export type DateRangeLabel = {
+  from: string | null;
+  to: string | null;
+};
+
+/**
+ * Per-contract data for a strategy slot (contract dropdown on the dashboard).
+ * Carries the same data fields as a slot, plus the max available date range
+ * for that contract (so "All time / YTD / ..." can be checked against reality).
+ */
+export type ContractSlotData = {
+  instrument: string;
+  contracts: number;
+  startBalance: number;
+  endBalance: number;
+  continuousPnl: number;
+  closedPnl: number;
+  openPnl: number;
+  trades: number;
+  position: string;
+  winRate: number;
+  profitFactor: number;
+  maxDrawdown: number;
+  weeklyRows: WeeklyRow[];
+  dailyRows: DailyRow[];
+  equityCurve: EquityPoint[];
+  positions: PositionRow[];
+  dataRange: DateRangeLabel;
+};
+
 export type StrategySlot = {
   key: string;
   title: string;
@@ -64,6 +94,10 @@ export type StrategySlot = {
   unitDailyRows?: DailyRow[];
   unitEquityCurve?: EquityPoint[];
   unitPositions?: PositionRow[];
+  /** Per-contract data for the contract dropdown (key = contract symbol, e.g. ES/MES). */
+  contractsData?: Record<string, ContractSlotData>;
+  /** Max available date range for the default (full-history) contract. */
+  maxDateRange?: DateRangeLabel;
 };
 
 export type SimulationDateFilterMeta = {

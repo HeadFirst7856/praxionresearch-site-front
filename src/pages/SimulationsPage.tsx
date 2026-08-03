@@ -7,6 +7,8 @@ import {
 } from "@/components/dashboard/SimulationDateRangeFilter";
 import { fetchSimulationDashboard } from "@/api/simulationDashboard";
 import {
+  applyContractSelection,
+  defaultContractFor,
   effectiveContracts,
   mapSimulationDashboard,
   projectSlotContracts,
@@ -37,6 +39,7 @@ export function SimulationsPage() {
   const [overview, setOverview] = useState<DashboardOverviewData>(emptyOverview);
   const [appliedRange, setAppliedRange] = useState<AppliedDateRange>(defaultRange);
   const [contractOverrides, setContractOverrides] = useState<Record<string, string>>({});
+  const [contractSelections, setContractSelections] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const refreshInFlightRef = useRef(false);
@@ -58,6 +61,7 @@ export function SimulationsPage() {
         setSlots(mapped.slots);
         if (options.resetContracts) {
           setContractOverrides({});
+          setContractSelections({});
         }
         setOverview(mapped.overview);
       } catch (e: unknown) {
@@ -88,8 +92,16 @@ export function SimulationsPage() {
     [safeSlots],
   );
   const projectedSlots = useMemo(
-    () => safeSlots.map((slot) => projectSlotContracts(slot, effectiveContracts(contractOverrides[slot.key]))),
-    [contractOverrides, safeSlots],
+    () =>
+      safeSlots.map((slot) => {
+        const selected =
+          contractSelections[slot.key] ?? defaultContractFor(slot);
+        return projectSlotContracts(
+          applyContractSelection(slot, selected),
+          effectiveContracts(contractOverrides[slot.key]),
+        );
+      }),
+    [contractOverrides, contractSelections, safeSlots],
   );
   const projectedOverview = useMemo(
     () => ({
@@ -102,6 +114,10 @@ export function SimulationsPage() {
   const updateContractOverride = useCallback((strategyKey: string, value: string) => {
     const masked = sanitizeContractInput(value);
     setContractOverrides((current) => ({ ...current, [strategyKey]: masked }));
+  }, []);
+
+  const updateContractSelection = useCallback((strategyKey: string, contract: string) => {
+    setContractSelections((current) => ({ ...current, [strategyKey]: contract }));
   }, []);
 
   useEffect(() => {
@@ -147,6 +163,8 @@ export function SimulationsPage() {
         loading={loading}
         contractInputs={contractOverrides}
         onContractInputChange={updateContractOverride}
+        contractSelections={contractSelections}
+        onContractSelectionChange={updateContractSelection}
       />
     </div>
   );

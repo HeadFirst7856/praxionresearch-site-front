@@ -1,5 +1,7 @@
 import type {
+  ContractSlotData,
   DailyRow,
+  DateRangeLabel,
   EquityPoint,
   PositionRow,
   SimulationDateFilterMeta,
@@ -64,6 +66,8 @@ type ApiSlot = {
     is_open?: boolean;
   }>;
   all_trades?: ApiSlot["recent_trades"];
+  contracts_data?: Record<string, ApiSlot & { data_range?: { from?: string | null; to?: string | null } }>;
+  max_date_range?: { from?: string | null; to?: string | null };
 };
 
 type ApiDashboard = {
@@ -291,17 +295,13 @@ function resolveInstrument(api: ApiSlot): string {
   return MNQ_SLOT_KEYS.has(api.key) ? "MNQ" : "MES";
 }
 
-function mapSlot(api: ApiSlot): StrategySlot {
+function mapSlotData(api: ApiSlot, dataRange?: DateRangeLabel): Omit<StrategySlot, "key" | "title" | "mode" | "description"> {
   const m = api.metrics || {};
   const weeklyRows = mapWeeklyRows(api.weekly_rows);
   const dailyRows = mapDailyRows(api.daily_rows);
   const equityCurve = mapEquityCurve(api.equity_curve);
   const positions = mapPositions(api.all_trades ?? api.recent_trades);
   return {
-    key: api.key,
-    title: api.title,
-    description: api.description ?? undefined,
-    mode: mapMode(api.mode),
     instrument: resolveInstrument(api),
     startBalance: api.starting_balance ?? 50_000,
     endBalance: api.ending_balance ?? 50_000,
@@ -326,6 +326,45 @@ function mapSlot(api: ApiSlot): StrategySlot {
     unitDailyRows: dailyRows,
     unitEquityCurve: equityCurve,
     unitPositions: positions,
+    ...(dataRange ? { dataRange } : {}),
+  };
+}
+
+function mapContractsData(api: ApiSlot): Record<string, ContractSlotData> | undefined {
+  if (!api.contracts_data || typeof api.contracts_data !== "object") {
+    return undefined;
+  }
+  const out: Record<string, ContractSlotData> = {};
+  for (const [contract, raw] of Object.entries(api.contracts_data)) {
+    if (!raw || typeof raw !== "object") {
+      continue;
+    }
+    const r = raw as ApiSlot & { data_range?: { from?: string | null; to?: string | null } };
+    const range: DateRangeLabel = {
+      from: r.data_range?.from ?? null,
+      to: r.data_range?.to ?? null,
+    };
+    out[contract] = mapSlotData(r, range) as ContractSlotData;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function mapDateRangeLabel(raw: { from?: string | null; to?: string | null } | undefined): DateRangeLabel | undefined {
+  if (!raw?.from && !raw?.to) {
+    return undefined;
+  }
+  return { from: raw.from ?? null, to: raw.to ?? null };
+}
+
+function mapSlot(api: ApiSlot): StrategySlot {
+  return {
+    key: api.key,
+    title: api.title,
+    description: api.description ?? undefined,
+    mode: mapMode(api.mode),
+    ...mapSlotData(api),
+    contractsData: mapContractsData(api),
+    maxDateRange: mapDateRangeLabel(api.max_date_range),
   };
 }
 
@@ -394,4 +433,60 @@ export function dateFilterToRange(meta: SimulationDateFilterMeta): { from: Date;
     from: new Date(`${meta.from}T12:00:00`),
     to: new Date(`${meta.to}T12:00:00`),
   };
+}
+
+/**
+ * Default contract for a slot: the slot's own instrument if present in
+ * contractsData (loader puts the full-history contract first), else the
+ * first contract key, else undefined (no dropdown).
+ */
+export function defaultContractFor(slot: StrategySlot): string | undefined {
+  if (!slot.contractsData || Object.keys(slot.contractsData).length === 0) {
+    return undefined;
+  }
+  const keys = Object.keys(slot.contractsData);
+  const own = slot.instrument.toUpperCase();
+  if (keys.includes(own)) {
+    return own;
+  }
+  return keys[0];
+}
+
+/**
+ * Merge a selected contract's data over the base slot. The result keeps the
+ * slot identity (key/title/mode/description) and the full contractsData map
+ * so the dropdown keeps working, but renders the selected contract's numbers.
+ */
+export function applyContractSelection(slot: StrategySlot, contract: string | undefined): StrategySlot {
+  const data = contract ? slot.contractsData?.[contract] : undefined;
+  if (!data) {
+    return slot;
+  }
+  return {
+    ...slot,
+    instrument: data.instrument,
+    contracts: data.contracts,
+    startBalance: data.startBalance,
+    endBalance: data.endBalance,
+    continuousPnl: data.continuousPnl,
+    closedPnl: data.closedPnl,
+    openPnl: data.openPnl,
+    trades: data.trades,
+    position: data.position,
+    winRate: data.winRate,
+    profitFactor: data.profitFactor,
+    maxDrawdown: data.maxDrawdown,
+    weeklyRows: data.weeklyRows,
+    dailyRows: data.dailyRows,
+    equityCurve: data.equityCurve,
+    positions: data.positions,
+    maxDateRange: data.dataRange,
+  };
+}
+
+export function formatDateRangeLabel(range: DateRangeLabel | undefined): string | null {
+  if (!range?.from && !range?.to) {
+    return null;
+  }
+  return `${range.from ?? "?"} → ${range.to ?? "?"}`;
 }
