@@ -13,10 +13,12 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // Frontend calls /api/v1/* ; backend now mounts at /api/v1 (same path, no rewrite).
+      // Frontend calls /api/v1/* ; backend serves at root (/auth, /simulation, ...).
+      // Same rewrite the prod ingress applies: /api/v1/* -> :8000/*.
       "/api/v1": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/v1/, ""),
       },
       "/api": {
         target: "http://127.0.0.1:8000",

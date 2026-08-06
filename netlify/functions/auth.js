@@ -3,6 +3,12 @@
 // Secret: env SIGNAL_JWT_SECRET (must equal backend .env value). Users: /data/auth/users.json.
 const JWT_SECRET = process.env.SIGNAL_JWT_SECRET || "";
 
+function normalizeBaseUrl(value) {
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://${value}`;
+}
+
 function b64url(buf) {
   return Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
@@ -41,10 +47,26 @@ async function verifyJwt(token) {
   if (!payload.exp || payload.exp * 1000 < Date.now()) return null;
   return payload;
 }
-async function loadUsers() {
-  const res = await fetch(new URL("/data/auth/users.json", process.env.URL || "https://praxionresearch.netlify.app"));
-  if (!res.ok) throw new Error("user_store_unavailable");
-  return res.json();
+async function loadUsers(event) {
+  const headers = event?.headers || {};
+  const proto = headers["x-forwarded-proto"] || headers["X-Forwarded-Proto"] || "https";
+  const forwardedHost = headers["x-forwarded-host"] || headers["X-Forwarded-Host"] || headers.host || headers.Host;
+  const candidates = [
+    forwardedHost ? `${proto}://${forwardedHost}` : null,
+    normalizeBaseUrl(process.env.URL),
+    normalizeBaseUrl(process.env.DEPLOY_PRIME_URL),
+    normalizeBaseUrl(process.env.DEPLOY_URL),
+    normalizeBaseUrl(process.env.SITE_URL),
+    "https://www.praxionresearch.com",
+  ].filter(Boolean);
+
+  for (const base of [...new Set(candidates)]) {
+    try {
+      const res = await fetch(new URL("/data/auth/users.json", base));
+      if (res.ok) return res.json();
+    } catch {}
+  }
+  throw new Error("user_store_unavailable");
 }
 function json(res, status) {
   return {
@@ -63,7 +85,7 @@ export const handler = async (event) => {
       const email = String(body.email || "").trim().toLowerCase();
       const password = String(body.password || "");
       if (email.length < 5 || password.length < 8) return json({ detail: "email and password required (password >= 8 chars)" }, 422);
-      const store = await loadUsers();
+      const store = await loadUsers(event);
       const user = store.users_by_email?.[email];
       if (!user) return json({ detail: "invalid_credentials" }, 401);
       const [algo, iterRaw, saltRaw, digestRaw] = String(user.password_hash || "").split("$", 4);

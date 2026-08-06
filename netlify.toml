@@ -7,7 +7,6 @@
   to = "/.netlify/functions/auth"
   status = 200
 
-# SPA fallback (keep the rest static-first)
 [[redirects]]
   from = "/*"
   to = "/index.html"

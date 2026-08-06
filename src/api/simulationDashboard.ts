@@ -59,7 +59,8 @@ function filterDashboardPayload(payload: Record<string, unknown>, params: Simula
   let minDate: string | null = null;
   let maxDate: string | null = null;
 
-  const filterSlot = (slot: Record<string, any>): Record<string, any> => {
+  for (const [key, slot] of Object.entries(slotsIn)) {
+    if (!slot || typeof slot !== "object") continue;
     const days = Array.isArray(slot.daily_rows) ? (slot.daily_rows as any[]).filter((r) => inRange(r?.period)) : [];
     let closedTrades = 0;
     let wins = 0;
@@ -97,7 +98,7 @@ function filterDashboardPayload(payload: Record<string, unknown>, params: Simula
       ? (slot.equity_curve as any[]).filter((p) => inRange(p?.t))
       : [];
 
-    return {
+    slots[key] = {
       ...slot,
       continuous_pnl: Math.round(pnl * 100) / 100,
       closed_pnl: Math.round(pnl * 100) / 100,
@@ -117,24 +118,8 @@ function filterDashboardPayload(payload: Record<string, unknown>, params: Simula
       trades_truncated: false,
       trades_total: closedTrades,
     };
-  };
-
-  for (const [key, slot] of Object.entries(slotsIn)) {
-    if (!slot || typeof slot !== "object") continue;
-    const filtered = filterSlot(slot as Record<string, any>);
-    // Filter each contract view the same way; keep max_date_range as the
-    // full-available extent (it is a label, not a filter).
-    if (filtered.contracts_data && typeof filtered.contracts_data === "object") {
-      filtered.contracts_data = Object.fromEntries(
-        Object.entries(filtered.contracts_data as Record<string, any>).map(([contract, data]) => [
-          contract,
-          filterSlot(data as Record<string, any>),
-        ]),
-      );
-    }
-    slots[key] = filtered;
-    sumPnl += Number(filtered.continuous_pnl) || 0;
-    sumTrades += Number(filtered.metrics?.trades) || 0;
+    sumPnl += pnl;
+    sumTrades += closedTrades;
   }
 
   const totals = { ...((data.summary as any)?.totals || {}) };
