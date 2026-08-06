@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-05T06:37:05-04:00",
+  "generated_at": "2026-08-06T06:37:09-04:00",
   "timezone": "America/New_York",
   "source": {
     "mode": "bar_core_strategy_simulator",
@@ -22,13 +22,13 @@
   },
   "totals": {
     "bars_processed": 115140,
-    "closed_trades": 2202,
-    "closed_pnl_dollars": 4378.24,
-    "continuous_pnl_dollars": 4378.24,
+    "closed_trades": 2219,
+    "closed_pnl_dollars": 4553.67,
+    "continuous_pnl_dollars": 4553.67,
     "days_covered": 83,
     "covered_from": "2026-03-09",
     "covered_to": "2026-07-08",
-    "return_on_50k": 0.087565,
+    "return_on_50k": 0.091073,
     "max_margin_used_dollars": 9000.0,
     "max_margin_contracts": 5,
     "max_margin_strategy": "Orb Martingale 2",
@@ -39,18 +39,18 @@
       {
         "period": "2026",
         "start_balance": 50000.0,
-        "end_balance": 54378.24,
-        "pnl_dollars": 4378.24,
-        "closed_trades": 1732,
-        "wins": 1049,
-        "losses": 682,
-        "win_rate": 0.6057,
-        "gross_profit": 44768.03,
-        "gross_loss": 40389.79,
-        "profit_factor": 1.1084,
+        "end_balance": 54553.67,
+        "pnl_dollars": 4553.67,
+        "closed_trades": 1745,
+        "wins": 1058,
+        "losses": 686,
+        "win_rate": 0.6063,
+        "gross_profit": 45095.98,
+        "gross_loss": 40542.31,
+        "profit_factor": 1.1123,
         "max_drawdown": 2144.63,
         "first_trade_time": "2026-03-02T13:27:00-05:00",
-        "last_trade_time": "2026-08-04T14:34:00-04:00"
+        "last_trade_time": "2026-08-05T14:36:00-04:00"
       }
     ],
     "monthly_rows": [
@@ -137,18 +137,18 @@
       {
         "period": "2026-08",
         "start_balance": 54306.17,
-        "end_balance": 54378.24,
-        "pnl_dollars": 72.07,
-        "closed_trades": 25,
-        "wins": 15,
-        "losses": 10,
-        "win_rate": 0.6,
-        "gross_profit": 426.64,
-        "gross_loss": 354.57,
-        "profit_factor": 1.2033,
-        "max_drawdown": 163.96,
+        "end_balance": 54553.67,
+        "pnl_dollars": 247.5,
+        "closed_trades": 38,
+        "wins": 24,
+        "losses": 14,
+        "win_rate": 0.6316,
+        "gross_profit": 754.59,
+        "gross_loss": 507.09,
+        "profit_factor": 1.4881,
+        "max_drawdown": 180.19,
         "first_trade_time": "2026-08-03T10:04:00-04:00",
-        "last_trade_time": "2026-08-04T14:34:00-04:00"
+        "last_trade_time": "2026-08-05T14:36:00-04:00"
       }
     ],
     "weekly_rows": [
@@ -529,18 +529,18 @@
       {
         "period": "2026-W32",
         "start_balance": 54306.17,
-        "end_balance": 54378.24,
-        "pnl_dollars": 72.07,
-        "closed_trades": 25,
-        "wins": 15,
-        "losses": 10,
-        "win_rate": 0.6,
-        "gross_profit": 426.64,
-        "gross_loss": 354.57,
-        "profit_factor": 1.2033,
-        "max_drawdown": 163.96,
+        "end_balance": 54553.67,
+        "pnl_dollars": 247.5,
+        "closed_trades": 38,
+        "wins": 24,
+        "losses": 14,
+        "win_rate": 0.6316,
+        "gross_profit": 754.59,
+        "gross_loss": 507.09,
+        "profit_factor": 1.4881,
+        "max_drawdown": 180.19,
         "first_trade_time": "2026-08-03T10:04:00-04:00",
-        "last_trade_time": "2026-08-04T14:34:00-04:00",
+        "last_trade_time": "2026-08-05T14:36:00-04:00",
         "week": "2026-W32"
       }
     ],
@@ -2431,6 +2431,23 @@
         "first_trade_time": "2026-08-04T10:19:00-04:00",
         "last_trade_time": "2026-08-04T14:34:00-04:00",
         "day": "2026-08-04"
+      },
+      {
+        "period": "2026-08-05",
+        "start_balance": 54378.24,
+        "end_balance": 54553.67,
+        "pnl_dollars": 175.43,
+        "closed_trades": 13,
+        "wins": 9,
+        "losses": 4,
+        "win_rate": 0.6923,
+        "gross_profit": 327.95,
+        "gross_loss": 152.52,
+        "profit_factor": 2.1502,
+        "max_drawdown": 152.52,
+        "first_trade_time": "2026-08-05T10:46:00-04:00",
+        "last_trade_time": "2026-08-05T14:36:00-04:00",
+        "day": "2026-08-05"
       }
     ]
   }
