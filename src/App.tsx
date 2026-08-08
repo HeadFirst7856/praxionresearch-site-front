@@ -21,6 +21,23 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          {/* Fullscreen terminal — rendered OUTSIDE the site shell (no header/footer). */}
+          <Route element={<RequireAuth />}>
+            <Route
+              path="/terminal"
+              element={
+                <Suspense
+                  fallback={
+                    <div className="flex min-h-screen items-center justify-center bg-black text-[#ffd700]">
+                      INITIALIZING TERMINAL...
+                    </div>
+                  }
+                >
+                  <TerminalPage />
+                </Suspense>
+              }
+            />
+          </Route>
           <Route element={<AppShell />}>
             <Route index element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
@@ -28,15 +45,6 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route element={<RequireAuth />}>
               <Route path="/strategy-lab" element={<StrategyLabPage />} />
-              {/* Hidden terminal — no nav link; direct URL only. */}
-              <Route
-                path="/terminal"
-                element={
-                  <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center bg-black text-[#ffd700]">INITIALIZING TERMINAL...</div>}>
-                    <TerminalPage />
-                  </Suspense>
-                }
-              />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

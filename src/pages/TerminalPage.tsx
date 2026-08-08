@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Globe from "globe.gl";
 import type { GlobeInstance } from "globe.gl";
 
@@ -145,7 +146,8 @@ const SECTOR_LINES = [
 ];
 
 const COMMANDS: Array<{ cmd: string; out: string }> = [
-  { cmd: "HELP", out: "COMMANDS: HELP // NEWS // REDDIT // SEC // POLY // X // GLOBE // AUTO // CLOCKS // CLEAR // STATUS" },
+  { cmd: "HELP", out: "COMMANDS: HELP // NEWS // REDDIT // SEC // POLY // X // GLOBE // AUTO // CLOCKS // FULLSCREEN // EXIT // CLEAR // STATUS" },
+  { cmd: "FULLSCREEN", out: "FULLSCREEN MODE TOGGLED VIA TOP-BAR BUTTON (⛶) // OR PRESS F11" },
   { cmd: "NEWS", out: "NEWS RELAY: 4 SOURCES (CNBC, BBC, MARKETWATCH, YAHOO) — POLL 60S // GEO-TAGGED" },
   { cmd: "REDDIT", out: "REDDIT RELAY: WALLSTREETBETS // STOCKS // INVESTING — ROTATED 1/POLL (RATE-LIMITED)" },
   { cmd: "SEC", out: "SEC RELAY: 8-K // 10-Q // 10-K // FORM 4 — EDGAR ATOM FEED LIVE" },
@@ -155,10 +157,12 @@ const COMMANDS: Array<{ cmd: string; out: string }> = [
   { cmd: "AUTO", out: "AUTO-SPIN RESUMED (PAUSES WHEN YOU GRAB THE GLOBE)" },
   { cmd: "CLOCKS", out: "MARKET CLOCKS: NY // CHI // LDN // FRA // TYO // HKG // SYD // SAO — LOCAL SESSION STATUS" },
   { cmd: "CLEAR", out: "__CLEAR__" },
+  { cmd: "EXIT", out: "__EXIT__" },
   { cmd: "STATUS", out: "TERMINAL OK // NEWS LIVE // REDDIT ROTATING // SEC LIVE // POLY LIVE // X STANDBY // GLOBE VECTOR" },
 ];
 
 export function TerminalPage() {
+  const navigate = useNavigate();
   const globeRef = useRef<HTMLDivElement | null>(null);
   const globeInst = useRef<GlobeInstance | null>(null);
   const spinRef = useRef<number | null>(null);
@@ -321,25 +325,42 @@ export function TerminalPage() {
     setLines((prev) => [...prev, `> ${raw}`]);
     if (cmd === "AUTO") {
       const inst = globeInst.current;
-      if (inst) {
+      if (inst && spinRef.current == null) {
         let angle = 0;
-        const spin = window.setInterval(() => {
+        spinRef.current = window.setInterval(() => {
           angle += 0.0016;
           inst.pointOfView({ lat: 15, lng: angle * (180 / Math.PI), altitude: 2.2 }, 0);
         }, 30);
-        if (spinRef.current != null) window.clearInterval(spinRef.current);
-        spinRef.current = spin;
       }
     }
     const hit = COMMANDS.find((c) => c.cmd === cmd);
     const out = hit ? hit.out : `UNRECOGNIZED COMMAND: ${cmd} // TYPE HELP`;
     if (out === "__CLEAR__") {
       setLines([]);
+    } else if (out === "__EXIT__") {
+      navigate("/");
+      return;
     } else {
       setLines((prev) => [...prev, out]);
     }
     setInput("");
   }
+
+  const [isFs, setIsFs] = useState(false);
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => {});
+    } else {
+      void document.documentElement.requestFullscreen().catch(() => {});
+    }
+  }
+
+  useEffect(() => {
+    const onFs = () => setIsFs(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -355,7 +376,7 @@ export function TerminalPage() {
 
   return (
     <div
-      className="relative min-h-[calc(100vh-72px)] overflow-hidden bg-black text-[#ffd700]"
+      className="relative min-h-screen overflow-hidden bg-black text-[#ffd700]"
       onClick={() => inputRef.current?.focus()}
     >
       {/* Scanline overlay */}
@@ -363,7 +384,7 @@ export function TerminalPage() {
       {/* Vignette */}
       <div className="pointer-events-none fixed inset-0 z-40 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.85)_100%)]" />
 
-      <div className="relative z-10 flex h-[calc(100vh-72px)] flex-col">
+      <div className="relative z-10 flex h-screen flex-col">
         {/* Top bar */}
         <div className="flex items-center justify-between border-b-2 border-[#ffd700]/60 bg-[#0a0800]/90 px-4 py-2">
           <div className="text-xs font-bold tracking-[0.3em] text-[#ffd700]">
@@ -372,7 +393,16 @@ export function TerminalPage() {
           <div className="text-xs tracking-[0.2em] text-[#ffd700]/90">
             {SECTOR_LINES[0]}
           </div>
-          <div className="font-mono text-xs tracking-widest text-[#ffd700]">{formatClock(clock)}</div>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-xs tracking-widest text-[#ffd700]">{formatClock(clock)}</span>
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="border border-[#ffd700]/40 px-2 py-0.5 text-[9px] tracking-[0.2em] text-[#c9a92c] transition-colors hover:bg-[#1a1505] hover:text-[#ffd700]"
+            >
+              {isFs ? "EXIT FS" : "⛶ FULLSCREEN"}
+            </button>
+          </div>
         </div>
 
         {/* Market clocks strip */}
