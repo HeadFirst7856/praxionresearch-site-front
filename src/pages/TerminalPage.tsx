@@ -433,7 +433,7 @@ export function TerminalPage() {
         </div>
 
         {/* Market clocks strip */}
-        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 border-b border-[#ffd700]/30 bg-[#070500]/95 px-4 py-1.5 font-mono text-[10px] tracking-[0.12em]">
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 border-b border-[#ffd700]/30 bg-[#070500]/95 px-4 py-2 font-mono text-[13px] tracking-[0.12em]">
           {MARKETS.map((m) => {
             const { time } = marketNow(m.tz);
             const open = isOpen(m);
