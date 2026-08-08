@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Globe from "globe.gl";
 import type { GlobeInstance } from "globe.gl";
+import { PnLMonteCarlo } from "@/components/terminal/PnLMonteCarlo";
 
 type FeedItem = {
   source: string;
@@ -155,6 +156,8 @@ const COMMANDS: Array<{ cmd: string; out: string }> = [
   { cmd: "X", out: "X RELAY: AWAITING API CREDENTIALS (PAID TIER REQUIRED) // COLUMN STANDBY" },
   { cmd: "GLOBE", out: "GLOBE: VECTOR TRAFFIC VIEW // DRAG TO ROTATE // SCROLL TO ZOOM // AUTO-SPIN PAUSES ON TOUCH" },
   { cmd: "AUTO", out: "AUTO-SPIN RESUMED (PAUSES WHEN YOU GRAB THE GLOBE)" },
+  { cmd: "PNL", out: "VIEW: P&L TRAJECTORY — MONTE CARLO ENGAGED (RVWAP MLP EXPECTANCY)" },
+  { cmd: "GLOBE", out: "VIEW: GLOBE NEWS TRACKER" },
   { cmd: "CLOCKS", out: "MARKET CLOCKS: NY // CHI // LDN // FRA // TYO // HKG // SYD // SAO — LOCAL SESSION STATUS" },
   { cmd: "CLEAR", out: "__CLEAR__" },
   { cmd: "EXIT", out: "__EXIT__" },
@@ -179,6 +182,7 @@ export function TerminalPage() {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [view, setView] = useState<"globe" | "pnl">("globe");
 
   // Clock tick
   useEffect(() => {
@@ -323,7 +327,11 @@ export function TerminalPage() {
     const cmd = raw.trim().toUpperCase();
     if (!cmd) return;
     setLines((prev) => [...prev, `> ${raw}`]);
-    if (cmd === "AUTO") {
+    if (cmd === "PNL") {
+      setView("pnl");
+    } else if (cmd === "GLOBE") {
+      setView("globe");
+    } else if (cmd === "AUTO") {
       const inst = globeInst.current;
       if (inst && spinRef.current == null) {
         let angle = 0;
@@ -387,10 +395,29 @@ export function TerminalPage() {
       <div className="relative z-10 flex h-screen flex-col">
         {/* Top bar */}
         <div className="flex items-center justify-between border-b-2 border-[#ffd700]/60 bg-[#0a0800]/90 px-4 py-2">
-          <div className="text-xs font-bold tracking-[0.3em] text-[#ffd700]">
-            PRAXION&nbsp;RESEARCH&nbsp;//&nbsp;SECURE&nbsp;TERMINAL
+          <div className="flex items-center gap-4">
+            <div className="text-xs font-bold tracking-[0.3em] text-[#ffd700]">
+              PRAXION&nbsp;RESEARCH&nbsp;//&nbsp;SECURE&nbsp;TERMINAL
+            </div>
+            {/* View toggle: GLOBE | P&L */}
+            <div className="flex border border-[#ffd700]/40 font-mono text-[9px] tracking-[0.18em]">
+              <button
+                type="button"
+                onClick={() => setView("globe")}
+                className={`px-2.5 py-1 transition-colors ${view === "globe" ? "bg-[#ffd700] text-black" : "text-[#c9a92c] hover:bg-[#1a1505]"}`}
+              >
+                GLOBE
+              </button>
+              <button
+                type="button"
+                onClick={() => setView("pnl")}
+                className={`px-2.5 py-1 transition-colors ${view === "pnl" ? "bg-[#ffd700] text-black" : "text-[#c9a92c] hover:bg-[#1a1505]"}`}
+              >
+                P&L
+              </button>
+            </div>
           </div>
-          <div className="text-xs tracking-[0.2em] text-[#ffd700]/90">
+          <div className="hidden text-xs tracking-[0.2em] text-[#ffd700]/90 lg:block">
             {SECTOR_LINES[0]}
           </div>
           <div className="flex items-center gap-3">
@@ -457,19 +484,25 @@ export function TerminalPage() {
             </div>
           </div>
 
-          {/* Center: globe */}
-          <div className="relative flex min-w-0 flex-1 items-center justify-center bg-black">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.05),transparent_60%)]" />
-            <div className="absolute left-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
-              ● GLOBAL NEWS TRACKING // VECTOR VIEW
-            </div>
-            <div className="absolute right-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
-              {geoData.length} INCIDENTS
-            </div>
-            <div ref={globeRef} className="relative z-10 cursor-grab active:cursor-grabbing" />
-            <div className="pointer-events-none absolute bottom-3 left-0 right-0 text-center font-mono text-[9px] tracking-[0.3em] text-[#6b5d1f]">
-              DRAG TO ROTATE // SCROLL TO ZOOM // DOTS = NEWS LOCATIONS
-            </div>
+          {/* Center: view toggle — GLOBE | P&L */}
+          <div className="relative flex min-w-0 flex-1 flex-col bg-black">
+            {view === "globe" ? (
+              <>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.05),transparent_60%)]" />
+                <div className="absolute left-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
+                  ● GLOBAL NEWS TRACKING // VECTOR VIEW
+                </div>
+                <div className="absolute right-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
+                  {geoData.length} INCIDENTS
+                </div>
+                <div ref={globeRef} className="relative z-10 m-auto cursor-grab active:cursor-grabbing" />
+                <div className="pointer-events-none absolute bottom-3 left-0 right-0 text-center font-mono text-[9px] tracking-[0.3em] text-[#6b5d1f]">
+                  DRAG TO ROTATE // SCROLL TO ZOOM // DOTS = NEWS LOCATIONS
+                </div>
+              </>
+            ) : (
+              <PnLMonteCarlo active={view === "pnl"} />
+            )}
           </div>
 
           {/* Right: collapsible feeds */}
