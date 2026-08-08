@@ -1,18 +1,15 @@
 /**
- * Praxion Terminal — news proxy (Netlify function).
+ * Praxion Terminal — feed proxy (Netlify function).
  *
- * Fetches market/finance RSS feeds server-side (avoids CORS), normalizes items,
- * and best-effort geo-tags each story so the terminal globe can place dots.
+ * Serves three feed groups for the terminal's collapsible columns:
+ *   news   — market/finance RSS (CNBC, BBC, MarketWatch, Yahoo), geo-tagged for the globe
+ *   reddit — r/wallstreetbets + r/stocks + r/investing hot posts (market sentiment)
+ *   sec    — SEC EDGAR latest filings (8-K, 10-Q, 10-K, 4), via the browse-edgar atom feed
  *
- * Geo resolution order:
- *   1. Explicit keyword/city match in title + description (major financial centers)
- *   2. Source default location
- *   3. null (dot omitted)
- *
- * Route: /api/v1/news  (netlify.toml redirect -> /.netlify/functions/news)
+ * All fetching is server-side to avoid CORS. Route: /api/v1/news
  */
 
-const FEEDS = [
+const NEWS_FEEDS = [
   {
     name: "CNBC",
     url: "https://www.cnbc.com/id/100003114/device/rss/rss.html",
@@ -39,6 +36,19 @@ const FEEDS = [
   },
 ];
 
+const REDDIT_SUBS = [
+  { name: "WALLSTREETBETS", sub: "wallstreetbets" },
+  { name: "STOCKS", sub: "stocks" },
+  { name: "INVESTING", sub: "investing" },
+];
+
+// Reddit rate-limits bursts (~1 req/45-60s per IP). We rotate one sub per poll
+// and serve the others from cache, so each sub refreshes every ~3 polls.
+const redditCache = new Map(); // sub -> { items, fetchedAt }
+let redditRotation = 0;
+
+const SEC_TYPES = ["8-K", "10-Q", "10-K", "4"];
+
 // Major financial centers keyword -> [lat, lng]
 const LOCATIONS = [
   { keys: ["washington", "white house", "fed", "federal reserve", "senate", "congress", "treasury"], loc: [38.9072, -77.0369], label: "Washington DC" },
@@ -60,7 +70,7 @@ const LOCATIONS = [
   { keys: ["sao paulo", "brazil", "bovespa", "copom"], loc: [-23.5505, -46.6333], label: "Sao Paulo" },
   { keys: ["dubai", "uae", "adx", "dubai financial"], loc: [25.2048, 55.2708], label: "Dubai" },
   { keys: ["saudi", "riyadh", "aramco", "sama"], loc: [24.7136, 46.6753], label: "Riyadh" },
-  { keys: ["oslo", "norway", "norges bank"], loc: [59.9139, 10.7522], label: "Oslo" },
+  { keys: ["oslo", "norway", "norges bank"], loc: [59.9139, 10.7225], label: "Oslo" },
   { keys: ["amsterdam", "netherlands", "dutch"], loc: [52.3676, 4.9041], label: "Amsterdam" },
   { keys: ["madrid", "spain", "iban", "banco de espana"], loc: [40.4168, -3.7038], label: "Madrid" },
   { keys: ["milan", "italy", "ftse mib", "banca d'italia"], loc: [45.4642, 9.19], label: "Milan" },
@@ -94,12 +104,35 @@ function parseRss(xml) {
       const hit = re.exec(block);
       return hit ? stripHtml(hit[1]) : "";
     };
-    const pubRaw = grab("pubDate") || grab("date");
     items.push({
       title: grab("title"),
       link: grab("link"),
-      pub: pubRaw,
+      pub: grab("pubDate") || grab("date"),
       desc: grab("description").slice(0, 300),
+    });
+  }
+  return items;
+}
+
+function parseAtom(xml) {
+  // SEC browse-edgar atom feed: <entry><title>..</title><link href=".."/><updated>..</updated><summary>..</summary>
+  const items = [];
+  const entryRe = /<entry>([\s\S]*?)<\/entry>/gi;
+  let m;
+  while ((m = entryRe.exec(xml)) !== null) {
+    const block = m[1];
+    const grab = (tag) => {
+      const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
+      const hit = re.exec(block);
+      return hit ? stripHtml(hit[1]) : "";
+    };
+    const linkRe = /<link[^>]*href="([^"]+)"/i;
+    const linkHit = linkRe.exec(block);
+    items.push({
+      title: grab("title"),
+      link: linkHit ? linkHit[1] : "",
+      pub: grab("updated") || grab("published"),
+      desc: grab("summary").slice(0, 300),
     });
   }
   return items;
@@ -118,6 +151,122 @@ function geoTag(item, feed) {
   return null;
 }
 
+async function fetchWithTimeout(url, opts = {}, ms = 9000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    const res = await fetch(url, { ...opts, signal: controller.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchNews() {
+  const results = await Promise.allSettled(
+    NEWS_FEEDS.map(async (feed) => {
+      const xml = await fetchWithTimeout(feed.url, {
+        headers: { "User-Agent": "Mozilla/5.0 (PraxionTerminal/1.0)" },
+      });
+      const parsed = parseRss(xml);
+      return parsed.map((item) => ({
+        source: feed.name,
+        title: item.title,
+        link: item.link,
+        desc: item.desc,
+        pub: item.pub,
+        geo: geoTag(item, feed),
+      }));
+    }),
+  );
+
+  let items = [];
+  for (const r of results) {
+    if (r.status === "fulfilled") items = items.concat(r.value);
+    else console.error("news feed error:", r.reason?.message ?? r.reason);
+  }
+  return dedupeSortCap(items, 60);
+}
+
+async function fetchReddit() {
+  const target = REDDIT_SUBS[redditRotation % REDDIT_SUBS.length];
+  redditRotation += 1;
+
+  try {
+    const text = await fetchWithTimeout(`https://www.reddit.com/r/${target.sub}/.rss?limit=12`, {
+      headers: { "User-Agent": "PraxionTerminal/1.0 (research desk)" },
+    });
+    const parsed = parseAtom(text);
+    redditCache.set(target.sub, {
+      items: parsed.map((item) => ({
+        source: `R/${target.name}`,
+        title: item.title,
+        link: item.link,
+        desc: item.desc,
+        pub: item.pub,
+        geo: null,
+      })),
+      fetchedAt: Date.now(),
+    });
+  } catch (e) {
+    console.error("reddit feed error:", e?.message ?? e);
+  }
+
+  let items = [];
+  for (const { items: cached } of redditCache.values()) {
+    items = items.concat(cached);
+  }
+  return dedupeSortCap(items, 30);
+}
+
+async function fetchSec() {
+  const results = await Promise.allSettled(
+    SEC_TYPES.map(async (type) => {
+      const url = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=${encodeURIComponent(type)}&company=&dateb=&owner=include&count=12&output=atom`;
+      const xml = await fetchWithTimeout(url, {
+        headers: {
+          "User-Agent": "Praxion Research Desk desk@praxionresearch.com",
+          Accept: "application/atom+xml, application/xml, text/xml",
+        },
+      });
+      const parsed = parseAtom(xml);
+      return parsed.map((item) => ({
+        source: `SEC ${type}`,
+        title: item.title,
+        link: item.link,
+        desc: item.desc,
+        pub: item.pub,
+        geo: null,
+      }));
+    }),
+  );
+
+  let items = [];
+  for (const r of results) {
+    if (r.status === "fulfilled") items = items.concat(r.value);
+    else console.error("sec feed error:", r.reason?.message ?? r.reason);
+  }
+  return dedupeSortCap(items, 40);
+}
+
+function dedupeSortCap(items, cap) {
+  const seen = new Set();
+  return items
+    .filter((i) => {
+      const key = i.title.toLowerCase().slice(0, 80);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => {
+      const ta = Date.parse(a.pub) || 0;
+      const tb = Date.parse(b.pub) || 0;
+      return tb - ta;
+    })
+    .slice(0, cap);
+}
+
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") {
     return {
@@ -131,56 +280,7 @@ export async function handler(event) {
     };
   }
 
-  const timeoutMs = 9000;
-  const results = await Promise.allSettled(
-    FEEDS.map(async (feed) => {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      try {
-        const res = await fetch(feed.url, {
-          headers: { "User-Agent": "Mozilla/5.0 (PraxionTerminal/1.0)" },
-          signal: controller.signal,
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const xml = await res.text();
-        const parsed = parseRss(xml);
-        return parsed.map((item) => ({
-          source: feed.name,
-          title: item.title,
-          link: item.link,
-          desc: item.desc,
-          pub: item.pub,
-          geo: geoTag(item, feed),
-        }));
-      } finally {
-        clearTimeout(timer);
-      }
-    }),
-  );
-
-  let items = [];
-  for (const r of results) {
-    if (r.status === "fulfilled") items = items.concat(r.value);
-    else console.error("news feed error:", r.reason?.message ?? r.reason);
-  }
-
-  // Dedupe by title, newest first, cap at 60.
-  // Sort by parsed epoch — feeds mix RFC-822 and ISO-8601 pubDate formats,
-  // so string comparison would silently strand one feed at the bottom.
-  const seen = new Set();
-  items = items
-    .filter((i) => {
-      const key = i.title.toLowerCase().slice(0, 80);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .sort((a, b) => {
-      const ta = Date.parse(a.pub) || 0;
-      const tb = Date.parse(b.pub) || 0;
-      return tb - ta;
-    })
-    .slice(0, 60);
+  const [news, reddit, sec] = await Promise.all([fetchNews(), fetchReddit(), fetchSec()]);
 
   return {
     statusCode: 200,
@@ -189,6 +289,6 @@ export async function handler(event) {
       "Cache-Control": "no-store",
       "Access-Control-Allow-Origin": "*",
     },
-    body: JSON.stringify({ generatedAt: new Date().toISOString(), items }),
+    body: JSON.stringify({ generatedAt: new Date().toISOString(), news, reddit, sec }),
   };
 }

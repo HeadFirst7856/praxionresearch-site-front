@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Globe from "globe.gl";
 import type { GlobeInstance } from "globe.gl";
 
-type NewsItem = {
+type FeedItem = {
   source: string;
   title: string;
   link: string;
@@ -11,7 +11,17 @@ type NewsItem = {
   geo: { lat: number; lng: number; label: string } | null;
 };
 
+type FeedPayload = {
+  generatedAt: string;
+  news: FeedItem[];
+  reddit: FeedItem[];
+  sec: FeedItem[];
+};
+
 const GEO_DEFAULT = { lat: 40.7128, lng: -74.006, label: "New York" };
+
+const COUNTRY_GEOJSON_URL =
+  "https://unpkg.com/three-globe/example/datasets/ne_110m_admin_0_countries.geojson";
 
 function formatClock(d: Date): string {
   const hh = String(d.getHours()).padStart(2, "0");
@@ -33,7 +43,7 @@ function timeAgo(pub: string): string {
   return `${Math.floor(hrs / 24)}d`;
 }
 
-function NewsRow({ item }: { item: NewsItem }) {
+function FeedRow({ item }: { item: FeedItem }) {
   return (
     <a
       href={item.link}
@@ -49,7 +59,43 @@ function NewsRow({ item }: { item: NewsItem }) {
         ) : null}
       </div>
       <div className="mt-0.5 text-[11px] leading-snug text-[#e8d67a]">{item.title}</div>
+      {item.desc ? (
+        <div className="mt-0.5 truncate text-[9px] text-[#8a7a2a]">{item.desc}</div>
+      ) : null}
     </a>
+  );
+}
+
+function FeedPanel({
+  title,
+  count,
+  badge,
+  children,
+  defaultOpen = true,
+}: {
+  title: string;
+  count: number;
+  badge?: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="flex min-h-0 flex-1 flex-col border-b-2 border-[#ffd700]/50 last:border-b-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 border-b border-[#ffd700]/40 bg-[#0a0800] px-3 py-1.5 text-left transition-colors hover:bg-[#141002]"
+      >
+        <span className={`text-[10px] text-[#ffd700] transition-transform ${open ? "rotate-90" : ""}`}>▶</span>
+        <span className="text-[10px] font-bold tracking-[0.25em] text-[#ffd700]">{title}</span>
+        {badge ? <span className="text-[8px] tracking-wider text-[#6b5d1f]">{badge}</span> : null}
+        <span className="ml-auto text-[9px] tracking-widest text-[#8a7a2a]">{count}</span>
+      </button>
+      {open ? (
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[#050300]/85">{children}</div>
+      ) : null}
+    </div>
   );
 }
 
@@ -61,24 +107,27 @@ const SECTOR_LINES = [
 ];
 
 const COMMANDS: Array<{ cmd: string; out: string }> = [
-  { cmd: "HELP", out: "AVAILABLE COMMANDS: HELP // NEWS // SECTORS // GLOBE // X // CLEAR // STATUS" },
-  { cmd: "NEWS", out: "NEWS RELAY: 4 SOURCES ACTIVE (REUTERS, CNBC, BBC, MARKETWATCH, YAHOO) — POLL 60S" },
-  { cmd: "SECTORS", out: "SECTOR OVERLAY: QUANT RESEARCH // INTERNAL CAPITAL ONLY // NO EXTERNAL FUNDS" },
-  { cmd: "GLOBE", out: "GLOBE FEED: NEWS-GEO DOTS ACTIVE // ARC TRAILS ENABLED" },
+  { cmd: "HELP", out: "COMMANDS: HELP // NEWS // REDDIT // SEC // X // GLOBE // AUTO // CLEAR // STATUS" },
+  { cmd: "NEWS", out: "NEWS RELAY: 4 SOURCES (CNBC, BBC, MARKETWATCH, YAHOO) — POLL 60S // GEO-TAGGED" },
+  { cmd: "REDDIT", out: "REDDIT RELAY: WALLSTREETBETS // STOCKS // INVESTING — ROTATED 1/POLL (RATE-LIMITED)" },
+  { cmd: "SEC", out: "SEC RELAY: 8-K // 10-Q // 10-K // FORM 4 — EDGAR ATOM FEED LIVE" },
   { cmd: "X", out: "X RELAY: AWAITING API CREDENTIALS (PAID TIER REQUIRED) // COLUMN STANDBY" },
+  { cmd: "GLOBE", out: "GLOBE: VECTOR TRAFFIC VIEW // DRAG TO ROTATE // SCROLL TO ZOOM // AUTO-SPIN PAUSES ON TOUCH" },
+  { cmd: "AUTO", out: "AUTO-SPIN RESUMED (PAUSES WHEN YOU GRAB THE GLOBE)" },
   { cmd: "CLEAR", out: "__CLEAR__" },
-  { cmd: "STATUS", out: "TERMINAL OK // UPLINK STABLE // NEWS FEED LIVE // GLOBE RENDER OK" },
+  { cmd: "STATUS", out: "TERMINAL OK // NEWS LIVE // REDDIT ROTATING // SEC LIVE // X STANDBY // GLOBE VECTOR" },
 ];
 
 export function TerminalPage() {
   const globeRef = useRef<HTMLDivElement | null>(null);
   const globeInst = useRef<GlobeInstance | null>(null);
-  const [news, setNews] = useState<NewsItem[]>([]);
-  const [newsError, setNewsError] = useState<string | null>(null);
+  const spinRef = useRef<number | null>(null);
+  const [payload, setPayload] = useState<FeedPayload | null>(null);
+  const [feedError, setFeedError] = useState<string | null>(null);
   const [lastPoll, setLastPoll] = useState<Date | null>(null);
   const [clock, setClock] = useState(() => new Date());
   const [lines, setLines] = useState<string[]>([
-    "PRAXION RESEARCH SECURE TERMINAL v2.1",
+    "PRAXION RESEARCH SECURE TERMINAL v2.2",
     "UPLINK ESTABLISHED // SESSION: OPERATOR",
     "TYPE A COMMAND + <GO> // HELP FOR LIST",
     "----------------------------------------",
@@ -93,22 +142,22 @@ export function TerminalPage() {
     return () => window.clearInterval(id);
   }, []);
 
-  // News poll
+  // Feed poll
   useEffect(() => {
     let cancelled = false;
     async function poll() {
       try {
         const res = await fetch("/api/v1/news", { cache: "no-store" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as { items: NewsItem[] };
+        const data = (await res.json()) as FeedPayload;
         if (!cancelled) {
-          setNews(data.items ?? []);
-          setNewsError(null);
+          setPayload(data);
+          setFeedError(null);
           setLastPoll(new Date());
         }
       } catch (e) {
         if (!cancelled) {
-          setNewsError(e instanceof Error ? e.message : "poll failed");
+          setFeedError(e instanceof Error ? e.message : "poll failed");
         }
       }
     }
@@ -120,38 +169,24 @@ export function TerminalPage() {
     };
   }, []);
 
-  // Globe
-  const geoData = useMemo(() => {
-    const withGeo = news.filter((n) => n.geo != null);
-    return withGeo.slice(0, 80).map((n, i) => ({
-      id: i,
-      lat: n.geo!.lat,
-      lng: n.geo!.lng,
-      label: n.geo!.label,
-      size: 0.8,
-      color: "#ffd700",
-      title: `${n.source} — ${n.title}`,
-    }));
-  }, [news]);
-
+  // Globe: vector/traffic style, interactive (drag rotate, scroll zoom)
   useEffect(() => {
     if (!globeRef.current || globeInst.current) return;
     const inst = new Globe(globeRef.current);
     globeInst.current = inst;
 
     inst
-      .globeImageUrl("//unpkg.com/three-globe/example/img/earth-night.jpg")
-      .bumpImageUrl("//unpkg.com/three-globe/example/img/earth-topology.png")
-      .backgroundImageUrl("//unpkg.com/three-globe/example/img/night-sky.png")
       .backgroundColor("rgba(0,0,0,0)")
       .showAtmosphere(true)
       .atmosphereColor("#ffd700")
-      .atmosphereAltitude(0.18)
+      .atmosphereAltitude(0.22)
+      .showGraticules(true)
+      .globeMaterial({ color: "#0a1220", emissive: "#050b16", emissiveIntensity: 0.35 })
       .pointsData([])
       .pointLat("lat")
       .pointLng("lng")
       .pointAltitude(0.02)
-      .pointRadius(0.5)
+      .pointRadius(0.55)
       .pointColor("color")
       .pointLabel((d: { title?: string }) => d.title ?? "")
       .arcsData([])
@@ -161,20 +196,66 @@ export function TerminalPage() {
       .arcDashLength(0.6)
       .arcDashGap(0.8)
       .arcDashAnimateTime(2000)
-      .width(560)
-      .height(560);
+      .polygonsData([])
+      .polygonCapColor(() => "rgba(20,34,54,0.9)")
+      .polygonSideColor(() => "rgba(255,215,0,0.08)")
+      .polygonStrokeColor(() => "rgba(255,215,0,0.5)")
+      .polygonAltitude(0.01)
+      .width(620)
+      .height(620);
 
-    // Slow auto-rotation
-    let angle = 0;
-    const spin = window.setInterval(() => {
-      angle += 0.0016;
-      inst.pointOfView({ lat: 15, lng: angle * (180 / Math.PI) + 0, altitude: 2.1 }, 0);
-    }, 30);
+    // Load country outlines for the traffic-view landmasses
+    void fetch(COUNTRY_GEOJSON_URL)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((geo) => {
+        if (geo?.features) inst.polygonsData(geo.features);
+      })
+      .catch(() => {
+        /* vector globe still renders with graticules only */
+      });
+
+    // Auto-spin; pauses while the user drags/zooms
+    function startSpin() {
+      if (spinRef.current != null) return;
+      let angle = 0;
+      spinRef.current = window.setInterval(() => {
+        angle += 0.0016;
+        inst.pointOfView({ lat: 15, lng: angle * (180 / Math.PI), altitude: 2.2 }, 0);
+      }, 30);
+    }
+    function stopSpin() {
+      if (spinRef.current != null) {
+        window.clearInterval(spinRef.current);
+        spinRef.current = null;
+      }
+    }
+    startSpin();
+
+    const el = globeRef.current;
+    el?.addEventListener("pointerdown", stopSpin);
+    el?.addEventListener("pointerup", () => {
+      // resume after 4s idle
+      window.setTimeout(startSpin, 4000);
+    });
 
     return () => {
-      window.clearInterval(spin);
+      stopSpin();
     };
   }, []);
+
+  // Feed data -> globe points + arcs
+  const geoData = useMemo(() => {
+    const withGeo = (payload?.news ?? []).filter((n) => n.geo != null);
+    return withGeo.slice(0, 80).map((n, i) => ({
+      id: i,
+      lat: n.geo!.lat,
+      lng: n.geo!.lng,
+      label: n.geo!.label,
+      size: 0.8,
+      color: "#ffd700",
+      title: `${n.source} — ${n.title}`,
+    }));
+  }, [payload]);
 
   useEffect(() => {
     const inst = globeInst.current;
@@ -193,6 +274,18 @@ export function TerminalPage() {
     const cmd = raw.trim().toUpperCase();
     if (!cmd) return;
     setLines((prev) => [...prev, `> ${raw}`]);
+    if (cmd === "AUTO") {
+      const inst = globeInst.current;
+      if (inst) {
+        let angle = 0;
+        const spin = window.setInterval(() => {
+          angle += 0.0016;
+          inst.pointOfView({ lat: 15, lng: angle * (180 / Math.PI), altitude: 2.2 }, 0);
+        }, 30);
+        if (spinRef.current != null) window.clearInterval(spinRef.current);
+        spinRef.current = spin;
+      }
+    }
     const hit = COMMANDS.find((c) => c.cmd === cmd);
     const out = hit ? hit.out : `UNRECOGNIZED COMMAND: ${cmd} // TYPE HELP`;
     if (out === "__CLEAR__") {
@@ -209,6 +302,9 @@ export function TerminalPage() {
     }
   }, [lines]);
 
+  const news = payload?.news ?? [];
+  const reddit = payload?.reddit ?? [];
+  const sec = payload?.sec ?? [];
   const globeHasData = geoData.length > 0;
 
   return (
@@ -235,32 +331,34 @@ export function TerminalPage() {
 
         {/* Status strip */}
         <div className="flex items-center gap-4 border-b border-[#ffd700]/30 bg-[#050300]/90 px-4 py-1 font-mono text-[10px] tracking-[0.14em] text-[#c9a92c]">
-          <span className={newsError ? "text-red-400" : "text-[#ffd700]"}>
-            {newsError ? `NEWS FEED FAULT: ${newsError}` : `NEWS RELAY: ${news.length} ITEMS // ${lastPoll ? `LAST ${lastPoll.toLocaleTimeString()}` : "CONNECTING..."}`}
+          <span className={feedError ? "text-red-400" : "text-[#ffd700]"}>
+            {feedError
+              ? `FEED FAULT: ${feedError}`
+              : `NEWS ${news.length} // REDDIT ${reddit.length} // SEC ${sec.length}${lastPoll ? ` // ${lastPoll.toLocaleTimeString()}` : " // CONNECTING..."}`}
           </span>
           <span>GLOBE: {globeHasData ? "TRACKING" : "STANDBY"}</span>
-          <span>X RELAY: AWAITING CREDENTIALS</span>
+          <span>X: STANDBY</span>
           <span className="ml-auto">CLASSIFICATION: INTERNAL</span>
         </div>
 
-        {/* Main area: news feed | globe | X feed */}
+        {/* Main area: news feed | globe | feeds */}
         <div className="flex min-h-0 flex-1">
           {/* Left: news feed */}
-          <div className="flex w-[26%] min-w-[240px] flex-col border-r-2 border-[#ffd700]/50 bg-[#050300]/85">
+          <div className="flex w-[24%] min-w-[220px] flex-col border-r-2 border-[#ffd700]/50 bg-[#050300]/85">
             <div className="border-b border-[#ffd700]/40 bg-[#0a0800] px-3 py-1.5 text-[10px] font-bold tracking-[0.25em] text-[#ffd700]">
               LIVE NEWS RELAY
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {news.length === 0 ? (
                 <div className="p-3 text-[10px] tracking-wider text-[#8a7a2a]">
-                  {newsError ? `UPLINK FAULT: ${newsError}` : "ACQUIRING FEED..."}
+                  {feedError ? `UPLINK FAULT: ${feedError}` : "ACQUIRING FEED..."}
                 </div>
               ) : (
-                news.map((item, i) => <NewsRow key={`${item.source}-${i}`} item={item} />)
+                news.map((item, i) => <FeedRow key={`${item.source}-${i}`} item={item} />)
               )}
             </div>
             <div className="border-t border-[#ffd700]/40 bg-[#0a0800] px-3 py-1 font-mono text-[9px] tracking-widest text-[#8a7a2a]">
-              SOURCES: REUTERS // CNBC // BBC // MARKETWATCH // YAHOO
+              CNBC // BBC // MARKETWATCH // YAHOO
             </div>
           </div>
 
@@ -268,33 +366,51 @@ export function TerminalPage() {
           <div className="relative flex min-w-0 flex-1 items-center justify-center bg-black">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.05),transparent_60%)]" />
             <div className="absolute left-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
-              ● GLOBAL NEWS TRACKING
+              ● GLOBAL NEWS TRACKING // VECTOR VIEW
             </div>
             <div className="absolute right-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
               {geoData.length} INCIDENTS
             </div>
-            <div ref={globeRef} className="relative z-10" />
+            <div ref={globeRef} className="relative z-10 cursor-grab active:cursor-grabbing" />
             <div className="pointer-events-none absolute bottom-3 left-0 right-0 text-center font-mono text-[9px] tracking-[0.3em] text-[#6b5d1f]">
-              DRAG TO ROTATE // DOTS = NEWS LOCATIONS
+              DRAG TO ROTATE // SCROLL TO ZOOM // DOTS = NEWS LOCATIONS
             </div>
           </div>
 
-          {/* Right: X feed */}
-          <div className="flex w-[26%] min-w-[240px] flex-col border-l-2 border-[#ffd700]/50 bg-[#050300]/85">
-            <div className="border-b border-[#ffd700]/40 bg-[#0a0800] px-3 py-1.5 text-[10px] font-bold tracking-[0.25em] text-[#ffd700]">
-              X RELAY // MARKET SENTIMENT
-            </div>
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-              <div className="text-2xl text-[#ffd700]/40">✕</div>
-              <div className="text-[10px] leading-relaxed tracking-[0.2em] text-[#c9a92c]">
-                X API ACCESS REQUIRES PAID TIER
+          {/* Right: collapsible feeds */}
+          <div className="flex w-[24%] min-w-[220px] flex-col border-l-2 border-[#ffd700]/50 bg-[#050300]/85">
+            <FeedPanel title="X RELAY" count={0} badge="STANDBY">
+              <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
+                <div className="text-2xl text-[#ffd700]/40">✕</div>
+                <div className="text-[10px] leading-relaxed tracking-[0.2em] text-[#c9a92c]">
+                  X API ACCESS REQUIRES PAID TIER
+                </div>
+                <div className="text-[9px] leading-relaxed tracking-wider text-[#8a7a2a]">
+                  SEAM READY — SET X_BEARER_TOKEN ENV
+                </div>
+                <div className="mt-2 font-mono text-[9px] text-[#6b5d1f]">STATUS: STANDBY</div>
               </div>
-              <div className="text-[9px] leading-relaxed tracking-wider text-[#8a7a2a]">
-                SEAM READY — SET X_BEARER_TOKEN ENV<br />
-                COLUMN GOES LIVE AUTOMATICALLY
-              </div>
-              <div className="mt-2 font-mono text-[9px] text-[#6b5d1f]">STATUS: STANDBY</div>
-            </div>
+            </FeedPanel>
+
+            <FeedPanel title="REDDIT RELAY" count={reddit.length} badge="WSB // STOCKS // INVESTING">
+              {reddit.length === 0 ? (
+                <div className="p-3 text-[10px] tracking-wider text-[#8a7a2a]">
+                  RATE-LIMITED — ROTATING FEED...
+                </div>
+              ) : (
+                reddit.map((item, i) => <FeedRow key={`r-${item.source}-${i}`} item={item} />)
+              )}
+            </FeedPanel>
+
+            <FeedPanel title="SEC FILINGS" count={sec.length} badge="8-K // 10-Q // 10-K // 4">
+              {sec.length === 0 ? (
+                <div className="p-3 text-[10px] tracking-wider text-[#8a7a2a]">
+                  ACQUIRING EDGAR FEED...
+                </div>
+              ) : (
+                sec.map((item, i) => <FeedRow key={`s-${item.source}-${i}`} item={item} />)
+              )}
+            </FeedPanel>
           </div>
         </div>
 
