@@ -1,6 +1,6 @@
 # Praxion Research Frontend
 
-React + TypeScript + Vite SPA for the Praxion simulations dashboard.
+React + TypeScript + Vite SPA for the Praxion Research site.
 
 ## Requirements
 

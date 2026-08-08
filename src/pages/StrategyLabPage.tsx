@@ -544,7 +544,7 @@ function NeuralBrain({ artifact, color }: { artifact: ArtifactView; color: strin
   );
 }
 
-export function StrategyPlaygroundPage() {
+export function StrategyLabPage() {
   const [payload, setPayload] = useState<PlaygroundPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedSleeve, setSelectedSleeve] = useState<SleeveKey>("rth");
@@ -566,7 +566,7 @@ export function StrategyPlaygroundPage() {
           setSelectedDay(data.dayDefaults.latestDay ?? data.dayDefaults.bestDay ?? "");
         }
       } catch (error) {
-        console.error("Could not load strategy playground payload", error);
+        console.error("Could not load strategy lab payload", error);
         if (!cancelled) {
           setPayload(null);
         }
@@ -688,7 +688,7 @@ export function StrategyPlaygroundPage() {
     <div className="page-container py-14">
       <section className="rounded-[32px] border border-sky-500/20 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.16),transparent_42%),linear-gradient(180deg,rgba(9,18,32,0.98),rgba(7,12,23,0.98))] px-6 py-10 shadow-[0_30px_120px_rgba(2,6,23,0.45)] md:px-10">
         <div className="max-w-5xl">
-          <p className="text-xs uppercase tracking-[0.16em] text-sky-300">Strategy Playground</p>
+          <p className="text-xs uppercase tracking-[0.16em] text-sky-300">Strategy Lab</p>
           <h1 className="mt-3 text-[clamp(2.7rem,7vw,5rem)] leading-[0.92] font-semibold tracking-tight text-slate-50">
             Turn the RVWAP MLP into a visual research lab.
           </h1>
@@ -696,12 +696,12 @@ export function StrategyPlaygroundPage() {
             This page is about the strategy itself: feature pressure, sleeve behavior, overlap distortion, neural structure, and day-level trade selection without the extra noise.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link to="/simulations" className={cn(buttonVariants({ variant: "default" }), "rounded-full bg-sky-500/20 px-4 text-sky-100 hover:bg-sky-500/30")}>
-              Open Simulations
-            </Link>
-            <a href="/regime.html" className={cn(buttonVariants({ variant: "outline" }), "rounded-full border-white/15 bg-transparent px-4 text-slate-100 hover:bg-white/5")}>
+            <a href="/regime.html" className={cn(buttonVariants({ variant: "default" }), "rounded-full bg-sky-500/20 px-4 text-sky-100 hover:bg-sky-500/30")}>
               Open Regime
             </a>
+            <Link to="/" className={cn(buttonVariants({ variant: "outline" }), "rounded-full border-white/15 bg-transparent px-4 text-slate-100 hover:bg-white/5")}>
+              Back Home
+            </Link>
           </div>
         </div>
 
@@ -1160,7 +1160,7 @@ export function StrategyPlaygroundPage() {
                 </div>
               </div>
               <div className="mt-4 rounded-2xl border border-white/10 bg-[#091221]/60 p-4 text-sm leading-relaxed text-slate-300">
-                The main point is not that the MLP wins every beauty contest. It is that once we remove overlap and look at the true strategy event stream, the model still gives us enough edge and enough structure to justify deeper feature and day-level diagnostics here in the Playground.
+                The main point is not that the MLP wins every beauty contest. It is that once we remove overlap and look at the true strategy event stream, the model still gives us enough edge and enough structure to justify deeper feature and day-level diagnostics here in the Lab.
               </div>
             </PlaygroundCard>
 
@@ -1194,19 +1194,19 @@ export function StrategyPlaygroundPage() {
                 ))}
               </div>
               <div className="mt-5 flex flex-wrap gap-3">
-                <Link to="/simulations" className={cn(buttonVariants({ variant: "outline" }), "border-white/15 bg-transparent text-slate-100 hover:bg-white/5")}>
-                  Go to Simulations
-                </Link>
-                <Link to="/" className={cn(buttonVariants({ variant: "default" }), "bg-sky-500/20 text-sky-100 hover:bg-sky-500/30")}>
+                <Link to="/" className={cn(buttonVariants({ variant: "outline" }), "border-white/15 bg-transparent text-slate-100 hover:bg-white/5")}>
                   Back Home
                 </Link>
+                <a href="/regime.html" className={cn(buttonVariants({ variant: "default" }), "bg-sky-500/20 text-sky-100 hover:bg-sky-500/30")}>
+                  Open Regime
+                </a>
               </div>
             </PlaygroundCard>
           </div>
         </>
       ) : (
         <div className="mt-8 rounded-3xl border border-white/10 bg-[#07111f]/80 p-6 text-sm text-slate-400 shadow-[0_30px_90px_rgba(2,6,23,0.35)]">
-          {loading ? "Loading the MLP playground payload..." : "Could not load the MLP playground payload yet."}
+          {loading ? "Loading the MLP lab payload..." : "Could not load the MLP lab payload yet."}
         </div>
       )}
     </div>

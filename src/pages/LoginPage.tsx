@@ -13,10 +13,10 @@ export function LoginPage() {
         <section className="glass-panel p-8">
           <p className="text-xs uppercase tracking-[0.14em] text-sky-300">Praxion Research</p>
           <h2 className="mt-2 text-[clamp(2.2rem,5vw,3.6rem)] leading-tight font-semibold tracking-tight">
-            Operator simulations access
+            Operator access
           </h2>
           <p className="mt-3 max-w-xl text-sm text-muted-foreground">
-            Access is restricted to authenticated operators. Sign in to review live benchmark metrics and simulation state.
+            Access is restricted to authenticated operators. Sign in to enter the private research workspace and strategy lab.
           </p>
           <Link to="/" className="mt-6 inline-flex text-sm text-sky-300 hover:text-sky-200">
             Back to home

@@ -18,35 +18,36 @@ function PublicHome() {
       <section className="py-24">
         <div className="page-container">
           <div className="glass-panel mx-auto max-w-5xl px-6 py-14 text-center md:px-12">
-            <p className="mb-4 text-xs uppercase tracking-[0.14em] text-sky-300">Research-Driven Trading Infrastructure</p>
+            <p className="mb-4 text-xs uppercase tracking-[0.14em] text-sky-300">Private Quantitative Research Desk</p>
             <h1 className="mb-5 text-[clamp(3rem,8vw,5.8rem)] leading-[0.92] font-semibold tracking-tight">
-              Modern systematic trading,
+              Systematic research,
               <br />
-              built with discipline.
+              internal capital only.
             </h1>
             <p className="mx-auto max-w-3xl text-lg leading-relaxed text-slate-300">
-              Praxion Research develops research-led trading systems, live monitoring, and execution infrastructure with
-              an institutional standard for clarity, risk, and operational control.
+              Praxion Research is a private research desk. We build systematic trading systems and execution
+              infrastructure with an institutional standard for clarity, risk, and operational control — and we trade
+              only our own capital.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <a
-                href="/strategy-playground.html"
+              <Link
+                to="/about"
                 className={cn(
                   buttonVariants({ variant: "default" }),
                   "rounded-full bg-sky-500/20 px-4 text-sky-100 hover:bg-sky-500/30",
                 )}
               >
-                Strategy Playground
-              </a>
-              <Link
-                to="/simulations"
+                About Us
+              </Link>
+              <a
+                href="/regime.html"
                 className={cn(
                   buttonVariants({ variant: "outline" }),
                   "rounded-full border-white/15 bg-transparent px-4 text-slate-100 hover:bg-white/5",
                 )}
               >
-                Simulations
-              </Link>
+                Open Regime
+              </a>
             </div>
           </div>
         </div>
@@ -58,9 +59,9 @@ function PublicHome() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 { label: "Approach", value: "Research First" },
-                { label: "Focus", value: "Live Benchmarking" },
+                { label: "Focus", value: "Systematic Edge" },
                 { label: "Build", value: "Execution Stack" },
-                { label: "Access", value: "Private Simulations", tone: "text-amber-300" },
+                { label: "Capital", value: "Internal Only", tone: "text-amber-300" },
               ].map((kpi) => (
                 <div key={kpi.label} className="kpi-card">
                   <div className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{kpi.label}</div>
@@ -68,25 +69,6 @@ function PublicHome() {
                 </div>
               ))}
             </div>
-          </div>
-
-          <div className="glass-panel flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-xs uppercase tracking-[0.14em] text-sky-300">New Workspace</p>
-              <h2 className="mt-2 text-2xl font-semibold text-slate-50">Strategy Playground</h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                A new graph lab for strategy comparisons, risk maps, and experimental simulation visuals before they graduate into the main dashboard.
-              </p>
-            </div>
-            <a
-              href="/strategy-playground.html"
-              className={cn(
-                buttonVariants({ variant: "default" }),
-                "w-full rounded-full bg-sky-500/20 px-5 text-center text-sky-100 hover:bg-sky-500/30 md:w-auto",
-              )}
-            >
-              Open Strategy Playground
-            </a>
           </div>
         </div>
       </section>

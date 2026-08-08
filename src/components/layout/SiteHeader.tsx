@@ -13,18 +13,24 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 
-const publicLinks = [
+const baseLinks = [
   { to: "/", label: "Home" },
-  { to: "/strategy-playground.html", label: "Strategy Playground" },
   { to: "/regime.html", label: "Regime" },
 ];
+
+const aboutLink = { to: "/about", label: "About Us" };
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const { isAuthenticated, name, logout } = useAuth();
   const signupEnabled = isSignupEnabled();
-  const navLinks = isAuthenticated ? [...publicLinks, { to: "/simulations", label: "Simulations" }] : publicLinks;
+
+  // Public visitors: Home - Regime - Login - About Us.
+  // Authenticated operators: Home - Regime - About Us - Strategy Lab (+ Logout).
+  const navLinks = isAuthenticated
+    ? [...baseLinks, aboutLink, { to: "/strategy-lab", label: "Strategy Lab" }]
+    : [...baseLinks, { to: "/login", label: "Login" }, aboutLink];
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-[#060d18]/80 backdrop-blur-xl">
@@ -61,18 +67,11 @@ export function SiteHeader() {
                 Logout
               </Button>
             </>
-          ) : (
-            <>
-              <Link to="/login" className={location.pathname === "/login" ? "text-foreground" : "hover:text-foreground"}>
-                Login
-              </Link>
-              {signupEnabled ? (
-                <Link to="/signup" className={location.pathname === "/signup" ? "text-foreground" : "hover:text-foreground"}>
-                  Sign up
-                </Link>
-              ) : null}
-            </>
-          )}
+          ) : signupEnabled ? (
+            <Link to="/signup" className={location.pathname === "/signup" ? "text-foreground" : "hover:text-foreground"}>
+              Sign up
+            </Link>
+          ) : null}
         </nav>
 
         <Drawer open={open} onOpenChange={setOpen}>
@@ -112,28 +111,16 @@ export function SiteHeader() {
                 <Button type="button" variant="outline" size="sm" onClick={logout} className="mt-2">
                   Logout
                 </Button>
-              ) : (
-                <>
-                  <DrawerClose asChild>
-                    <Link
-                      to="/login"
-                      className="rounded-md border border-transparent px-3 py-2 text-sm text-muted-foreground hover:border-border hover:text-foreground"
-                    >
-                      Login
-                    </Link>
-                  </DrawerClose>
-                  {signupEnabled ? (
-                    <DrawerClose asChild>
-                      <Link
-                        to="/signup"
-                        className="rounded-md border border-transparent px-3 py-2 text-sm text-muted-foreground hover:border-border hover:text-foreground"
-                      >
-                        Sign up
-                      </Link>
-                    </DrawerClose>
-                  ) : null}
-                </>
-              )}
+              ) : signupEnabled ? (
+                <DrawerClose asChild>
+                  <Link
+                    to="/signup"
+                    className="rounded-md border border-transparent px-3 py-2 text-sm text-muted-foreground hover:border-border hover:text-foreground"
+                  >
+                    Sign up
+                  </Link>
+                </DrawerClose>
+              ) : null}
             </div>
           </DrawerContent>
         </Drawer>

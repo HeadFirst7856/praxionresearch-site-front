@@ -16,7 +16,7 @@ export function SignupPage() {
           <p className="text-xs uppercase tracking-[0.14em] text-sky-300">Praxion Research</p>
           <h2 className="mt-2 text-[clamp(2.2rem,5vw,3.6rem)] leading-tight font-semibold tracking-tight">Create account</h2>
           <p className="mt-3 max-w-xl text-sm text-muted-foreground">
-            Register a new operator account and then sign in to access private simulations.
+            Register a new operator account and then sign in to access the private strategy lab.
           </p>
           <Link to="/login" className="mt-6 inline-flex text-sm text-sky-300 hover:text-sky-200">
             Already have an account? Sign in
