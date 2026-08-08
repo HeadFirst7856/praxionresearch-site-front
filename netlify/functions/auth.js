@@ -84,7 +84,7 @@ export const handler = async (event) => {
       const body = JSON.parse(event.body || "{}");
       const email = String(body.email || "").trim().toLowerCase();
       const password = String(body.password || "");
-      if (email.length < 5 || password.length < 8) return json({ detail: "email and password required (password >= 8 chars)" }, 422);
+      if (email.length < 5 || password.length < 3) return json({ detail: "email and password required (password >= 3 chars)" }, 422);
       const store = await loadUsers(event);
       const user = store.users_by_email?.[email];
       if (!user) return json({ detail: "invalid_credentials" }, 401);

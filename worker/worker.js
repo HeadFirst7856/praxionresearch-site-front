@@ -83,8 +83,8 @@ async function handleLogin(request, env) {
   try { body = await request.json(); } catch { return json({ detail: "invalid_json" }, 400); }
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "");
-  if (email.length < 5 || password.length < 8) {
-    return json({ detail: "email and password required (password >= 8 chars)" }, 422);
+  if (email.length < 5 || password.length < 3) {
+    return json({ detail: "email and password required (password >= 3 chars)" }, 422);
   }
   const store = await loadUsers(request);
   const user = store.users_by_email?.[email];
