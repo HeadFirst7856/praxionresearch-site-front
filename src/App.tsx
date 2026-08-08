@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { AppShell } from "@/components/layout/AppShell";
@@ -9,6 +10,9 @@ import { LoginPage } from "@/pages/LoginPage";
 import { SignupPage } from "@/pages/SignupPage";
 import { Toaster } from "@/components/ui/sonner";
 import { isSignupEnabled } from "@/lib/features";
+
+// Heavy WebGL terminal — loaded only when an operator opens the hidden route.
+const TerminalPage = lazy(() => import("@/pages/TerminalPage"));
 
 function App() {
   const signupEnabled = isSignupEnabled();
@@ -24,6 +28,15 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route element={<RequireAuth />}>
               <Route path="/strategy-lab" element={<StrategyLabPage />} />
+              {/* Hidden terminal — no nav link; direct URL only. */}
+              <Route
+                path="/terminal"
+                element={
+                  <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center bg-black text-[#ffd700]">INITIALIZING TERMINAL...</div>}>
+                    <TerminalPage />
+                  </Suspense>
+                }
+              />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
