@@ -34,6 +34,27 @@
       "email": "pipeline@praxeon.local",
       "password_hash": "pbkdf2_sha256$210000$JpSrDQRdUy9Tnb67/TW14Q==$U+1sNa/8WkSHczJ29UAkXh5Ht4gmCKCnhIfeXQvgwAM=",
       "created_at_utc": "2026-08-03T10:30:18Z"
+    },
+    "fred@praxionresearch.com": {
+      "id": "9e866ebb-a47d-47e8-be24-413926643b63",
+      "name": "Fred",
+      "email": "fred@praxionresearch.com",
+      "password_hash": "pbkdf2_sha256$210000$OwJS2ce-3xaM-Zn2DDLipw$g0LFWWWZS-RFCprslzP8UdNp-XjNbNpTU81qfuXufAI",
+      "created_at_utc": "2026-08-08T21:13:12Z"
+    },
+    "edo@praxionresearch.com": {
+      "id": "1e4bbde8-f209-4205-80f2-ad003d735b90",
+      "name": "Edo",
+      "email": "edo@praxionresearch.com",
+      "password_hash": "pbkdf2_sha256$210000$ylsLlNSbcQx7oqpgbwsSVg$BmLuFuyfiDpCgtz3bOOI2M16aykHQbSRH9KkT7rx7zw",
+      "created_at_utc": "2026-08-08T21:13:12Z"
+    },
+    "enri@praxionresearch.com": {
+      "id": "92cca7b0-f861-4775-8cdc-cbfbbe6ad9bb",
+      "name": "Enri",
+      "email": "enri@praxionresearch.com",
+      "password_hash": "pbkdf2_sha256$210000$gxh9uV1BjmebEYpNo7CL4Q$-nZv0CAQWNLDR4t1UPXvIxksPMGNV9nxz6bv6B4FD4E",
+      "created_at_utc": "2026-08-08T21:13:12Z"
     }
   }
 }
