@@ -42,6 +42,81 @@ const REDDIT_SUBS = [
   { name: "INVESTING", sub: "investing" },
 ];
 
+// Polymarket: geopolitical prediction markets (top by 24h volume)
+const POLYMARKET_URL =
+  "https://gamma-api.polymarket.com/events?active=true&closed=false&limit=60&order=volume24hr&ascending=false";
+
+// Country keywords -> [lat, lng] for globe dots on political markets
+const POLY_LOCATIONS = [
+  { keys: ["iran", "tehran", "hormuz", "persian"], loc: [32.4279, 53.688], label: "Iran" },
+  { keys: ["israel", "gaza", "tel aviv", "hezbollah", "hamas"], loc: [31.0461, 34.8516], label: "Israel" },
+  { keys: ["russia", "putin", "moscow", "ukraine", "kyiv"], loc: [55.7558, 37.6173], label: "Russia" },
+  { keys: ["china", "beijing", "taiwan", "xi jinping"], loc: [35.8617, 104.1954], label: "China" },
+  { keys: ["north korea", "kim jong", "pyongyang"], loc: [40.3399, 127.5101], label: "North Korea" },
+  { keys: ["united states", "us ", "usa", "biden", "trump", "washington", "white house", "congress"], loc: [38.9072, -77.0369], label: "USA" },
+  { keys: ["venezuela", "maduro", "caracas"], loc: [10.4806, -66.9036], label: "Venezuela" },
+  { keys: ["cuba", "havana"], loc: [21.5218, -77.7812], label: "Cuba" },
+  { keys: ["mexico", "mexican"], loc: [23.6345, -102.5528], label: "Mexico" },
+  { keys: ["europe", "eu ", "european union", "nato", "brussels", "france", "french", "germany", "poland"], loc: [50.8503, 4.3517], label: "Europe" },
+  { keys: ["india", "modi", "new delhi"], loc: [20.5937, 78.9629], label: "India" },
+  { keys: ["saudi", "riyadh", "opec", "oil"], loc: [24.7136, 46.6753], label: "Saudi" },
+  { keys: ["japan", "tokyo"], loc: [36.2048, 138.2529], label: "Japan" },
+  { keys: ["south korea", "seoul"], loc: [35.9078, 127.7669], label: "South Korea" },
+  { keys: ["australia", "canberra"], loc: [-25.2744, 133.7751], label: "Australia" },
+  { keys: ["africa", "nigeria", "kenya", "ethiopia", "sudan"], loc: [8.7832, 34.5085], label: "Africa" },
+  { keys: ["brazil", "brasilia"], loc: [-14.235, -51.9253], label: "Brazil" },
+  { keys: ["argentina", "milei"], loc: [-38.4161, -63.6167], label: "Argentina" },
+  { keys: ["taiwan", "taipei"], loc: [23.6978, 120.9605], label: "Taiwan" },
+  { keys: ["pakistan", "islamabad"], loc: [30.3753, 69.3451], label: "Pakistan" },
+  { keys: ["turk", "erdogan", "ankara"], loc: [38.9637, 35.2433], label: "Turkey" },
+  { keys: ["greece", "athens"], loc: [39.0742, 21.8243], label: "Greece" },
+  { keys: ["uk", "britain", "london", "brexit"], loc: [55.3781, -3.436], label: "UK" },
+];
+
+function polyGeo(title) {
+  const hay = title.toLowerCase().replace(/-/g, " ");
+  for (const entry of POLY_LOCATIONS) {
+    if (entry.keys.some((k) => hay.includes(k))) {
+      return { lat: entry.loc[0], lng: entry.loc[1], label: entry.label };
+    }
+  }
+  return null;
+}
+
+async function fetchPolymarket() {
+  try {
+    const text = await fetchWithTimeout(POLYMARKET_URL, {
+      headers: { "User-Agent": "Mozilla/5.0 (PraxionTerminal/1.0)" },
+    });
+    const events = JSON.parse(text);
+    const items = [];
+    for (const ev of events || []) {
+      const tags = (ev.tags ?? []).map((t) => String(t.slug ?? t).toLowerCase());
+      const isGeo = tags.some((t) => /geo|politic|war|conflict|nato|election|iran|israel|russia|china|ukrain|oil|shipping|sanction/i.test(t));
+      if (!isGeo) continue;
+      const m = (ev.markets ?? [])[0];
+      if (!m) continue;
+      const price = parseFloat(String(m.outcomePrices ?? "").replace(/^\["?|"?\]$/g, "").split(",")[0] ?? "0");
+      if (Number.isNaN(price)) continue;
+      const vol = Number(ev.volume24hr ?? 0);
+      items.push({
+        source: "POLY",
+        title: ev.title,
+        link: `https://polymarket.com/event/${ev.slug}`,
+        desc: `YES ${Math.round(price * 100)}% · 24H VOL $${vol >= 1000 ? `${(vol / 1000).toFixed(1)}K` : vol.toFixed(0)}`,
+        pub: ev.endDate ?? ev.startDate ?? "",
+        geo: polyGeo(`${ev.title} ${tags.join(" ")}`),
+        price,
+        vol,
+      });
+    }
+    return dedupeSortCap(items, 40);
+  } catch (e) {
+    console.error("polymarket feed error:", e?.message ?? e);
+    return [];
+  }
+}
+
 // Reddit rate-limits bursts (~1 req/45-60s per IP). We rotate one sub per poll
 // and serve the others from cache, so each sub refreshes every ~3 polls.
 const redditCache = new Map(); // sub -> { items, fetchedAt }
@@ -280,7 +355,12 @@ export async function handler(event) {
     };
   }
 
-  const [news, reddit, sec] = await Promise.all([fetchNews(), fetchReddit(), fetchSec()]);
+  const [news, reddit, sec, polymarket] = await Promise.all([
+    fetchNews(),
+    fetchReddit(),
+    fetchSec(),
+    fetchPolymarket(),
+  ]);
 
   return {
     statusCode: 200,
@@ -289,6 +369,6 @@ export async function handler(event) {
       "Cache-Control": "no-store",
       "Access-Control-Allow-Origin": "*",
     },
-    body: JSON.stringify({ generatedAt: new Date().toISOString(), news, reddit, sec }),
+    body: JSON.stringify({ generatedAt: new Date().toISOString(), news, reddit, sec, polymarket }),
   };
 }

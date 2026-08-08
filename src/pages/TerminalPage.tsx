@@ -16,9 +16,47 @@ type FeedPayload = {
   news: FeedItem[];
   reddit: FeedItem[];
   sec: FeedItem[];
+  polymarket: FeedItem[];
 };
 
 const GEO_DEFAULT = { lat: 40.7128, lng: -74.006, label: "New York" };
+
+// Major trading venues: tz, session window (local wall-clock minutes), weekdays only
+const MARKETS = [
+  { code: "NY", name: "NYSE", tz: "America/New_York", open: 9.5 * 60, close: 16 * 60 },
+  { code: "CHI", name: "CME", tz: "America/Chicago", open: 8.5 * 60, close: 15 * 60 },
+  { code: "LDN", name: "LSE", tz: "Europe/London", open: 8 * 60, close: 16.5 * 60 },
+  { code: "FRA", name: "XETRA", tz: "Europe/Berlin", open: 9 * 60, close: 17.5 * 60 },
+  { code: "TYO", name: "TSE", tz: "Asia/Tokyo", open: 9 * 60, close: 15.5 * 60 },
+  { code: "HKG", name: "HKEX", tz: "Asia/Hong_Kong", open: 9.5 * 60, close: 16 * 60 },
+  { code: "SYD", name: "ASX", tz: "Australia/Sydney", open: 10 * 60, close: 16 * 60 },
+  { code: "SAO", name: "B3", tz: "America/Sao_Paulo", open: 10 * 60, close: 17 * 60 },
+];
+
+function marketNow(tz: string): { time: string; day: number; mins: number } {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    weekday: "short",
+  }).formatToParts(now);
+  const time =
+    parts.find((p) => p.type === "hour")?.value.padStart(2, "0") +
+    ":" +
+    parts.find((p) => p.type === "minute")?.value.padStart(2, "0");
+  const dayName = parts.find((p) => p.type === "weekday")?.value ?? "";
+  const day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(dayName);
+  const [hh, mm] = time.split(":").map(Number);
+  return { time, day, mins: hh * 60 + mm };
+}
+
+function isOpen(m: (typeof MARKETS)[number]): boolean {
+  const { day, mins } = marketNow(m.tz);
+  if (day === 0 || day === 6) return false; // weekend
+  return mins >= m.open && mins < m.close;
+}
 
 const COUNTRY_GEOJSON_URL =
   "https://unpkg.com/three-globe/example/datasets/ne_110m_admin_0_countries.geojson";
@@ -107,15 +145,17 @@ const SECTOR_LINES = [
 ];
 
 const COMMANDS: Array<{ cmd: string; out: string }> = [
-  { cmd: "HELP", out: "COMMANDS: HELP // NEWS // REDDIT // SEC // X // GLOBE // AUTO // CLEAR // STATUS" },
+  { cmd: "HELP", out: "COMMANDS: HELP // NEWS // REDDIT // SEC // POLY // X // GLOBE // AUTO // CLOCKS // CLEAR // STATUS" },
   { cmd: "NEWS", out: "NEWS RELAY: 4 SOURCES (CNBC, BBC, MARKETWATCH, YAHOO) — POLL 60S // GEO-TAGGED" },
   { cmd: "REDDIT", out: "REDDIT RELAY: WALLSTREETBETS // STOCKS // INVESTING — ROTATED 1/POLL (RATE-LIMITED)" },
   { cmd: "SEC", out: "SEC RELAY: 8-K // 10-Q // 10-K // FORM 4 — EDGAR ATOM FEED LIVE" },
+  { cmd: "POLY", out: "PREDICTION MARKETS: POLYMARKET GEOPOLITICS — YES% + 24H VOL // RED DOTS ON GLOBE" },
   { cmd: "X", out: "X RELAY: AWAITING API CREDENTIALS (PAID TIER REQUIRED) // COLUMN STANDBY" },
   { cmd: "GLOBE", out: "GLOBE: VECTOR TRAFFIC VIEW // DRAG TO ROTATE // SCROLL TO ZOOM // AUTO-SPIN PAUSES ON TOUCH" },
   { cmd: "AUTO", out: "AUTO-SPIN RESUMED (PAUSES WHEN YOU GRAB THE GLOBE)" },
+  { cmd: "CLOCKS", out: "MARKET CLOCKS: NY // CHI // LDN // FRA // TYO // HKG // SYD // SAO — LOCAL SESSION STATUS" },
   { cmd: "CLEAR", out: "__CLEAR__" },
-  { cmd: "STATUS", out: "TERMINAL OK // NEWS LIVE // REDDIT ROTATING // SEC LIVE // X STANDBY // GLOBE VECTOR" },
+  { cmd: "STATUS", out: "TERMINAL OK // NEWS LIVE // REDDIT ROTATING // SEC LIVE // POLY LIVE // X STANDBY // GLOBE VECTOR" },
 ];
 
 export function TerminalPage() {
@@ -243,18 +283,23 @@ export function TerminalPage() {
     };
   }, []);
 
-  // Feed data -> globe points + arcs
+  // Feed data -> globe points + arcs (news + geopolitical markets)
   const geoData = useMemo(() => {
-    const withGeo = (payload?.news ?? []).filter((n) => n.geo != null);
-    return withGeo.slice(0, 80).map((n, i) => ({
-      id: i,
+    const newsGeo = (payload?.news ?? []).filter((n) => n.geo != null).map((n) => ({
       lat: n.geo!.lat,
       lng: n.geo!.lng,
-      label: n.geo!.label,
-      size: 0.8,
       color: "#ffd700",
       title: `${n.source} — ${n.title}`,
     }));
+    const polyGeo = (payload?.polymarket ?? [])
+      .filter((n) => n.geo != null)
+      .map((n) => ({
+        lat: n.geo!.lat,
+        lng: n.geo!.lng,
+        color: "#ff4d4d",
+        title: `POLY ${n.desc} — ${n.title}`,
+      }));
+    return [...newsGeo, ...polyGeo].slice(0, 80).map((g, i) => ({ id: i, ...g, size: 0.8 }));
   }, [payload]);
 
   useEffect(() => {
@@ -305,6 +350,7 @@ export function TerminalPage() {
   const news = payload?.news ?? [];
   const reddit = payload?.reddit ?? [];
   const sec = payload?.sec ?? [];
+  const polymarket = payload?.polymarket ?? [];
   const globeHasData = geoData.length > 0;
 
   return (
@@ -329,12 +375,31 @@ export function TerminalPage() {
           <div className="font-mono text-xs tracking-widest text-[#ffd700]">{formatClock(clock)}</div>
         </div>
 
+        {/* Market clocks strip */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-[#ffd700]/30 bg-[#070500]/95 px-4 py-1.5 font-mono text-[10px] tracking-[0.12em]">
+          {MARKETS.map((m) => {
+            const { time } = marketNow(m.tz);
+            const open = isOpen(m);
+            return (
+              <span key={m.code} className="flex items-center gap-1.5">
+                <span
+                  className={`inline-block size-1.5 rounded-full ${open ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" : "bg-[#6b5d1f]"}`}
+                />
+                <span className="text-[#8a7a2a]">{m.code}</span>
+                <span className="text-[#e8d67a]">{time}</span>
+                <span className={open ? "text-emerald-300/80" : "text-[#5a4d18]"}>{open ? "OPEN" : "CLSD"}</span>
+              </span>
+            );
+          })}
+          <span className="ml-auto hidden text-[#6b5d1f] md:inline">WORLD MARKET CLOCKS // LOCAL TIME</span>
+        </div>
+
         {/* Status strip */}
         <div className="flex items-center gap-4 border-b border-[#ffd700]/30 bg-[#050300]/90 px-4 py-1 font-mono text-[10px] tracking-[0.14em] text-[#c9a92c]">
           <span className={feedError ? "text-red-400" : "text-[#ffd700]"}>
             {feedError
               ? `FEED FAULT: ${feedError}`
-              : `NEWS ${news.length} // REDDIT ${reddit.length} // SEC ${sec.length}${lastPoll ? ` // ${lastPoll.toLocaleTimeString()}` : " // CONNECTING..."}`}
+              : `NEWS ${news.length} // REDDIT ${reddit.length} // SEC ${sec.length} // POLY ${polymarket.length}${lastPoll ? ` // ${lastPoll.toLocaleTimeString()}` : " // CONNECTING..."}`}
           </span>
           <span>GLOBE: {globeHasData ? "TRACKING" : "STANDBY"}</span>
           <span>X: STANDBY</span>
@@ -379,6 +444,16 @@ export function TerminalPage() {
 
           {/* Right: collapsible feeds */}
           <div className="flex w-[24%] min-w-[220px] flex-col border-l-2 border-[#ffd700]/50 bg-[#050300]/85">
+            <FeedPanel title="PREDICTION MARKETS" count={polymarket.length} badge="POLYMARKET // GEOPOLITICS">
+              {polymarket.length === 0 ? (
+                <div className="p-3 text-[10px] tracking-wider text-[#8a7a2a]">
+                  ACQUIRING GAMMA FEED...
+                </div>
+              ) : (
+                polymarket.map((item, i) => <FeedRow key={`p-${item.source}-${i}`} item={item} />)
+              )}
+            </FeedPanel>
+
             <FeedPanel title="X RELAY" count={0} badge="STANDBY">
               <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
                 <div className="text-2xl text-[#ffd700]/40">✕</div>
