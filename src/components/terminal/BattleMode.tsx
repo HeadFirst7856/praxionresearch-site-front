@@ -622,7 +622,137 @@ function AlertsPane({
 }
 
 // ---------------------------------------------------------------------------
-// Battle Mode shell — 2x2 grid
+// Pane 5 — Console (terminal command line as its own pane)
+// ---------------------------------------------------------------------------
+function ConsolePane({
+  consoleProps,
+}: {
+  consoleProps: {
+    lines: string[];
+    input: string;
+    setInput: (v: string) => void;
+    submit: (v: string) => void;
+    inputRef: React.RefObject<HTMLInputElement | null>;
+    scrollRef: React.RefObject<HTMLDivElement | null>;
+  };
+}) {
+  const { lines, input, setInput, submit, inputRef, scrollRef } = consoleProps;
+  return (
+    <div className="flex h-full flex-col bg-black">
+      <div className={PANE_HEADER}>
+        <span className={PANE_TITLE}>CONSOLE</span>
+        <span className="font-mono text-[9px] tracking-widest text-[#8a7a2a]">TYPE HELP + ENTER</span>
+      </div>
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 overflow-y-auto bg-[#050300]/85 px-3 py-2 font-mono text-[10px] leading-snug tracking-wider text-[#c9a92c]"
+      >
+        {lines.map((l, i) => (
+          <div key={i} className={l.startsWith(">") ? "text-[#ffd700]" : ""}>
+            {l}
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-2 border-t border-[#ffd700]/40 bg-[#0a0800] px-2 py-1.5">
+        <span className="text-[#ffd700]">❯</span>
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit(input);
+            e.stopPropagation();
+          }}
+          className="min-w-0 flex-1 bg-transparent text-[11px] tracking-[0.15em] text-[#ffd700] caret-[#ffd700] outline-none placeholder:text-[#6b5d1f]"
+          placeholder="TYPE COMMAND + ENTER // HELP"
+          spellCheck={false}
+          autoComplete="off"
+        />
+        <span className="text-[8px] tracking-[0.2em] text-[#6b5d1f]">CMD&nbsp;GO</span>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Pane 6 — Stats (total W/L, sessions, P&L since integrating)
+// ---------------------------------------------------------------------------
+export type SummaryData = {
+  totals?: {
+    closed_trades?: number;
+    closed_pnl_dollars?: number;
+    continuous_pnl_dollars?: number;
+    days_covered?: number;
+    covered_from?: string;
+    covered_to?: string;
+    return_on_50k?: number;
+  };
+  periods?: {
+    yearly_rows?: Array<{
+      period?: string;
+      wins?: number;
+      losses?: number;
+      win_rate?: number;
+      profit_factor?: number;
+      max_drawdown?: number;
+      pnl_dollars?: number;
+      closed_trades?: number;
+    }>;
+  };
+};
+
+function StatsPane({ summary }: { summary: SummaryData | null }) {
+  const totals = summary?.totals;
+  const yearly = summary?.periods?.yearly_rows?.[0];
+  const wins = yearly?.wins ?? 0;
+  const losses = yearly?.losses ?? 0;
+  const winRate = yearly?.win_rate ?? (wins + losses > 0 ? wins / (wins + losses) : 0);
+  const sessions = totals?.days_covered ?? 0;
+  const pnlSince = totals?.closed_pnl_dollars ?? 0;
+  const pf = yearly?.profit_factor ?? 0;
+  const maxDD = yearly?.max_drawdown ?? 0;
+  const trades = totals?.closed_trades ?? yearly?.closed_trades ?? 0;
+  const ret = totals?.return_on_50k ?? 0;
+
+  const cells: Array<{ k: string; v: string; tone?: string }> = [
+    { k: "TOTAL WINS", v: fmtNum(wins), tone: "text-emerald-400" },
+    { k: "TOTAL LOSSES", v: fmtNum(losses), tone: "text-red-400" },
+    { k: "WIN RATE", v: `${(winRate * 100).toFixed(1)}%` },
+    { k: "CLOSED TRADES", v: fmtNum(trades) },
+    { k: "SESSIONS", v: `${sessions} DAYS` },
+    { k: "P&L SINCE INTEGRATING", v: fmtMoney(pnlSince), tone: pnlSince >= 0 ? "text-emerald-400" : "text-red-400" },
+    { k: "PROFIT FACTOR", v: pf.toFixed(2) },
+    { k: "MAX DRAWDOWN", v: `$${Math.round(maxDD).toLocaleString()}` },
+    { k: "RETURN ON 50K", v: `${(ret * 100).toFixed(1)}%` },
+  ];
+
+  return (
+    <div className="flex h-full flex-col bg-black">
+      <div className={PANE_HEADER}>
+        <span className={PANE_TITLE}>DESK STATS</span>
+        <span className="font-mono text-[9px] tracking-widest text-[#8a7a2a]">
+          {totals?.covered_from ?? "--"} → {totals?.covered_to ?? "--"}
+        </span>
+      </div>
+      <div className={PANE_BODY}>
+        <div className="grid grid-cols-2 gap-px bg-[#ffd700]/20 p-px">
+          {cells.map((c) => (
+            <div key={c.k} className="bg-[#070500] px-2 py-2">
+              <div className="text-[8px] tracking-[0.18em] text-[#6b5d1f]">{c.k}</div>
+              <div className={`mt-1 font-mono text-[13px] ${c.tone ?? "text-[#e8d67a]"}`}>{c.v}</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 border border-[#ffd700]/30 bg-[#0a0800] px-2 py-1.5 font-mono text-[8px] tracking-[0.16em] text-[#6b5d1f]">
+          COVERED FROM {totals?.covered_from ?? "--"} // REALTIME SIM SYNC // DAILY REFRESH 06:30 ET
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Battle Mode shell — 6-pane grid (3x2)
 // ---------------------------------------------------------------------------
 export function BattleMode({
   slots,
@@ -630,26 +760,43 @@ export function BattleMode({
   tape,
   myName,
   roster,
+  summary,
+  consoleProps,
 }: {
   slots: Record<string, Slot>;
   news: FeedItem[];
   tape: TapeItem[];
   myName: string;
   roster: Array<{ name: string; email: string }>;
+  summary: SummaryData | null;
+  consoleProps: {
+    lines: string[];
+    input: string;
+    setInput: (v: string) => void;
+    submit: (v: string) => void;
+    inputRef: React.RefObject<HTMLInputElement | null>;
+    scrollRef: React.RefObject<HTMLDivElement | null>;
+  };
 }) {
   return (
-    <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-px bg-[#ffd700]/20">
-      <div className="min-h-0 min-w-0 border-r border-[#ffd700]/20">
+    <div className="grid h-full w-full grid-cols-3 grid-rows-2 gap-px bg-[#ffd700]/20">
+      <div className="min-h-0 min-w-0 border-r border-b border-[#ffd700]/20">
         <MonteCarloPane slots={slots} />
       </div>
-      <div className="min-h-0 min-w-0">
+      <div className="min-h-0 min-w-0 border-r border-b border-[#ffd700]/20">
         <TradeLogPane slots={slots} />
       </div>
-      <div className="min-h-0 min-w-0 border-t border-r border-[#ffd700]/20">
+      <div className="min-h-0 min-w-0 border-b border-[#ffd700]/20">
         <ChatPane myName={myName} roster={roster} />
       </div>
-      <div className="min-h-0 min-w-0 border-t border-[#ffd700]/20">
+      <div className="min-h-0 min-w-0 border-r border-[#ffd700]/20">
         <AlertsPane news={news} tape={tape} />
+      </div>
+      <div className="min-h-0 min-w-0 border-r border-[#ffd700]/20">
+        <ConsolePane consoleProps={consoleProps} />
+      </div>
+      <div className="min-h-0 min-w-0">
+        <StatsPane summary={summary} />
       </div>
       <style>{`
         @keyframes chatflash {

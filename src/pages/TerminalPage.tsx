@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Globe from "globe.gl";
 import type { GlobeInstance } from "globe.gl";
-import { BattleMode } from "@/components/terminal/BattleMode";
+import { BattleMode, type SummaryData } from "@/components/terminal/BattleMode";
 import { PnLMonteCarlo } from "@/components/terminal/PnLMonteCarlo";
 import { MatrixRain } from "@/components/terminal/MatrixRain";
 import { loadAuthSession } from "@/lib/authStorage";
@@ -35,7 +35,29 @@ type DashboardSlot = {
   starting_balance?: number;
   trades_total?: number | null;
 };
-type DashboardPayload = { slots?: Record<string, DashboardSlot> };
+type DashboardPayload = { slots?: Record<string, DashboardSlot>; summary?: {
+  totals?: {
+    closed_trades?: number;
+    closed_pnl_dollars?: number;
+    continuous_pnl_dollars?: number;
+    days_covered?: number;
+    covered_from?: string;
+    covered_to?: string;
+    return_on_50k?: number;
+  };
+  periods?: {
+    yearly_rows?: Array<{
+      period?: string;
+      wins?: number;
+      losses?: number;
+      win_rate?: number;
+      profit_factor?: number;
+      max_drawdown?: number;
+      pnl_dollars?: number;
+      closed_trades?: number;
+    }>;
+  };
+} };
 
 function decodeJwtEmail(token: string): string | null {
   try {
@@ -222,6 +244,7 @@ export function TerminalPage() {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [view, setView] = useState<"globe" | "pnl" | "battle">("globe");
   const [slots, setSlots] = useState<Record<string, DashboardSlot>>({});
+  const [summary, setSummary] = useState<SummaryData | null>(null);
   const [booted, setBooted] = useState(false);
   const [panic, setPanic] = useState(false);
   const [matrix, setMatrix] = useState(false);
@@ -295,6 +318,7 @@ export function TerminalPage() {
         if (!res.ok) return;
         const data = (await res.json()) as DashboardPayload;
         if (!cancelled && data.slots) setSlots(data.slots);
+        if (!cancelled && data.summary) setSummary(data.summary as SummaryData);
       } catch {
         /* battle mode degrades to seeded view */
       }
@@ -629,6 +653,15 @@ export function TerminalPage() {
               tape={tape}
               myName={sessionEmail ?? "OPERATOR"}
               roster={roster}
+              summary={summary}
+              consoleProps={{
+                lines,
+                input,
+                setInput,
+                submit: submitCommand,
+                inputRef,
+                scrollRef,
+              }}
             />
           </div>
         ) : (
@@ -746,36 +779,38 @@ export function TerminalPage() {
           )}
         </div>
 
-        {/* Command line */}
-        <div className="border-t-2 border-[#ffd700]/60 bg-[#0a0800] px-4 py-2 font-mono">
-          <div
-            ref={scrollRef}
-            className="mb-1 max-h-24 overflow-y-auto text-[10px] leading-snug tracking-wider text-[#c9a92c]"
-          >
-            {lines.map((l, i) => (
-              <div key={i} className={l.startsWith(">") ? "text-[#ffd700]" : ""}>
-                {l}
-              </div>
-            ))}
+        {/* Command line — hidden in battle mode (console is its own pane there) */}
+        {view !== "battle" ? (
+          <div className="border-t-2 border-[#ffd700]/60 bg-[#0a0800] px-4 py-2 font-mono">
+            <div
+              ref={scrollRef}
+              className="mb-1 max-h-24 overflow-y-auto text-[10px] leading-snug tracking-wider text-[#c9a92c]"
+            >
+              {lines.map((l, i) => (
+                <div key={i} className={l.startsWith(">") ? "text-[#ffd700]" : ""}>
+                  {l}
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[#ffd700]">❯</span>
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitCommand(input);
+                  e.stopPropagation();
+                }}
+                className="flex-1 bg-transparent text-[12px] tracking-[0.15em] text-[#ffd700] caret-[#ffd700] outline-none placeholder:text-[#6b5d1f]"
+                placeholder="TYPE COMMAND + ENTER // HELP"
+                spellCheck={false}
+                autoComplete="off"
+              />
+              <span className="text-[9px] tracking-[0.2em] text-[#6b5d1f]">CMD&nbsp;GO</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[#ffd700]">❯</span>
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") submitCommand(input);
-                e.stopPropagation();
-              }}
-              className="flex-1 bg-transparent text-[12px] tracking-[0.15em] text-[#ffd700] caret-[#ffd700] outline-none placeholder:text-[#6b5d1f]"
-              placeholder="TYPE COMMAND + ENTER // HELP"
-              spellCheck={false}
-              autoComplete="off"
-            />
-            <span className="text-[9px] tracking-[0.2em] text-[#6b5d1f]">CMD&nbsp;GO</span>
-          </div>
-        </div>
+        ) : null}
       </div>
 
       {/* Boot sequence overlay */}
