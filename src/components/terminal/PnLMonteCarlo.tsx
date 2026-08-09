@@ -146,10 +146,11 @@ export function PnLMonteCarlo({ active }: { active: boolean }) {
   const p10End = pct(endValues, 0.1);
   const p90End = pct(endValues, 0.9);
 
-  // SVG geometry
-  const W = 760;
-  const H = 430;
-  const PAD = { l: 64, r: 18, t: 24, b: 34 };
+  // SVG geometry — responsive: mobile gets a portrait-friendly frame, desktop stays wide
+  const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches;
+  const W = isMobile ? 380 : 760;
+  const H = isMobile ? 340 : 430;
+  const PAD = isMobile ? { l: 40, r: 10, t: 20, b: 30 } : { l: 64, r: 18, t: 24, b: 34 };
   const allEq = [...realized, ...anchored.flat()];
   const lo = Math.min(ACCOUNT_START - TRAILING_DD - 600, ...allEq);
   const hi = Math.max(ACCOUNT_START + 4_000, ...allEq);

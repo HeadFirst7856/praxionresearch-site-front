@@ -501,7 +501,7 @@ function ChatPane({ myName, roster }: { myName: string; roster: Array<{ name: st
             e.stopPropagation();
           }}
           placeholder="MESSAGE // ENTER TO SEND"
-          className="min-w-0 flex-1 bg-transparent font-mono text-[12px] tracking-wider text-[#ffd700] outline-none placeholder:text-[#6b5d1f] sm:text-[10px]"
+          className="min-w-0 flex-1 bg-transparent font-mono text-base tracking-wider text-[#ffd700] outline-none placeholder:text-[#6b5d1f] sm:text-[10px]"
           maxLength={500}
         />
         <button
@@ -664,7 +664,7 @@ function ConsolePane({
             if (e.key === "Enter") submit(input);
             e.stopPropagation();
           }}
-          className="min-w-0 flex-1 bg-transparent text-[13px] tracking-[0.15em] text-[#ffd700] caret-[#ffd700] outline-none placeholder:text-[#6b5d1f] sm:text-[11px]"
+          className="min-w-0 flex-1 bg-transparent text-base tracking-[0.15em] text-[#ffd700] caret-[#ffd700] outline-none placeholder:text-[#6b5d1f] sm:text-[11px]"
           placeholder="TYPE COMMAND + ENTER // HELP"
           spellCheck={false}
           autoComplete="off"
@@ -792,9 +792,8 @@ export function BattleMode({
 }) {
   // Mobile: one pane at a time, switched via a horizontal pill strip.
   // Desktop (>=640px): full 3x2 grid of all six panes.
-  const [mobPane, setMobPane] = useState<"mc" | "trades" | "chat" | "alerts" | "console" | "stats">("mc");
+  const [mobPane, setMobPane] = useState<"trades" | "chat" | "alerts" | "console" | "stats">("trades");
   const panes = {
-    mc: <MonteCarloPane slots={slots} />,
     trades: <TradeLogPane slots={slots} />,
     chat: <ChatPane myName={myName} roster={roster} />,
     alerts: <AlertsPane news={news} tape={tape} />,
@@ -802,14 +801,14 @@ export function BattleMode({
     stats: <StatsPane summary={summary} />,
   };
   const labels: Record<string, string> = {
-    mc: "MONTE CARLO", trades: "TRADES", chat: "CHAT", alerts: "ALERTS", console: "CONSOLE", stats: "STATS",
+    trades: "TRADES", chat: "CHAT", alerts: "ALERTS", console: "CONSOLE", stats: "STATS",
   };
 
   return (
     <div className="flex h-full w-full flex-col bg-black">
-      {/* Mobile pane switcher */}
+      {/* Mobile pane switcher — no Monte Carlo on mobile */}
       <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-[#ffd700]/30 bg-[#0a0800] px-2 py-1.5 sm:hidden">
-        {(Object.keys(labels) as Array<"mc" | "trades" | "chat" | "alerts" | "console" | "stats">).map((k) => (
+        {(Object.keys(labels) as Array<"trades" | "chat" | "alerts" | "console" | "stats">).map((k) => (
           <button
             key={k}
             type="button"

@@ -618,8 +618,8 @@ export function TerminalPage() {
           </div>
         </div>
 
-        {/* Market clocks strip */}
-        <div className="flex items-center gap-x-6 gap-y-1 overflow-x-auto border-b border-[#ffd700]/30 bg-[#070500]/95 px-3 py-1.5 font-mono text-[11px] tracking-[0.12em] sm:flex-wrap sm:justify-center sm:px-4 sm:text-[13px]">
+        {/* Market clocks strip — desktop only (mobile has vertical clocks in globe tab) */}
+        <div className="hidden items-center gap-x-6 gap-y-1 overflow-x-auto border-b border-[#ffd700]/30 bg-[#070500]/95 px-3 py-1.5 font-mono text-[11px] tracking-[0.12em] sm:flex sm:flex-wrap sm:justify-center sm:px-4 sm:text-[13px]">
           {MARKETS.map((m) => {
             const { time } = marketNow(m.tz);
             const open = isOpen(m);
@@ -709,40 +709,40 @@ export function TerminalPage() {
                   ) : null}
                   {reddit.map((item, i) => <FeedRow key={`r-${item.source}-${i}`} item={item} />)}
                 </div>
-              ) : view === "pnl" ? (
-                <PnLMonteCarlo active={view === "pnl"} />
               ) : (
-                <>
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.05),transparent_60%)]" />
-                  <div className="absolute left-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
-                    ● GLOBAL NEWS TRACKING // VECTOR VIEW
-                  </div>
-                  <div className="absolute right-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
-                    {geoData.length} INCIDENTS
-                  </div>
-                  <div ref={globeRef} className="relative z-10 m-auto cursor-grab active:cursor-grabbing sm:my-auto" />
-                  <div className="pointer-events-none absolute bottom-3 left-0 right-0 text-center font-mono text-[9px] tracking-[0.3em] text-[#6b5d1f] sm:bottom-3">
-                    DRAG TO ROTATE // SCROLL TO ZOOM // DOTS = NEWS LOCATIONS
-                  </div>
-                  {/* Mobile: vertical clocks fill the space under the globe */}
-                  <div className="absolute inset-x-0 bottom-0 max-h-[42%] space-y-1 overflow-y-auto border-t border-[#ffd700]/20 bg-[#070500]/90 px-3 py-2 font-mono text-[11px] sm:hidden">
-                    {MARKETS.map((m) => {
-                      const { time } = marketNow(m.tz);
-                      const open = isOpen(m);
-                      return (
-                        <div key={m.code} className="flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <span className={`inline-block size-1.5 rounded-full ${open ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" : "bg-[#6b5d1f]"}`} />
-                            <span className="text-[#8a7a2a]">{m.code}</span>
-                          </span>
-                          <span className="text-[#e8d67a]">{time}</span>
-                          <span className={open ? "text-emerald-300/80" : "text-[#5a4d18]"}>{open ? "OPEN" : "CLSD"}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
+                <PnLMonteCarlo active={view === "pnl"} />
               )}
+              {/* Globe — kept mounted (hidden when not active) so it never vanishes */}
+              <div className={view === "globe" ? "absolute inset-0" : "hidden"}>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.05),transparent_60%)]" />
+                <div className="absolute left-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
+                  ● GLOBAL NEWS TRACKING // VECTOR VIEW
+                </div>
+                <div className="absolute right-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
+                  {geoData.length} INCIDENTS
+                </div>
+                <div ref={globeRef} className="relative z-10 m-auto cursor-grab active:cursor-grabbing sm:my-auto" />
+                <div className="pointer-events-none absolute bottom-3 left-0 right-0 text-center font-mono text-[9px] tracking-[0.3em] text-[#6b5d1f] sm:bottom-3">
+                  DRAG TO ROTATE // SCROLL TO ZOOM // DOTS = NEWS LOCATIONS
+                </div>
+                {/* Mobile: vertical clocks fill the space under the globe */}
+                <div className="absolute inset-x-0 bottom-0 max-h-[42%] space-y-1 overflow-y-auto border-t border-[#ffd700]/20 bg-[#070500]/90 px-3 py-2 font-mono text-[11px] sm:hidden">
+                  {MARKETS.map((m) => {
+                    const { time } = marketNow(m.tz);
+                    const open = isOpen(m);
+                    return (
+                      <div key={m.code} className="flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                          <span className={`inline-block size-1.5 rounded-full ${open ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" : "bg-[#6b5d1f]"}`} />
+                          <span className="text-[#8a7a2a]">{m.code}</span>
+                        </span>
+                        <span className="text-[#e8d67a]">{time}</span>
+                        <span className={open ? "text-emerald-300/80" : "text-[#5a4d18]"}>{open ? "OPEN" : "CLSD"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
             {/* Right: collapsible feeds — hidden on mobile */}
@@ -859,7 +859,6 @@ export function TerminalPage() {
           { key: "pnl", label: "P&L", onClick: () => setView("pnl") },
           { key: "battle", label: "BATTLE", onClick: () => setView("battle") },
           { key: "news", label: "NEWS", onClick: () => setView("news") },
-          { key: "home", label: "HOME", onClick: () => navigate("/") },
         ].map((t) => (
           <button
             key={t.key}
@@ -895,9 +894,7 @@ export function TerminalPage() {
                   <path d="M4 4h16v16H4z" />
                   <path d="M8 8h8M8 12h8M8 16h5" />
                 </>
-              ) : (
-                <path d="M3 10.5 12 3l9 7.5M5 9.5V21h14V9.5" />
-              )}
+              ) : null}
             </svg>
             {t.label}
           </button>
