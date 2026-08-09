@@ -2,13 +2,14 @@
  * Praxion Terminal — operator chat (Netlify Function).
  * Route: /api/v1/chat
  *
- * Storage: Netlify Blobs. Tries, in order:
- *   1. context.blobs (v2 injected store)
- *   2. getStore with explicit siteID + NETLIFY_FUNCTIONS_TOKEN from env
- *   3. getStore with auto context (NETLIFY_BLOBS_CONTEXT)
+ * Storage: Netlify Blobs. The function runtime (Lambda-compat) delivers the
+ * blob context inside `event.blobs` — we decode it with connectLambda() so
+ * getStore() resolves the site store automatically.
  * GET  -> { messages: [{ id, ts, name, text }] }
  * POST -> { name, text } appended, capped at 500 messages.
  */
+
+import { connectLambda, getStore } from "@netlify/blobs";
 
 const BLOB_NAME = "praxion-terminal-chat";
 const BLOB_KEY = "messages-v1";
@@ -34,73 +35,56 @@ function sanitize(text) {
     .slice(0, 500);
 }
 
-async function openStore(context) {
-  // 1. v2 injected store
-  try {
-    if (context.blobs?.openStore) {
-      const s = context.blobs.openStore({ name: BLOB_NAME });
-      if (s) return { store: s, via: "context.blobs" };
-    }
-  } catch {
-    /* fall through */
-  }
-  // 2. explicit siteID + functions token
-  try {
-    const { getStore } = await import("@netlify/blobs");
-    const siteID = process.env.SITE_ID || process.env.NETLIFY_SITE_ID;
-    const token = process.env.NETLIFY_FUNCTIONS_TOKEN;
-    if (siteID && token) {
-      const s = getStore({ name: BLOB_NAME, siteID, token });
-      if (s) return { store: s, via: "explicit-token" };
-    }
-  } catch {
-    /* fall through */
-  }
-  // 3. auto context
-  try {
-    const { getStore } = await import("@netlify/blobs");
-    const s = getStore({ name: BLOB_NAME });
-    return { store: s, via: "auto" };
-  } catch (e) {
-    return { error: `auto failed: ${e.message}` };
-  }
-}
-
 export const handler = async (event, context) => {
   const method = event.httpMethod ?? "GET";
   if (method === "OPTIONS") return json({ ok: true });
 
-  // Debug probe: does the event carry a blobs payload / headers?
-  if (method === "GET" && event.headers?.["x-probe-blobs"] === "1") {
-    return json({
-      hasEventBlobs: Boolean(event.blobs),
-      blobHeaders: Object.keys(event.headers ?? {}).filter((k) => /blob|nf/i.test(k)).slice(0, 10),
-      nfHeaders: Object.keys(event.headers ?? {}).slice(0, 20),
-      eventKeys: Object.keys(event ?? {}).slice(0, 25),
-    });
+  // Decode the Lambda-compat blob context (event.blobs) into the store env.
+  try {
+    if (event.blobs) connectLambda(event);
+  } catch {
+    /* fall through to explicit paths */
   }
 
-  const opened = await openStore(context);
-  if (!opened.store) {
-    return json(
-      {
-        error: `blob store unavailable: ${opened.error ?? "no store"}`,
-        env: {
-          siteID: process.env.SITE_ID ? "yes" : "no",
-          fnToken: process.env.NETLIFY_FUNCTIONS_TOKEN ? "yes" : "no",
-          blobCtx: process.env.NETLIFY_BLOBS_CONTEXT ? "yes" : "no",
+  let store = null;
+  let via = "";
+  try {
+    store = getStore({ name: BLOB_NAME });
+    via = "auto";
+  } catch (e) {
+    // Auto failed — try explicit siteID + functions token.
+    try {
+      const siteID = process.env.SITE_ID || process.env.NETLIFY_SITE_ID;
+      const token = process.env.NETLIFY_FUNCTIONS_TOKEN;
+      if (siteID && token) {
+        store = getStore({ name: BLOB_NAME, siteID, token });
+        via = "explicit-token";
+      }
+    } catch (e2) {
+      return json(
+        {
+          error: `blob store unavailable: auto=${e.message} | explicit=${e2.message}`,
+          hasEventBlobs: Boolean(event.blobs),
         },
-      },
-      500,
-    );
+        500,
+      );
+    }
+    if (!store) {
+      return json(
+        {
+          error: `blob store unavailable: auto=${e.message} | no explicit creds`,
+          hasEventBlobs: Boolean(event.blobs),
+        },
+        500,
+      );
+    }
   }
-  const store = opened.store;
 
   if (method === "GET") {
     try {
       const raw = await store.get(BLOB_KEY, { type: "json" });
       const messages = Array.isArray(raw) ? raw : [];
-      return json({ messages, via: opened.via });
+      return json({ messages, via });
     } catch (e) {
       return json({ error: `read failed: ${e.message}` }, 500);
     }
@@ -129,7 +113,7 @@ export const handler = async (event, context) => {
       });
       const trimmed = messages.slice(-MAX_MESSAGES);
       await store.set(BLOB_KEY, JSON.stringify(trimmed), { type: "application/json" });
-      return json({ ok: true, message: trimmed[trimmed.length - 1], via: opened.via }, 201);
+      return json({ ok: true, message: trimmed[trimmed.length - 1], via }, 201);
     } catch (e) {
       return json({ error: `write failed: ${e.message}` }, 500);
     }
