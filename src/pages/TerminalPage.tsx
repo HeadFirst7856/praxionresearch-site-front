@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Globe from "globe.gl";
 import type { GlobeInstance } from "globe.gl";
 import { PnLMonteCarlo } from "@/components/terminal/PnLMonteCarlo";
+import { MatrixRain } from "@/components/terminal/MatrixRain";
+import { loadAuthSession } from "@/lib/authStorage";
 
 type FeedItem = {
   source: string;
@@ -12,6 +14,24 @@ type FeedItem = {
   pub: string;
   geo: { lat: number; lng: number; label: string } | null;
 };
+
+type TapeItem = {
+  sym: string;
+  label: string;
+  last: number | null;
+  change: number | null;
+  changePct: number | null;
+};
+
+function decodeJwtEmail(token: string): string | null {
+  try {
+    const part = token.split(".")[1];
+    const json = JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/")));
+    return json.email ?? json.sub ?? null;
+  } catch {
+    return null;
+  }
+}
 
 type FeedPayload = {
   generatedAt: string;
@@ -147,7 +167,7 @@ const SECTOR_LINES = [
 ];
 
 const COMMANDS: Array<{ cmd: string; out: string }> = [
-  { cmd: "HELP", out: "COMMANDS: HELP // NEWS // REDDIT // SEC // POLY // X // GLOBE // AUTO // CLOCKS // FULLSCREEN // EXIT // CLEAR // STATUS" },
+  { cmd: "HELP", out: "COMMANDS: HELP // NEWS // REDDIT // SEC // POLY // X // GLOBE // AUTO // CLOCKS // TAPE // WHO // PANIC // MATRIX // FULLSCREEN // EXIT // CLEAR // STATUS" },
   { cmd: "FULLSCREEN", out: "FULLSCREEN MODE TOGGLED VIA TOP-BAR BUTTON (⛶) // OR PRESS F11" },
   { cmd: "NEWS", out: "NEWS RELAY: 4 SOURCES (CNBC, BBC, MARKETWATCH, YAHOO) — POLL 60S // GEO-TAGGED" },
   { cmd: "REDDIT", out: "REDDIT RELAY: WALLSTREETBETS // STOCKS // INVESTING — ROTATED 1/POLL (RATE-LIMITED)" },
@@ -157,11 +177,14 @@ const COMMANDS: Array<{ cmd: string; out: string }> = [
   { cmd: "GLOBE", out: "GLOBE: VECTOR TRAFFIC VIEW // DRAG TO ROTATE // SCROLL TO ZOOM // AUTO-SPIN PAUSES ON TOUCH" },
   { cmd: "AUTO", out: "AUTO-SPIN RESUMED (PAUSES WHEN YOU GRAB THE GLOBE)" },
   { cmd: "PNL", out: "VIEW: P&L TRAJECTORY — MONTE CARLO ENGAGED (RVWAP MLP EXPECTANCY)" },
-  { cmd: "GLOBE", out: "VIEW: GLOBE NEWS TRACKER" },
+  { cmd: "TAPE", out: "MARKET TAPE: NQ // ES // YM // RTY // GC // CL // 6E // BTC // ETH // VIX // DXY // TNX — POLL 30S" },
+  { cmd: "WHO", out: "__WHO__" },
+  { cmd: "PANIC", out: "PANIC MODE: DECOY SCREEN ENGAGED // PRESS CTRL+SHIFT+P OR PANIC TO RETURN" },
+  { cmd: "MATRIX", out: "__MATRIX__" },
   { cmd: "CLOCKS", out: "MARKET CLOCKS: NY // CHI // LDN // FRA // TYO // HKG // SYD // SAO — LOCAL SESSION STATUS" },
   { cmd: "CLEAR", out: "__CLEAR__" },
   { cmd: "EXIT", out: "__EXIT__" },
-  { cmd: "STATUS", out: "TERMINAL OK // NEWS LIVE // REDDIT ROTATING // SEC LIVE // POLY LIVE // X STANDBY // GLOBE VECTOR" },
+  { cmd: "STATUS", out: "TERMINAL OK // NEWS LIVE // REDDIT ROTATING // SEC LIVE // POLY LIVE // X STANDBY // TAPE LIVE // GLOBE VECTOR" },
 ];
 
 export function TerminalPage() {
@@ -183,6 +206,87 @@ export function TerminalPage() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [view, setView] = useState<"globe" | "pnl">("globe");
+  const [booted, setBooted] = useState(false);
+  const [panic, setPanic] = useState(false);
+  const [matrix, setMatrix] = useState(false);
+  const [whoOpen, setWhoOpen] = useState(false);
+  const [tape, setTape] = useState<TapeItem[]>([]);
+  const [roster, setRoster] = useState<Array<{ name: string; email: string }>>([]);
+  const sessionEmail = useMemo(() => {
+    const token = loadAuthSession()?.token;
+    return token ? decodeJwtEmail(token) : null;
+  }, []);
+
+  // Boot sequence: brief hardware check + uplink splash, then reveal terminal.
+  useEffect(() => {
+    const t = window.setTimeout(() => setBooted(true), 2400);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  // Tape poll (market quotes, 30s)
+  useEffect(() => {
+    let cancelled = false;
+    async function poll() {
+      try {
+        const res = await fetch("/api/v1/tape", { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as { quotes: TapeItem[] };
+        if (!cancelled) setTape(data.quotes ?? []);
+      } catch {
+        /* tape is non-critical; keep last values */
+      }
+    }
+    void poll();
+    const id = window.setInterval(() => void poll(), 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, []);
+
+  // Operator roster for WHO (from public auth store)
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await fetch("/data/auth/users.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { users_by_email: Record<string, { name: string; email: string }> };
+        if (!cancelled) {
+          setRoster(
+            Object.values(data.users_by_email ?? {}).map((u) => ({
+              name: u.name ?? u.email,
+              email: u.email,
+            })),
+          );
+        }
+      } catch {
+        /* roster optional */
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Panic key: Ctrl+Shift+P toggles decoy screen; Esc exits panic/matrix/WHO.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        setPanic((p) => !p);
+        return;
+      }
+      if (e.key === "Escape") {
+        setPanic(false);
+        setMatrix(false);
+        setWhoOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Clock tick
   useEffect(() => {
@@ -331,6 +435,12 @@ export function TerminalPage() {
       setView("pnl");
     } else if (cmd === "GLOBE") {
       setView("globe");
+    } else if (cmd === "MATRIX") {
+      setMatrix((m) => !m);
+    } else if (cmd === "PANIC") {
+      setPanic((p) => !p);
+    } else if (cmd === "WHO") {
+      setWhoOpen(true);
     } else if (cmd === "AUTO") {
       const inst = globeInst.current;
       if (inst && spinRef.current == null) {
@@ -552,6 +662,31 @@ export function TerminalPage() {
           </div>
         </div>
 
+        {/* Market tape — scrolling quotes */}
+        <div className="relative overflow-hidden border-t border-[#ffd700]/30 bg-[#0a0800] py-1 font-mono text-[10px] tracking-[0.12em]">
+          {tape.length > 0 ? (
+            <div className="tape-track flex w-max items-center gap-8 whitespace-nowrap">
+              {[...tape, ...tape].map((q, i) => {
+                const up = (q.changePct ?? 0) > 0;
+                const flat = (q.changePct ?? 0) === 0;
+                return (
+                  <span key={`${q.sym}-${i}`} className="flex items-center gap-1.5">
+                    <span className="text-[#8a7a2a]">{q.label}</span>
+                    <span className="text-[#e8d67a]">{q.last != null ? q.last.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "--"}</span>
+                    <span className={flat ? "text-[#8a7a2a]" : up ? "text-emerald-400" : "text-red-400"}>
+                      {q.change != null && q.changePct != null
+                        ? `${up ? "▲" : flat ? "▬" : "▼"} ${up ? "+" : ""}${q.change.toFixed(2)} (${up ? "+" : ""}${q.changePct.toFixed(2)}%)`
+                        : "--"}
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="px-4 text-[9px] tracking-widest text-[#6b5d1f]">TAPE: ACQUIRING QUOTES...</div>
+          )}
+        </div>
+
         {/* Command line */}
         <div className="border-t-2 border-[#ffd700]/60 bg-[#0a0800] px-4 py-2 font-mono">
           <div
@@ -584,6 +719,115 @@ export function TerminalPage() {
         </div>
       </div>
 
+      {/* Boot sequence overlay */}
+      {!booted ? (
+        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-black font-mono text-[#ffd700]">
+          <div className="text-2xl font-bold tracking-[0.4em]">PRAXION RESEARCH</div>
+          <div className="mt-1 text-[10px] tracking-[0.3em] text-[#8a7a2a]">SECURE TERMINAL // BIOS v2.3</div>
+          <div className="mt-8 w-72 space-y-1.5 text-[10px] tracking-wider text-[#c9a92c]">
+            {[
+              "MEM CHECK ............ 65536K OK",
+              "UPLINK ENCRYPTION ..... AES-256",
+              "RELAY 7 .............. STABLE",
+              "NEWS FEEDS ........... LOCKING",
+              "GLOBE RENDER ......... VECTOR",
+            ].map((l) => (
+              <div key={l}>{l}</div>
+            ))}
+            <div className="mt-3 h-1 w-full overflow-hidden bg-[#1a1505]">
+              <div className="boot-bar h-full w-0 bg-[#ffd700]" />
+            </div>
+            <div className="pt-1 text-[9px] tracking-[0.2em] text-[#6b5d1f]">INITIALIZING...</div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* WHO overlay */}
+      {whoOpen ? (
+        <div
+          className="fixed inset-0 z-[65] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setWhoOpen(false)}
+        >
+          <div className="w-[480px] border-2 border-[#ffd700]/60 bg-[#070500] p-4 font-mono" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between border-b border-[#ffd700]/40 pb-2">
+              <span className="text-xs font-bold tracking-[0.25em] text-[#ffd700]">OPERATOR ROSTER // WHO</span>
+              <button type="button" onClick={() => setWhoOpen(false)} className="text-[10px] text-[#8a7a2a] hover:text-[#ffd700]">
+                [X]
+              </button>
+            </div>
+            <div className="max-h-64 space-y-1 overflow-y-auto text-[11px] tracking-wider">
+              {roster.length === 0 ? (
+                <div className="text-[#8a7a2a]">ROSTER UNAVAILABLE...</div>
+              ) : (
+                roster.map((u) => {
+                  const isMe = u.email === sessionEmail;
+                  return (
+                    <div key={u.email} className="flex items-center justify-between gap-2 border-b border-[#ffd700]/10 py-1">
+                      <span className="flex items-center gap-2">
+                        <span className={isMe ? "text-emerald-400" : "text-[#6b5d1f]"}>{isMe ? "●" : "○"}</span>
+                        <span className={isMe ? "text-[#ffd700]" : "text-[#e8d67a]"}>{u.name.toUpperCase()}</span>
+                      </span>
+                      <span className="text-[10px] text-[#8a7a2a]">{u.email}</span>
+                      <span className={`text-[9px] tracking-widest ${isMe ? "text-emerald-400" : "text-[#5a4d18]"}`}>
+                        {isMe ? "ACTIVE" : "STANDBY"}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            <div className="mt-3 text-[9px] tracking-widest text-[#6b5d1f]">● = CURRENT SESSION // ESC TO CLOSE</div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Panic decoy overlay */}
+      {panic ? (
+        <div className="fixed inset-0 z-[75] bg-[#f3f3f3] text-[#1a1a1a]">
+          <div className="flex h-9 items-center gap-2 border-b border-[#c0c0c0] bg-[#e8e8e8] px-3 text-[12px]">
+            <span className="font-bold">Q3_Financial_Review.xlsx - Excel</span>
+            <span className="ml-auto text-[11px] text-[#666]">AutoSave ✓</span>
+          </div>
+          <div className="flex items-center gap-1 border-b border-[#c0c0c0] bg-[#f8f8f8] px-3 py-1 text-[11px] text-[#444]">
+            <span className="mr-2">B2</span>
+            <span className="rounded bg-white px-2 py-0.5 text-[#888]">fx</span>
+            <span className="ml-2 text-[#666]">=SUM(B5:B14)</span>
+          </div>
+          <div className="overflow-auto p-4">
+            <table className="border-collapse text-[12px]">
+              <tbody>
+                {[
+                  ["A", "B", "C", "D"],
+                  ["Quarter", "Revenue", "Cost", "Margin"],
+                  ["Q1", "1,204", "812", "32.6%"],
+                  ["Q2", "1,318", "867", "34.2%"],
+                  ["Q3", "1,476", "931", "36.9%"],
+                  ["Q4", "1,562", "988", "36.7%"],
+                  ["TOTAL", "5,560", "3,598", "35.3%"],
+                ].map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((cell, ci) => (
+                      <td
+                        key={ci}
+                        className={`border border-[#d0d0d0] px-3 py-1 ${ri === 0 || ri === 1 ? "bg-[#e3e3e3] font-semibold" : "bg-white"} ${cell === "TOTAL" || ci === 0 && ri > 1 ? "font-semibold" : ""}`}
+                      >
+                        {cell}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="absolute bottom-3 left-0 right-0 text-center text-[10px] text-[#999]">
+            PANIC MODE // CTRL+SHIFT+P TO RETURN
+          </div>
+        </div>
+      ) : null}
+
+      {/* Matrix rain overlay */}
+      {matrix ? <MatrixRain onExit={() => setMatrix(false)} /> : null}
+
       <style>{`
         .scanlines {
           background: repeating-linear-gradient(
@@ -592,6 +836,20 @@ export function TerminalPage() {
             transparent 2px,
             rgba(0, 0, 0, 0.9) 3px
           );
+        }
+        .tape-track {
+          animation: tape-scroll 45s linear infinite;
+        }
+        @keyframes tape-scroll {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+        .boot-bar {
+          animation: boot-fill 2.2s ease-out forwards;
+        }
+        @keyframes boot-fill {
+          from { width: 0%; }
+          to { width: 100%; }
         }
       `}</style>
     </div>

@@ -13,6 +13,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/v1/tape"
+  to = "/.netlify/functions/tape"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
