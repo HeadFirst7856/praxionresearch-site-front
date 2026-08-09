@@ -2,7 +2,7 @@
   "name": "Praxion Research Terminal",
   "short_name": "Praxion",
   "description": "Praxion Research secure terminal — battle mode war room, Monte Carlo, trade log, operator chat, news & price alerts.",
-  "start_url": "/",
+  "start_url": "/terminal",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",

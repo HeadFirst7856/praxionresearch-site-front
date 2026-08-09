@@ -26,10 +26,9 @@ export function SiteHeader() {
   const { isAuthenticated, name, logout } = useAuth();
   const signupEnabled = isSignupEnabled();
 
-  // Public visitors: Home - Regime - Login - About Us.
-  // Authenticated operators: Home - Regime - About Us - Strategy Lab (+ Logout).
+  // Authenticated operators: Home - Regime - Terminal - About Us - Strategy Lab (+ Logout).
   const navLinks = isAuthenticated
-    ? [...baseLinks, aboutLink, { to: "/strategy-lab", label: "Strategy Lab" }]
+    ? [...baseLinks, { to: "/terminal", label: "Terminal" }, aboutLink, { to: "/strategy-lab", label: "Strategy Lab" }]
     : [...baseLinks, { to: "/login", label: "Login" }, aboutLink];
 
   return (
