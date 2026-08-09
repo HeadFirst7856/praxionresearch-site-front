@@ -40,7 +40,11 @@ export async function handler(event) {
   try {
     store = getStore({ name: BLOB_NAME });
   } catch (e) {
-    return json({ error: `blob store unavailable: ${e.message}` }, 500);
+    return json({ error: `blob store unavailable: ${e.message}`, env: {
+      hasBlobsContext: Boolean(process.env.NETLIFY_BLOBS_CONTEXT),
+      netlify: Boolean(process.env.NETLIFY_SITE_ID),
+      keys: Object.keys(process.env).filter((k) => /NETLIFY|BLOB|SITE/i.test(k)).slice(0, 10),
+    } }, 500);
   }
 
   if (event.httpMethod === "GET") {
