@@ -230,7 +230,7 @@ function MonteCarloPane({ slots }: { slots: Record<string, Slot> }) {
           <button
             type="button"
             onClick={() => setRunning((r) => !r)}
-            className="border border-[#ffd700]/40 px-2 py-0.5 text-[9px] tracking-widest text-[#c9a92c] hover:bg-[#1a1505]"
+            className="border border-[#ffd700]/40 px-3 py-2 text-[10px] tracking-widest text-[#c9a92c] hover:bg-[#1a1505] sm:px-2 sm:py-0.5 sm:text-[9px]"
           >
             {running ? "❚❚" : "▶"}
           </button>
@@ -491,7 +491,7 @@ function ChatPane({ myName, roster }: { myName: string; roster: Array<{ name: st
           })
         )}
       </div>
-      <div className="flex items-center gap-2 border-t border-[#ffd700]/40 bg-[#0a0800] px-2 py-1.5">
+      <div className="flex items-center gap-2 border-t border-[#ffd700]/40 bg-[#0a0800] px-2 py-2.5 sm:py-1.5">
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -500,7 +500,7 @@ function ChatPane({ myName, roster }: { myName: string; roster: Array<{ name: st
             e.stopPropagation();
           }}
           placeholder="MESSAGE // ENTER TO SEND"
-          className="min-w-0 flex-1 bg-transparent font-mono text-[10px] tracking-wider text-[#ffd700] outline-none placeholder:text-[#6b5d1f]"
+          className="min-w-0 flex-1 bg-transparent font-mono text-[12px] tracking-wider text-[#ffd700] outline-none placeholder:text-[#6b5d1f] sm:text-[10px]"
           maxLength={500}
         />
         <button
@@ -663,7 +663,7 @@ function ConsolePane({
             if (e.key === "Enter") submit(input);
             e.stopPropagation();
           }}
-          className="min-w-0 flex-1 bg-transparent text-[11px] tracking-[0.15em] text-[#ffd700] caret-[#ffd700] outline-none placeholder:text-[#6b5d1f]"
+          className="min-w-0 flex-1 bg-transparent text-[13px] tracking-[0.15em] text-[#ffd700] caret-[#ffd700] outline-none placeholder:text-[#6b5d1f] sm:text-[11px]"
           placeholder="TYPE COMMAND + ENTER // HELP"
           spellCheck={false}
           autoComplete="off"
@@ -779,20 +779,20 @@ export function BattleMode({
   };
 }) {
   return (
-    <div className="grid h-full w-full grid-cols-1 gap-px bg-[#ffd700]/20 sm:grid-cols-3 sm:grid-rows-2">
-      <div className="min-h-0 min-w-0 border-b border-[#ffd700]/20 sm:border-r sm:border-b">
+    <div className="grid h-full w-full grid-cols-2 grid-rows-3 gap-px bg-[#ffd700]/20 sm:grid-cols-3 sm:grid-rows-2">
+      <div className="min-h-0 min-w-0 border-b border-r border-[#ffd700]/20">
         <MonteCarloPane slots={slots} />
       </div>
       <div className="min-h-0 min-w-0 border-b border-[#ffd700]/20 sm:border-r sm:border-b">
         <TradeLogPane slots={slots} />
       </div>
-      <div className="min-h-0 min-w-0 border-b border-[#ffd700]/20 sm:border-b">
+      <div className="col-span-2 min-h-0 min-w-0 border-b border-[#ffd700]/20 sm:col-span-1 sm:border-b">
         <ChatPane myName={myName} roster={roster} />
       </div>
-      <div className="min-h-0 min-w-0 border-b border-[#ffd700]/20 sm:border-r sm:border-b-0">
+      <div className="min-h-0 min-w-0 border-b border-r border-[#ffd700]/20 sm:border-b-0 sm:border-r">
         <AlertsPane news={news} tape={tape} />
       </div>
-      <div className="min-h-0 min-w-0 border-b border-[#ffd700]/20 sm:border-r sm:border-b-0">
+      <div className="min-h-0 min-w-0 border-b border-r border-[#ffd700]/20 sm:border-b-0 sm:border-r">
         <ConsolePane consoleProps={consoleProps} />
       </div>
       <div className="min-h-0 min-w-0">

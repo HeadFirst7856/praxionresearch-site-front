@@ -558,8 +558,12 @@ export function TerminalPage() {
 
   return (
     <div
-      className="relative min-h-screen overflow-hidden bg-black text-[#ffd700]"
-      onClick={() => inputRef.current?.focus()}
+      className="relative min-h-screen overflow-hidden bg-black text-[#ffd700] pb-[env(safe-area-inset-bottom)]"
+      onClick={() => {
+        // Only auto-focus on devices with a real keyboard (avoids popping the
+        // mobile keyboard on every tap).
+        if (window.matchMedia("(min-width: 768px)").matches) inputRef.current?.focus();
+      }}
     >
       {/* Scanline overlay */}
       <div className="pointer-events-none fixed inset-0 z-40 opacity-[0.06] scanlines" />
@@ -568,10 +572,10 @@ export function TerminalPage() {
 
       <div className="relative z-10 flex h-screen flex-col">
         {/* Top bar */}
-        <div className="flex items-center justify-between border-b-2 border-[#ffd700]/60 bg-[#0a0800]/90 px-4 py-2">
-          <div className="flex items-center gap-4">
-            <div className="text-xs font-bold tracking-[0.3em] text-[#ffd700]">
-              PRAXION&nbsp;RESEARCH&nbsp;//&nbsp;SECURE&nbsp;TERMINAL
+        <div className="flex items-center justify-between gap-2 border-b-2 border-[#ffd700]/60 bg-[#0a0800]/90 px-3 py-2 sm:px-4" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="truncate text-[11px] font-bold tracking-[0.2em] text-[#ffd700] sm:text-xs sm:tracking-[0.3em]">
+              PRAXION<span className="hidden sm:inline">&nbsp;RESEARCH&nbsp;//&nbsp;SECURE&nbsp;TERMINAL</span>
             </div>
             {/* View toggle: GLOBE | P&L | BATTLE MODE */}
             <div className="flex border border-[#ffd700]/40 font-mono text-[9px] tracking-[0.18em]">
@@ -614,7 +618,7 @@ export function TerminalPage() {
         </div>
 
         {/* Market clocks strip */}
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 border-b border-[#ffd700]/30 bg-[#070500]/95 px-4 py-2 font-mono text-[13px] tracking-[0.12em]">
+        <div className="flex items-center gap-x-6 gap-y-1 overflow-x-auto border-b border-[#ffd700]/30 bg-[#070500]/95 px-3 py-1.5 font-mono text-[11px] tracking-[0.12em] sm:flex-wrap sm:justify-center sm:px-4 sm:text-[13px]">
           {MARKETS.map((m) => {
             const { time } = marketNow(m.tz);
             const open = isOpen(m);
@@ -633,7 +637,7 @@ export function TerminalPage() {
         </div>
 
         {/* Status strip */}
-        <div className="flex items-center gap-4 border-b border-[#ffd700]/30 bg-[#050300]/90 px-4 py-1 font-mono text-[10px] tracking-[0.14em] text-[#c9a92c]">
+        <div className="hidden items-center gap-4 border-b border-[#ffd700]/30 bg-[#050300]/90 px-4 py-1 font-mono text-[10px] tracking-[0.14em] text-[#c9a92c] sm:flex">
           <span className={feedError ? "text-red-400" : "text-[#ffd700]"}>
             {feedError
               ? `FEED FAULT: ${feedError}`
@@ -923,6 +927,18 @@ export function TerminalPage() {
       {matrix ? <MatrixRain onExit={() => setMatrix(false)} /> : null}
 
       <style>{`
+        html, body { overscroll-behavior: none; }
+        * { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        /* Mobile readability: bump all tiny terminal type on small screens */
+        @media (max-width: 640px) {
+          .text-\[8px\] { font-size: 10px !important; }
+          .text-\[9px\] { font-size: 11px !important; }
+          .text-\[10px\] { font-size: 12px !important; }
+          .text-\[11px\] { font-size: 13px !important; }
+          .text-\[12px\] { font-size: 13px !important; }
+          .text-\[13px\] { font-size: 14px !important; }
+          .text-\[8px\], .text-\[9px\], .text-\[10px\], .text-\[11px\], .text-\[12px\], .text-\[13px\] { line-height: 1.5; }
+        }
         .scanlines {
           background: repeating-linear-gradient(
             to bottom,
