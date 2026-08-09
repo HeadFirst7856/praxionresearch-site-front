@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Globe from "globe.gl";
 import type { GlobeInstance } from "globe.gl";
 import { BattleMode } from "@/components/terminal/BattleMode";
+import { PnLMonteCarlo } from "@/components/terminal/PnLMonteCarlo";
 import { MatrixRain } from "@/components/terminal/MatrixRain";
 import { loadAuthSession } from "@/lib/authStorage";
 
@@ -219,7 +220,7 @@ export function TerminalPage() {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const [view, setView] = useState<"globe" | "battle">("globe");
+  const [view, setView] = useState<"globe" | "pnl" | "battle">("globe");
   const [slots, setSlots] = useState<Record<string, DashboardSlot>>({});
   const [booted, setBooted] = useState(false);
   const [panic, setPanic] = useState(false);
@@ -468,7 +469,9 @@ export function TerminalPage() {
     const cmd = raw.trim().toUpperCase();
     if (!cmd) return;
     setLines((prev) => [...prev, `> ${raw}`]);
-    if (cmd === "PNL" || cmd === "BATTLE") {
+    if (cmd === "PNL") {
+      setView("pnl");
+    } else if (cmd === "BATTLE") {
       setView("battle");
     } else if (cmd === "GLOBE") {
       setView("globe");
@@ -546,7 +549,7 @@ export function TerminalPage() {
             <div className="text-xs font-bold tracking-[0.3em] text-[#ffd700]">
               PRAXION&nbsp;RESEARCH&nbsp;//&nbsp;SECURE&nbsp;TERMINAL
             </div>
-            {/* View toggle: GLOBE | BATTLE MODE */}
+            {/* View toggle: GLOBE | P&L | BATTLE MODE */}
             <div className="flex border border-[#ffd700]/40 font-mono text-[9px] tracking-[0.18em]">
               <button
                 type="button"
@@ -554,6 +557,13 @@ export function TerminalPage() {
                 className={`px-2.5 py-1 transition-colors ${view === "globe" ? "bg-[#ffd700] text-black" : "text-[#c9a92c] hover:bg-[#1a1505]"}`}
               >
                 GLOBE
+              </button>
+              <button
+                type="button"
+                onClick={() => setView("pnl")}
+                className={`px-2.5 py-1 transition-colors ${view === "pnl" ? "bg-[#ffd700] text-black" : "text-[#c9a92c] hover:bg-[#1a1505]"}`}
+              >
+                P&L
               </button>
               <button
                 type="button"
@@ -610,100 +620,106 @@ export function TerminalPage() {
           <span className="ml-auto">CLASSIFICATION: INTERNAL</span>
         </div>
 
-        {/* Main area: news feed | globe | feeds */}
-        <div className="flex min-h-0 flex-1">
-          {/* Left: news feed */}
-          <div className="flex w-[24%] min-w-[220px] flex-col border-r-2 border-[#ffd700]/50 bg-[#050300]/85">
-            <div className="border-b border-[#ffd700]/40 bg-[#0a0800] px-3 py-1.5 text-[10px] font-bold tracking-[0.25em] text-[#ffd700]">
-              LIVE NEWS RELAY
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              {news.length === 0 ? (
-                <div className="p-3 text-[10px] tracking-wider text-[#8a7a2a]">
-                  {feedError ? `UPLINK FAULT: ${feedError}` : "ACQUIRING FEED..."}
-                </div>
-              ) : (
-                news.map((item, i) => <FeedRow key={`${item.source}-${i}`} item={item} />)
-              )}
-            </div>
-            <div className="border-t border-[#ffd700]/40 bg-[#0a0800] px-3 py-1 font-mono text-[9px] tracking-widest text-[#8a7a2a]">
-              CNBC // BBC // MARKETWATCH // YAHOO
-            </div>
+        {/* Main area: full-width Battle Mode (4 panes only) OR news | center | feeds */}
+        {view === "battle" ? (
+          <div className="flex min-h-0 flex-1">
+            <BattleMode
+              slots={slots}
+              news={news}
+              tape={tape}
+              myName={sessionEmail ?? "OPERATOR"}
+              roster={roster}
+            />
           </div>
-
-          {/* Center: view toggle — GLOBE | BATTLE MODE */}
-          <div className="relative flex min-w-0 flex-1 flex-col bg-black">
-            {view === "battle" ? (
-              <BattleMode
-                slots={slots}
-                news={news}
-                tape={tape}
-                myName={sessionEmail ?? "OPERATOR"}
-                roster={roster}
-              />
-            ) : view === "globe" ? (
-              <>
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.05),transparent_60%)]" />
-                <div className="absolute left-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
-                  ● GLOBAL NEWS TRACKING // VECTOR VIEW
-                </div>
-                <div className="absolute right-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
-                  {geoData.length} INCIDENTS
-                </div>
-                <div ref={globeRef} className="relative z-10 m-auto cursor-grab active:cursor-grabbing" />
-                <div className="pointer-events-none absolute bottom-3 left-0 right-0 text-center font-mono text-[9px] tracking-[0.3em] text-[#6b5d1f]">
-                  DRAG TO ROTATE // SCROLL TO ZOOM // DOTS = NEWS LOCATIONS
-                </div>
-              </>
-            ) : null}
-          </div>
-
-          {/* Right: collapsible feeds */}
-          <div className="flex w-[24%] min-w-[220px] flex-col border-l-2 border-[#ffd700]/50 bg-[#050300]/85">
-            <FeedPanel title="PREDICTION MARKETS" count={polymarket.length} badge="POLYMARKET // GEOPOLITICS">
-              {polymarket.length === 0 ? (
-                <div className="p-3 text-[10px] tracking-wider text-[#8a7a2a]">
-                  ACQUIRING GAMMA FEED...
-                </div>
-              ) : (
-                polymarket.map((item, i) => <FeedRow key={`p-${item.source}-${i}`} item={item} />)
-              )}
-            </FeedPanel>
-
-            <FeedPanel title="X RELAY" count={0} badge="STANDBY">
-              <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
-                <div className="text-2xl text-[#ffd700]/40">✕</div>
-                <div className="text-[10px] leading-relaxed tracking-[0.2em] text-[#c9a92c]">
-                  X API ACCESS REQUIRES PAID TIER
-                </div>
-                <div className="text-[9px] leading-relaxed tracking-wider text-[#8a7a2a]">
-                  SEAM READY — SET X_BEARER_TOKEN ENV
-                </div>
-                <div className="mt-2 font-mono text-[9px] text-[#6b5d1f]">STATUS: STANDBY</div>
+        ) : (
+          <div className="flex min-h-0 flex-1">
+            {/* Left: news feed */}
+            <div className="flex w-[24%] min-w-[220px] flex-col border-r-2 border-[#ffd700]/50 bg-[#050300]/85">
+              <div className="border-b border-[#ffd700]/40 bg-[#0a0800] px-3 py-1.5 text-[10px] font-bold tracking-[0.25em] text-[#ffd700]">
+                LIVE NEWS RELAY
               </div>
-            </FeedPanel>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                {news.length === 0 ? (
+                  <div className="p-3 text-[10px] tracking-wider text-[#8a7a2a]">
+                    {feedError ? `UPLINK FAULT: ${feedError}` : "ACQUIRING FEED..."}
+                  </div>
+                ) : (
+                  news.map((item, i) => <FeedRow key={`${item.source}-${i}`} item={item} />)
+                )}
+              </div>
+              <div className="border-t border-[#ffd700]/40 bg-[#0a0800] px-3 py-1 font-mono text-[9px] tracking-widest text-[#8a7a2a]">
+                CNBC // BBC // MARKETWATCH // YAHOO
+              </div>
+            </div>
 
-            <FeedPanel title="REDDIT RELAY" count={reddit.length} badge="WSB // STOCKS // INVESTING">
-              {reddit.length === 0 ? (
-                <div className="p-3 text-[10px] tracking-wider text-[#8a7a2a]">
-                  RATE-LIMITED — ROTATING FEED...
-                </div>
+            {/* Center: view toggle — GLOBE | P&L */}
+            <div className="relative flex min-w-0 flex-1 flex-col bg-black">
+              {view === "pnl" ? (
+                <PnLMonteCarlo active={view === "pnl"} />
               ) : (
-                reddit.map((item, i) => <FeedRow key={`r-${item.source}-${i}`} item={item} />)
+                <>
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.05),transparent_60%)]" />
+                  <div className="absolute left-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
+                    ● GLOBAL NEWS TRACKING // VECTOR VIEW
+                  </div>
+                  <div className="absolute right-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
+                    {geoData.length} INCIDENTS
+                  </div>
+                  <div ref={globeRef} className="relative z-10 m-auto cursor-grab active:cursor-grabbing" />
+                  <div className="pointer-events-none absolute bottom-3 left-0 right-0 text-center font-mono text-[9px] tracking-[0.3em] text-[#6b5d1f]">
+                    DRAG TO ROTATE // SCROLL TO ZOOM // DOTS = NEWS LOCATIONS
+                  </div>
+                </>
               )}
-            </FeedPanel>
+            </div>
 
-            <FeedPanel title="SEC FILINGS" count={sec.length} badge="8-K // 10-Q // 10-K // 4">
-              {sec.length === 0 ? (
-                <div className="p-3 text-[10px] tracking-wider text-[#8a7a2a]">
-                  ACQUIRING EDGAR FEED...
+            {/* Right: collapsible feeds */}
+            <div className="flex w-[24%] min-w-[220px] flex-col border-l-2 border-[#ffd700]/50 bg-[#050300]/85">
+              <FeedPanel title="PREDICTION MARKETS" count={polymarket.length} badge="POLYMARKET // GEOPOLITICS">
+                {polymarket.length === 0 ? (
+                  <div className="p-3 text-[10px] tracking-wider text-[#8a7a2a]">
+                    ACQUIRING GAMMA FEED...
+                  </div>
+                ) : (
+                  polymarket.map((item, i) => <FeedRow key={`p-${item.source}-${i}`} item={item} />)
+                )}
+              </FeedPanel>
+
+              <FeedPanel title="X RELAY" count={0} badge="STANDBY">
+                <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
+                  <div className="text-2xl text-[#ffd700]/40">✕</div>
+                  <div className="text-[10px] leading-relaxed tracking-[0.2em] text-[#c9a92c]">
+                    X API ACCESS REQUIRES PAID TIER
+                  </div>
+                  <div className="text-[9px] leading-relaxed tracking-wider text-[#8a7a2a]">
+                    SEAM READY — SET X_BEARER_TOKEN ENV
+                  </div>
+                  <div className="mt-2 font-mono text-[9px] text-[#6b5d1f]">STATUS: STANDBY</div>
                 </div>
-              ) : (
-                sec.map((item, i) => <FeedRow key={`s-${item.source}-${i}`} item={item} />)
-              )}
-            </FeedPanel>
+              </FeedPanel>
+
+              <FeedPanel title="REDDIT RELAY" count={reddit.length} badge="WSB // STOCKS // INVESTING">
+                {reddit.length === 0 ? (
+                  <div className="p-3 text-[10px] tracking-wider text-[#8a7a2a]">
+                    RATE-LIMITED — ROTATING FEED...
+                  </div>
+                ) : (
+                  reddit.map((item, i) => <FeedRow key={`r-${item.source}-${i}`} item={item} />)
+                )}
+              </FeedPanel>
+
+              <FeedPanel title="SEC FILINGS" count={sec.length} badge="8-K // 10-Q // 10-K // 4">
+                {sec.length === 0 ? (
+                  <div className="p-3 text-[10px] tracking-wider text-[#8a7a2a]">
+                    ACQUIRING EDGAR FEED...
+                  </div>
+                ) : (
+                  sec.map((item, i) => <FeedRow key={`s-${item.source}-${i}`} item={item} />)
+                )}
+              </FeedPanel>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Market tape — scrolling quotes */}
         <div className="relative overflow-hidden border-t border-[#ffd700]/30 bg-[#0a0800] py-1 font-mono text-[10px] tracking-[0.12em]">
