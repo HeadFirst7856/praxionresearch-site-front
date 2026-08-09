@@ -2,8 +2,8 @@
  * Praxion Terminal — operator chat (Netlify Function).
  * Route: /api/v1/chat
  *
- * Storage: Netlify Blobs via the v2 function context (context.blobs), which the
- * platform injects automatically — no env vars required.
+ * Storage: Netlify Blobs via the function context (context.blobs), injected by
+ * the platform at invocation time — no env vars required.
  * GET  -> { messages: [{ id, ts, name, text }] }
  * POST -> { name, text } appended, capped at 500 messages.
  */
@@ -32,8 +32,8 @@ function sanitize(text) {
     .slice(0, 500);
 }
 
-export default async (req, context) => {
-  const method = req.method ?? "GET";
+export const handler = async (event, context) => {
+  const method = event.httpMethod ?? "GET";
 
   if (method === "OPTIONS") return json({ ok: true });
 
@@ -44,7 +44,11 @@ export default async (req, context) => {
     store = null;
   }
   if (!store) {
-    return json({ error: "blob store unavailable (no context.blobs)" }, 500);
+    return json({
+      error: "blob store unavailable (no context.blobs)",
+      hasBlobs: Boolean(context.blobs),
+      keys: Object.keys(context ?? {}).slice(0, 15),
+    }, 500);
   }
 
   if (method === "GET") {
@@ -60,7 +64,7 @@ export default async (req, context) => {
   if (method === "POST") {
     let payload;
     try {
-      payload = await req.json();
+      payload = JSON.parse(event.body || "{}");
     } catch {
       return json({ error: "invalid json body" }, 400);
     }
