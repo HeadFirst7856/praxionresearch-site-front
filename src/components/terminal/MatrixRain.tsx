@@ -41,7 +41,7 @@ export function MatrixRain({ onExit }: { onExit: () => void }) {
         const ch = chars[Math.floor(Math.random() * fontCount)];
         const x = i * fontSize;
         const y = drops[i] * fontSize;
-        ctx.fillStyle = i % 3 === 0 ? "#c8f442" : "#00ff41";
+        ctx.fillStyle = i % 3 === 0 ? "#ffe066" : "#ffd700";
         ctx.fillText(ch, x, y);
         if (y > canvas.height && Math.random() > 0.975) {
           drops[i] = 0;
@@ -67,7 +67,7 @@ export function MatrixRain({ onExit }: { onExit: () => void }) {
   return (
     <div className="fixed inset-0 z-[60] cursor-none bg-black">
       <canvas ref={canvasRef} className="block h-full w-full" />
-      <div className="pointer-events-none absolute bottom-4 left-0 right-0 text-center font-mono text-[10px] tracking-[0.3em] text-[#00ff41]/70">
+      <div className="pointer-events-none absolute bottom-4 left-0 right-0 text-center font-mono text-[10px] tracking-[0.3em] text-[#ffd700]/70">
         MATRIX MODE // PRESS ESC TO EXIT
       </div>
     </div>
