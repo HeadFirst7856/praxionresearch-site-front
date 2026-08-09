@@ -26,7 +26,14 @@ export function MatrixRain({ onExit }: { onExit: () => void }) {
     let drops: number[] = [];
     const initDrops = () => {
       const cols = Math.ceil(canvas.width / fontSize);
-      drops = Array.from({ length: cols }, () => Math.floor(Math.random() * -60));
+      const rows = Math.ceil(canvas.height / fontSize);
+      // Scatter columns across the FULL screen height (plus a few above the
+      // top) so rain covers the whole screen from frame one. Old code spawned
+      // everything above the viewport, so only the top quarter ever had rain
+      // until columns staggered in — looked like it "looped back to the top."
+      drops = Array.from({ length: cols }, () =>
+        Math.floor(Math.random() * (rows + 40)) - 40,
+      );
     };
     initDrops();
 
@@ -49,10 +56,12 @@ export function MatrixRain({ onExit }: { onExit: () => void }) {
         ctx.fillStyle = i % 3 === 0 ? "#ffe066" : "#ffd700";
         ctx.fillText(ch, x, y);
         if (step) {
-          if (y > canvas.height && Math.random() > 0.98) {
-            drops[i] = 0;
-          }
           drops[i] += 1;
+          // Recycle only once the drop is clearly past the bottom edge, then
+          // re-enter from above with stagger so the screen never empties.
+          if (drops[i] * fontSize > canvas.height + fontSize) {
+            drops[i] = -Math.floor(Math.random() * 30) - 1;
+          }
         }
       }
       raf = requestAnimationFrame(draw);
