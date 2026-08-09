@@ -7,6 +7,8 @@
  * POST -> { name, text } appended, capped at 500 messages.
  */
 
+import { getStore } from "@netlify/blobs";
+
 const BLOB_NAME = "praxion-terminal-chat";
 const BLOB_KEY = "messages-v1";
 const MAX_MESSAGES = 500;
@@ -36,7 +38,6 @@ export async function handler(event) {
 
   let store;
   try {
-    const { getStore } = await import("@netlify/blobs");
     store = getStore({ name: BLOB_NAME });
   } catch (e) {
     return json({ error: `blob store unavailable: ${e.message}` }, 500);
