@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Globe from "globe.gl";
 import type { GlobeInstance } from "globe.gl";
-import { PnLMonteCarlo } from "@/components/terminal/PnLMonteCarlo";
+import { BattleMode } from "@/components/terminal/BattleMode";
 import { MatrixRain } from "@/components/terminal/MatrixRain";
 import { loadAuthSession } from "@/lib/authStorage";
 
@@ -22,6 +22,19 @@ type TapeItem = {
   change: number | null;
   changePct: number | null;
 };
+
+type DashboardSlot = {
+  title?: string;
+  mode?: string;
+  instrument?: string;
+  daily_rows?: Array<{ period?: string; day?: string; pnl_dollars?: number; end_balance?: number; start_balance?: number }>;
+  recent_trades?: Array<Record<string, unknown>>;
+  all_trades?: Array<Record<string, unknown>>;
+  ending_balance?: number;
+  starting_balance?: number;
+  trades_total?: number | null;
+};
+type DashboardPayload = { slots?: Record<string, DashboardSlot> };
 
 function decodeJwtEmail(token: string): string | null {
   try {
@@ -176,7 +189,8 @@ const COMMANDS: Array<{ cmd: string; out: string }> = [
   { cmd: "X", out: "X RELAY: AWAITING API CREDENTIALS (PAID TIER REQUIRED) // COLUMN STANDBY" },
   { cmd: "GLOBE", out: "GLOBE: VECTOR TRAFFIC VIEW // DRAG TO ROTATE // SCROLL TO ZOOM // AUTO-SPIN PAUSES ON TOUCH" },
   { cmd: "AUTO", out: "AUTO-SPIN RESUMED (PAUSES WHEN YOU GRAB THE GLOBE)" },
-  { cmd: "PNL", out: "VIEW: P&L TRAJECTORY — MONTE CARLO ENGAGED (RVWAP MLP EXPECTANCY)" },
+  { cmd: "BATTLE", out: "VIEW: BATTLE MODE — 4-PANE WAR ROOM (MONTE CARLO // TRADE LOG // CHAT // ALERTS)" },
+  { cmd: "PNL", out: "VIEW: BATTLE MODE — MONTE CARLO WALK-FORWARD ENGAGED" },
   { cmd: "TAPE", out: "MARKET TAPE: NQ // ES // YM // RTY // GC // CL // 6E // BTC // ETH // VIX // DXY // TNX — POLL 30S" },
   { cmd: "WHO", out: "__WHO__" },
   { cmd: "PANIC", out: "PANIC MODE: DECOY SCREEN ENGAGED // PRESS CTRL+SHIFT+P OR PANIC TO RETURN" },
@@ -205,7 +219,8 @@ export function TerminalPage() {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const [view, setView] = useState<"globe" | "pnl">("globe");
+  const [view, setView] = useState<"globe" | "battle">("globe");
+  const [slots, setSlots] = useState<Record<string, DashboardSlot>>({});
   const [booted, setBooted] = useState(false);
   const [panic, setPanic] = useState(false);
   const [matrix, setMatrix] = useState(false);
@@ -262,6 +277,25 @@ export function TerminalPage() {
         }
       } catch {
         /* roster optional */
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Dashboard slots for Battle Mode (real trades + daily P&L)
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await fetch("/data/dashboard-data.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as DashboardPayload;
+        if (!cancelled && data.slots) setSlots(data.slots);
+      } catch {
+        /* battle mode degrades to seeded view */
       }
     }
     void load();
@@ -434,8 +468,8 @@ export function TerminalPage() {
     const cmd = raw.trim().toUpperCase();
     if (!cmd) return;
     setLines((prev) => [...prev, `> ${raw}`]);
-    if (cmd === "PNL") {
-      setView("pnl");
+    if (cmd === "PNL" || cmd === "BATTLE") {
+      setView("battle");
     } else if (cmd === "GLOBE") {
       setView("globe");
     } else if (cmd === "MATRIX") {
@@ -512,7 +546,7 @@ export function TerminalPage() {
             <div className="text-xs font-bold tracking-[0.3em] text-[#ffd700]">
               PRAXION&nbsp;RESEARCH&nbsp;//&nbsp;SECURE&nbsp;TERMINAL
             </div>
-            {/* View toggle: GLOBE | P&L */}
+            {/* View toggle: GLOBE | BATTLE MODE */}
             <div className="flex border border-[#ffd700]/40 font-mono text-[9px] tracking-[0.18em]">
               <button
                 type="button"
@@ -523,10 +557,10 @@ export function TerminalPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setView("pnl")}
-                className={`px-2.5 py-1 transition-colors ${view === "pnl" ? "bg-[#ffd700] text-black" : "text-[#c9a92c] hover:bg-[#1a1505]"}`}
+                onClick={() => setView("battle")}
+                className={`px-2.5 py-1 transition-colors ${view === "battle" ? "bg-[#ffd700] text-black" : "text-[#c9a92c] hover:bg-[#1a1505]"}`}
               >
-                P&L
+                BATTLE MODE
               </button>
             </div>
           </div>
@@ -597,9 +631,17 @@ export function TerminalPage() {
             </div>
           </div>
 
-          {/* Center: view toggle — GLOBE | P&L */}
+          {/* Center: view toggle — GLOBE | BATTLE MODE */}
           <div className="relative flex min-w-0 flex-1 flex-col bg-black">
-            {view === "globe" ? (
+            {view === "battle" ? (
+              <BattleMode
+                slots={slots}
+                news={news}
+                tape={tape}
+                myName={sessionEmail ?? "OPERATOR"}
+                roster={roster}
+              />
+            ) : view === "globe" ? (
               <>
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.05),transparent_60%)]" />
                 <div className="absolute left-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
@@ -613,9 +655,7 @@ export function TerminalPage() {
                   DRAG TO ROTATE // SCROLL TO ZOOM // DOTS = NEWS LOCATIONS
                 </div>
               </>
-            ) : (
-              <PnLMonteCarlo active={view === "pnl"} />
-            )}
+            ) : null}
           </div>
 
           {/* Right: collapsible feeds */}
