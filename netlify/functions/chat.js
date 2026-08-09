@@ -1,9 +1,9 @@
 /**
- * Praxion Terminal — operator chat (Netlify Function).
+ * Praxion Terminal — operator chat (Netlify Function, v2 path-based).
  * Route: /api/v1/chat
  *
- * Storage: Netlify Blobs via the function context (context.blobs), injected by
- * the platform at invocation time — no env vars required.
+ * Storage: Netlify Blobs via context.blobs (v2 functions always receive the
+ * injected blob store — no env vars required).
  * GET  -> { messages: [{ id, ts, name, text }] }
  * POST -> { name, text } appended, capped at 500 messages.
  */
@@ -13,8 +13,8 @@ const BLOB_KEY = "messages-v1";
 const MAX_MESSAGES = 500;
 
 function json(body, status = 200) {
-  return {
-    statusCode: status,
+  return new Response(JSON.stringify(body), {
+    status,
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
@@ -22,8 +22,7 @@ function json(body, status = 200) {
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     },
-    body: JSON.stringify(body),
-  };
+  });
 }
 
 function sanitize(text) {
@@ -32,8 +31,8 @@ function sanitize(text) {
     .slice(0, 500);
 }
 
-export const handler = async (event, context) => {
-  const method = event.httpMethod ?? "GET";
+export default async (req, context) => {
+  const method = req.method ?? "GET";
 
   if (method === "OPTIONS") return json({ ok: true });
 
@@ -44,11 +43,13 @@ export const handler = async (event, context) => {
     store = null;
   }
   if (!store) {
-    return json({
-      error: "blob store unavailable (no context.blobs)",
-      hasBlobs: Boolean(context.blobs),
-      keys: Object.keys(context ?? {}).slice(0, 15),
-    }, 500);
+    return json(
+      {
+        error: "blob store unavailable (no context.blobs)",
+        hasBlobs: Boolean(context.blobs),
+      },
+      500,
+    );
   }
 
   if (method === "GET") {
@@ -64,7 +65,7 @@ export const handler = async (event, context) => {
   if (method === "POST") {
     let payload;
     try {
-      payload = JSON.parse(event.body || "{}");
+      payload = await req.json();
     } catch {
       return json({ error: "invalid json body" }, 400);
     }
