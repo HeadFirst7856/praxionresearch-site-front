@@ -778,25 +778,62 @@ export function BattleMode({
     scrollRef: React.RefObject<HTMLDivElement | null>;
   };
 }) {
+  // Mobile: one pane at a time, switched via a horizontal pill strip.
+  // Desktop (>=640px): full 3x2 grid of all six panes.
+  const [mobPane, setMobPane] = useState<"mc" | "trades" | "chat" | "alerts" | "console" | "stats">("mc");
+  const panes = {
+    mc: <MonteCarloPane slots={slots} />,
+    trades: <TradeLogPane slots={slots} />,
+    chat: <ChatPane myName={myName} roster={roster} />,
+    alerts: <AlertsPane news={news} tape={tape} />,
+    console: <ConsolePane consoleProps={consoleProps} />,
+    stats: <StatsPane summary={summary} />,
+  };
+  const labels: Record<string, string> = {
+    mc: "MONTE CARLO", trades: "TRADES", chat: "CHAT", alerts: "ALERTS", console: "CONSOLE", stats: "STATS",
+  };
+
   return (
-    <div className="grid h-full w-full grid-cols-2 grid-rows-3 gap-px bg-[#ffd700]/20 sm:grid-cols-3 sm:grid-rows-2">
-      <div className="min-h-0 min-w-0 border-b border-r border-[#ffd700]/20">
-        <MonteCarloPane slots={slots} />
+    <div className="flex h-full w-full flex-col bg-black">
+      {/* Mobile pane switcher */}
+      <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-[#ffd700]/30 bg-[#0a0800] px-2 py-1.5 sm:hidden">
+        {(Object.keys(labels) as Array<"mc" | "trades" | "chat" | "alerts" | "console" | "stats">).map((k) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setMobPane(k)}
+            className={`shrink-0 rounded border px-2.5 py-1.5 text-[10px] font-bold tracking-[0.15em] transition-colors ${
+              mobPane === k ? "border-[#ffd700] bg-[#ffd700] text-black" : "border-[#8a7a2a]/50 text-[#c9a92c]"
+            }`}
+          >
+            {labels[k]}
+          </button>
+        ))}
       </div>
-      <div className="min-h-0 min-w-0 border-b border-[#ffd700]/20 sm:border-r sm:border-b">
-        <TradeLogPane slots={slots} />
-      </div>
-      <div className="col-span-2 min-h-0 min-w-0 border-b border-[#ffd700]/20 sm:col-span-1 sm:border-b">
-        <ChatPane myName={myName} roster={roster} />
-      </div>
-      <div className="min-h-0 min-w-0 border-b border-r border-[#ffd700]/20 sm:border-b-0 sm:border-r">
-        <AlertsPane news={news} tape={tape} />
-      </div>
-      <div className="min-h-0 min-w-0 border-b border-r border-[#ffd700]/20 sm:border-b-0 sm:border-r">
-        <ConsolePane consoleProps={consoleProps} />
-      </div>
-      <div className="min-h-0 min-w-0">
-        <StatsPane summary={summary} />
+
+      {/* Mobile: active pane only */}
+      <div className="min-h-0 flex-1 sm:hidden">{panes[mobPane]}</div>
+
+      {/* Desktop: full grid */}
+      <div className="hidden h-full w-full grid-cols-3 grid-rows-2 gap-px bg-[#ffd700]/20 sm:grid">
+        <div className="min-h-0 min-w-0 border-b border-r border-[#ffd700]/20">
+          <MonteCarloPane slots={slots} />
+        </div>
+        <div className="min-h-0 min-w-0 border-b border-r border-[#ffd700]/20">
+          <TradeLogPane slots={slots} />
+        </div>
+        <div className="min-h-0 min-w-0 border-b border-[#ffd700]/20">
+          <ChatPane myName={myName} roster={roster} />
+        </div>
+        <div className="min-h-0 min-w-0 border-r border-[#ffd700]/20">
+          <AlertsPane news={news} tape={tape} />
+        </div>
+        <div className="min-h-0 min-w-0 border-r border-[#ffd700]/20">
+          <ConsolePane consoleProps={consoleProps} />
+        </div>
+        <div className="min-h-0 min-w-0">
+          <StatsPane summary={summary} />
+        </div>
       </div>
       <style>{`
         @keyframes chatflash {

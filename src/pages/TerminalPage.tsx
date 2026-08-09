@@ -256,9 +256,10 @@ export function TerminalPage() {
     return token ? decodeJwtEmail(token) : null;
   }, []);
 
-  // Boot sequence: brief hardware check + uplink splash, then reveal terminal.
+  // Boot sequence: instant on phones (app feel), brief splash on desktop only.
   useEffect(() => {
-    const t = window.setTimeout(() => setBooted(true), 2400);
+    const isMobile = window.matchMedia("(max-width: 640px)").matches;
+    const t = window.setTimeout(() => setBooted(true), isMobile ? 150 : 2400);
     return () => window.clearTimeout(t);
   }, []);
 
@@ -558,7 +559,7 @@ export function TerminalPage() {
 
   return (
     <div
-      className="relative min-h-screen overflow-hidden bg-black text-[#ffd700] pb-[env(safe-area-inset-bottom)]"
+      className="relative min-h-screen overflow-hidden bg-black text-[#ffd700] pb-[calc(env(safe-area-inset-bottom)+3.5rem)] sm:pb-[env(safe-area-inset-bottom)]"
       onClick={() => {
         // Only auto-focus on devices with a real keyboard (avoids popping the
         // mobile keyboard on every tap).
@@ -577,8 +578,8 @@ export function TerminalPage() {
             <div className="truncate text-[11px] font-bold tracking-[0.2em] text-[#ffd700] sm:text-xs sm:tracking-[0.3em]">
               PRAXION<span className="hidden sm:inline">&nbsp;RESEARCH&nbsp;//&nbsp;SECURE&nbsp;TERMINAL</span>
             </div>
-            {/* View toggle: GLOBE | P&L | BATTLE MODE */}
-            <div className="flex border border-[#ffd700]/40 font-mono text-[9px] tracking-[0.18em]">
+            {/* View toggle: GLOBE | P&L | BATTLE MODE — desktop only (mobile uses bottom bar) */}
+            <div className="hidden border border-[#ffd700]/40 font-mono text-[9px] tracking-[0.18em] sm:flex">
               <button
                 type="button"
                 onClick={() => setView("globe")}
@@ -815,6 +816,28 @@ export function TerminalPage() {
             </div>
           </div>
         ) : null}
+      </div>
+
+      {/* Mobile bottom tab bar — app-style navigation (visible < 640px) */}
+      <div className="fixed inset-x-0 bottom-0 z-50 flex border-t-2 border-[#ffd700]/50 bg-[#0a0800]/95 backdrop-blur sm:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        {[
+          { key: "globe", label: "GLOBE", onClick: () => setView("globe") },
+          { key: "pnl", label: "P&L", onClick: () => setView("pnl") },
+          { key: "battle", label: "BATTLE", onClick: () => setView("battle") },
+          { key: "home", label: "HOME", onClick: () => navigate("/") },
+        ].map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={t.onClick}
+            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-bold tracking-[0.2em] transition-colors ${
+              view === t.key ? "bg-[#ffd700] text-black" : "text-[#c9a92c] active:bg-[#1a1505]"
+            }`}
+          >
+            <span className="text-base leading-none">{t.key === "globe" ? "🌐" : t.key === "pnl" ? "📈" : t.key === "battle" ? "⚔️" : "⌂"}</span>
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {/* Boot sequence overlay */}
