@@ -22,53 +22,66 @@ export function MatrixRain({ onExit }: { onExit: () => void }) {
 
     const chars =
       "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFZYXWVUTSRQPONMLKJIHGFEDCBA$#@%&*+=<>[]{}";
-    const fontSize = 16;
+    const fontSize = 18;
     let drops: number[] = [];
     const initDrops = () => {
       const cols = Math.ceil(canvas.width / fontSize);
-      drops = Array.from({ length: cols }, () => Math.floor(Math.random() * -50));
+      drops = Array.from({ length: cols }, () => Math.floor(Math.random() * -60));
     };
     initDrops();
 
     const fontCount = chars.length;
     let raf = 0;
+    let frame = 0;
 
     const draw = () => {
-      ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
+      frame += 1;
+      // Low alpha => long, slow-fading trails ("longer" rain).
+      ctx.fillStyle = "rgba(0, 0, 0, 0.045)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.font = `${fontSize}px monospace`;
+      // Advance drops every 3rd frame (~20 steps/s) => much slower fall.
+      const step = frame % 3 === 0;
       for (let i = 0; i < drops.length; i++) {
         const ch = chars[Math.floor(Math.random() * fontCount)];
         const x = i * fontSize;
         const y = drops[i] * fontSize;
         ctx.fillStyle = i % 3 === 0 ? "#ffe066" : "#ffd700";
         ctx.fillText(ch, x, y);
-        if (y > canvas.height && Math.random() > 0.975) {
-          drops[i] = 0;
+        if (step) {
+          if (y > canvas.height && Math.random() > 0.98) {
+            drops[i] = 0;
+          }
+          drops[i] += 1;
         }
-        drops[i] += 1;
       }
       raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
 
+    // Capture phase so Esc works even when the terminal input has focus
+    // (its React onKeyDown stops propagation to bubble-phase window listeners).
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onExit();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        onExit();
+      }
     };
-    window.addEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
-      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("keydown", onKey, true);
     };
   }, [onExit]);
 
   return (
-    <div className="fixed inset-0 z-[60] cursor-none bg-black">
+    <div className="fixed inset-0 z-[60] cursor-none bg-black" onClick={onExit}>
       <canvas ref={canvasRef} className="block h-full w-full" />
       <div className="pointer-events-none absolute bottom-4 left-0 right-0 text-center font-mono text-[10px] tracking-[0.3em] text-[#ffd700]/70">
-        MATRIX MODE // PRESS ESC TO EXIT
+        MATRIX MODE // ESC OR CLICK TO EXIT
       </div>
     </div>
   );

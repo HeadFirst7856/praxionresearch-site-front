@@ -271,6 +271,8 @@ export function TerminalPage() {
   }, []);
 
   // Panic key: Ctrl+Shift+P toggles decoy screen; Esc exits panic/matrix/WHO.
+  // Capture phase on document so it fires even when the terminal input has
+  // focus (the input's React onKeyDown stops propagation to window listeners).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "p") {
@@ -279,13 +281,14 @@ export function TerminalPage() {
         return;
       }
       if (e.key === "Escape") {
+        e.preventDefault();
         setPanic(false);
         setMatrix(false);
         setWhoOpen(false);
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
   }, []);
 
   // Clock tick
