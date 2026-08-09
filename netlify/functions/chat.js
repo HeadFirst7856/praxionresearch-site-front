@@ -1,9 +1,11 @@
 /**
- * Praxion Terminal — operator chat (Netlify Function, v2 path-based).
+ * Praxion Terminal — operator chat (Netlify Function).
  * Route: /api/v1/chat
  *
- * Storage: Netlify Blobs via context.blobs (v2 functions always receive the
- * injected blob store — no env vars required).
+ * Storage: Netlify Blobs. Tries, in order:
+ *   1. context.blobs (v2 injected store)
+ *   2. getStore with explicit siteID + NETLIFY_FUNCTIONS_TOKEN from env
+ *   3. getStore with auto context (NETLIFY_BLOBS_CONTEXT)
  * GET  -> { messages: [{ id, ts, name, text }] }
  * POST -> { name, text } appended, capped at 500 messages.
  */
@@ -13,8 +15,8 @@ const BLOB_KEY = "messages-v1";
 const MAX_MESSAGES = 500;
 
 function json(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
+  return {
+    statusCode: status,
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
@@ -22,7 +24,8 @@ function json(body, status = 200) {
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     },
-  });
+    body: JSON.stringify(body),
+  };
 }
 
 function sanitize(text) {
@@ -31,32 +34,63 @@ function sanitize(text) {
     .slice(0, 500);
 }
 
-export default async (req, context) => {
-  const method = req.method ?? "GET";
+async function openStore(context) {
+  // 1. v2 injected store
+  try {
+    if (context.blobs?.openStore) {
+      const s = context.blobs.openStore({ name: BLOB_NAME });
+      if (s) return { store: s, via: "context.blobs" };
+    }
+  } catch {
+    /* fall through */
+  }
+  // 2. explicit siteID + functions token
+  try {
+    const { getStore } = await import("@netlify/blobs");
+    const siteID = process.env.SITE_ID || process.env.NETLIFY_SITE_ID;
+    const token = process.env.NETLIFY_FUNCTIONS_TOKEN;
+    if (siteID && token) {
+      const s = getStore({ name: BLOB_NAME, siteID, token });
+      if (s) return { store: s, via: "explicit-token" };
+    }
+  } catch {
+    /* fall through */
+  }
+  // 3. auto context
+  try {
+    const { getStore } = await import("@netlify/blobs");
+    const s = getStore({ name: BLOB_NAME });
+    return { store: s, via: "auto" };
+  } catch (e) {
+    return { error: `auto failed: ${e.message}` };
+  }
+}
 
+export const handler = async (event, context) => {
+  const method = event.httpMethod ?? "GET";
   if (method === "OPTIONS") return json({ ok: true });
 
-  let store;
-  try {
-    store = context.blobs?.openStore ? context.blobs.openStore({ name: BLOB_NAME }) : null;
-  } catch {
-    store = null;
-  }
-  if (!store) {
+  const opened = await openStore(context);
+  if (!opened.store) {
     return json(
       {
-        error: "blob store unavailable (no context.blobs)",
-        hasBlobs: Boolean(context.blobs),
+        error: `blob store unavailable: ${opened.error ?? "no store"}`,
+        env: {
+          siteID: process.env.SITE_ID ? "yes" : "no",
+          fnToken: process.env.NETLIFY_FUNCTIONS_TOKEN ? "yes" : "no",
+          blobCtx: process.env.NETLIFY_BLOBS_CONTEXT ? "yes" : "no",
+        },
       },
       500,
     );
   }
+  const store = opened.store;
 
   if (method === "GET") {
     try {
       const raw = await store.get(BLOB_KEY, { type: "json" });
       const messages = Array.isArray(raw) ? raw : [];
-      return json({ messages });
+      return json({ messages, via: opened.via });
     } catch (e) {
       return json({ error: `read failed: ${e.message}` }, 500);
     }
@@ -65,7 +99,7 @@ export default async (req, context) => {
   if (method === "POST") {
     let payload;
     try {
-      payload = await req.json();
+      payload = JSON.parse(event.body || "{}");
     } catch {
       return json({ error: "invalid json body" }, 400);
     }
@@ -85,7 +119,7 @@ export default async (req, context) => {
       });
       const trimmed = messages.slice(-MAX_MESSAGES);
       await store.set(BLOB_KEY, JSON.stringify(trimmed), { type: "application/json" });
-      return json({ ok: true, message: trimmed[trimmed.length - 1] }, 201);
+      return json({ ok: true, message: trimmed[trimmed.length - 1], via: opened.via }, 201);
     } catch (e) {
       return json({ error: `write failed: ${e.message}` }, 500);
     }
