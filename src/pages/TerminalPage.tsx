@@ -234,7 +234,7 @@ export function TerminalPage() {
   const [lastPoll, setLastPoll] = useState<Date | null>(null);
   const [clock, setClock] = useState(() => new Date());
   const [lines, setLines] = useState<string[]>([
-    "PRAXION RESEARCH SECURE TERMINAL v2.2",
+    "NANOQUANT SECURE TERMINAL v2.2",
     "UPLINK ESTABLISHED // SESSION: OPERATOR",
     "TYPE A COMMAND + <GO> // HELP FOR LIST",
     "----------------------------------------",
@@ -576,7 +576,7 @@ export function TerminalPage() {
         <div className="flex items-center justify-between gap-2 border-b-2 border-[#ffd700]/60 bg-[#0a0800]/90 px-3 py-2 sm:px-4" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
           <div className="flex min-w-0 items-center gap-3">
             <div className="truncate text-[11px] font-bold tracking-[0.2em] text-[#ffd700] sm:text-xs sm:tracking-[0.3em]">
-              PRAXION<span className="hidden sm:inline">&nbsp;RESEARCH&nbsp;//&nbsp;SECURE&nbsp;TERMINAL</span>
+              NANOQUANT<span className="hidden sm:inline">&nbsp;//&nbsp;SECURE&nbsp;TERMINAL</span>
             </div>
             {/* View toggle: GLOBE | P&L | BATTLE MODE — desktop only (mobile uses bottom bar) */}
             <div className="hidden border border-[#ffd700]/40 font-mono text-[9px] tracking-[0.18em] sm:flex">
