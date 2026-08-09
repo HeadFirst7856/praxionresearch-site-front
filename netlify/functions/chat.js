@@ -70,6 +70,16 @@ export const handler = async (event, context) => {
   const method = event.httpMethod ?? "GET";
   if (method === "OPTIONS") return json({ ok: true });
 
+  // Debug probe: does the event carry a blobs payload / headers?
+  if (method === "GET" && event.headers?.["x-probe-blobs"] === "1") {
+    return json({
+      hasEventBlobs: Boolean(event.blobs),
+      blobHeaders: Object.keys(event.headers ?? {}).filter((k) => /blob|nf/i.test(k)).slice(0, 10),
+      nfHeaders: Object.keys(event.headers ?? {}).slice(0, 20),
+      eventKeys: Object.keys(event ?? {}).slice(0, 25),
+    });
+  }
+
   const opened = await openStore(context);
   if (!opened.store) {
     return json(
