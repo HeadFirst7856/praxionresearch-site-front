@@ -666,8 +666,8 @@ export function TerminalPage() {
           </div>
         ) : (
           <div className="flex min-h-0 flex-1">
-            {/* Left: news feed */}
-            <div className="flex w-[24%] min-w-[220px] flex-col border-r-2 border-[#ffd700]/50 bg-[#050300]/85">
+            {/* Left: news feed — hidden on mobile, full-width center instead */}
+            <div className="hidden w-[24%] min-w-[220px] flex-col border-r-2 border-[#ffd700]/50 bg-[#050300]/85 lg:flex">
               <div className="border-b border-[#ffd700]/40 bg-[#0a0800] px-3 py-1.5 text-[10px] font-bold tracking-[0.25em] text-[#ffd700]">
                 LIVE NEWS RELAY
               </div>
@@ -706,8 +706,8 @@ export function TerminalPage() {
               )}
             </div>
 
-            {/* Right: collapsible feeds */}
-            <div className="flex w-[24%] min-w-[220px] flex-col border-l-2 border-[#ffd700]/50 bg-[#050300]/85">
+            {/* Right: collapsible feeds — hidden on mobile */}
+            <div className="hidden w-[24%] min-w-[220px] flex-col border-l-2 border-[#ffd700]/50 bg-[#050300]/85 lg:flex">
               <FeedPanel title="PREDICTION MARKETS" count={polymarket.length} badge="POLYMARKET // GEOPOLITICS">
                 {polymarket.length === 0 ? (
                   <div className="p-3 text-[10px] tracking-wider text-[#8a7a2a]">

@@ -779,20 +779,20 @@ export function BattleMode({
   };
 }) {
   return (
-    <div className="grid h-full w-full grid-cols-3 grid-rows-2 gap-px bg-[#ffd700]/20">
-      <div className="min-h-0 min-w-0 border-r border-b border-[#ffd700]/20">
+    <div className="grid h-full w-full grid-cols-1 gap-px bg-[#ffd700]/20 sm:grid-cols-3 sm:grid-rows-2">
+      <div className="min-h-0 min-w-0 border-b border-[#ffd700]/20 sm:border-r sm:border-b">
         <MonteCarloPane slots={slots} />
       </div>
-      <div className="min-h-0 min-w-0 border-r border-b border-[#ffd700]/20">
+      <div className="min-h-0 min-w-0 border-b border-[#ffd700]/20 sm:border-r sm:border-b">
         <TradeLogPane slots={slots} />
       </div>
-      <div className="min-h-0 min-w-0 border-b border-[#ffd700]/20">
+      <div className="min-h-0 min-w-0 border-b border-[#ffd700]/20 sm:border-b">
         <ChatPane myName={myName} roster={roster} />
       </div>
-      <div className="min-h-0 min-w-0 border-r border-[#ffd700]/20">
+      <div className="min-h-0 min-w-0 border-b border-[#ffd700]/20 sm:border-r sm:border-b-0">
         <AlertsPane news={news} tape={tape} />
       </div>
-      <div className="min-h-0 min-w-0 border-r border-[#ffd700]/20">
+      <div className="min-h-0 min-w-0 border-b border-[#ffd700]/20 sm:border-r sm:border-b-0">
         <ConsolePane consoleProps={consoleProps} />
       </div>
       <div className="min-h-0 min-w-0">
