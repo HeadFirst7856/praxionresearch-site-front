@@ -2,12 +2,11 @@
  * Praxion Terminal — operator chat (Netlify Function).
  * Route: /api/v1/chat
  *
- * Storage: Netlify Blobs (region-agnostic, persists across function invocations).
+ * Storage: Netlify Blobs via the v2 function context (context.blobs), which the
+ * platform injects automatically — no env vars required.
  * GET  -> { messages: [{ id, ts, name, text }] }
  * POST -> { name, text } appended, capped at 500 messages.
  */
-
-import { getStore } from "@netlify/blobs";
 
 const BLOB_NAME = "praxion-terminal-chat";
 const BLOB_KEY = "messages-v1";
@@ -33,21 +32,22 @@ function sanitize(text) {
     .slice(0, 500);
 }
 
-export async function handler(event) {
-  if (event.httpMethod === "OPTIONS") return json({ ok: true });
+export default async (req, context) => {
+  const method = req.method ?? "GET";
+
+  if (method === "OPTIONS") return json({ ok: true });
 
   let store;
   try {
-    store = getStore({ name: BLOB_NAME });
-  } catch (e) {
-    return json({ error: `blob store unavailable: ${e.message}`, env: {
-      hasBlobsContext: Boolean(process.env.NETLIFY_BLOBS_CONTEXT),
-      netlify: Boolean(process.env.NETLIFY_SITE_ID),
-      keys: Object.keys(process.env).filter((k) => /NETLIFY|BLOB|SITE/i.test(k)).slice(0, 10),
-    } }, 500);
+    store = context.blobs?.openStore ? context.blobs.openStore({ name: BLOB_NAME }) : null;
+  } catch {
+    store = null;
+  }
+  if (!store) {
+    return json({ error: "blob store unavailable (no context.blobs)" }, 500);
   }
 
-  if (event.httpMethod === "GET") {
+  if (method === "GET") {
     try {
       const raw = await store.get(BLOB_KEY, { type: "json" });
       const messages = Array.isArray(raw) ? raw : [];
@@ -57,10 +57,10 @@ export async function handler(event) {
     }
   }
 
-  if (event.httpMethod === "POST") {
+  if (method === "POST") {
     let payload;
     try {
-      payload = JSON.parse(event.body || "{}");
+      payload = await req.json();
     } catch {
       return json({ error: "invalid json body" }, 400);
     }
@@ -79,9 +79,7 @@ export async function handler(event) {
         text,
       });
       const trimmed = messages.slice(-MAX_MESSAGES);
-      await store.set(BLOB_KEY, JSON.stringify(trimmed), {
-        type: "application/json",
-      });
+      await store.set(BLOB_KEY, JSON.stringify(trimmed), { type: "application/json" });
       return json({ ok: true, message: trimmed[trimmed.length - 1] }, 201);
     } catch (e) {
       return json({ error: `write failed: ${e.message}` }, 500);
@@ -89,4 +87,4 @@ export async function handler(event) {
   }
 
   return json({ error: "method not allowed" }, 405);
-}
+};
