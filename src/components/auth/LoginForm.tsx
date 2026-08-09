@@ -18,7 +18,7 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const from = (location.state as LocationState | null)?.from || "/";
+  const from = (location.state as LocationState | null)?.from || "/terminal";
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

@@ -242,7 +242,7 @@ export function TerminalPage() {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const [view, setView] = useState<"globe" | "pnl" | "battle">("globe");
+  const [view, setView] = useState<"globe" | "pnl" | "battle" | "news">("globe");
   const [slots, setSlots] = useState<Record<string, DashboardSlot>>({});
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [booted, setBooted] = useState(false);
@@ -416,8 +416,8 @@ export function TerminalPage() {
       .polygonSideColor(() => "rgba(255,215,0,0.08)")
       .polygonStrokeColor(() => "rgba(255,215,0,0.5)")
       .polygonAltitude(0.01)
-      .width(620)
-      .height(620);
+      .width(typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches ? 280 : 620)
+      .height(typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches ? 280 : 620);
 
     // Load country outlines for the traffic-view landmasses
     void fetch(COUNTRY_GEOJSON_URL)
@@ -690,9 +690,26 @@ export function TerminalPage() {
               </div>
             </div>
 
-            {/* Center: view toggle — GLOBE | P&L */}
+            {/* Center: GLOBE | P&L | NEWS */}
             <div className="relative flex min-w-0 flex-1 flex-col bg-black">
-              {view === "pnl" ? (
+              {view === "news" ? (
+                /* Full-screen news feed — mobile tab target (desktop keeps left rail) */
+                <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#050300]/85 sm:hidden">
+                  {news.length === 0 ? (
+                    <div className="p-4 text-[11px] tracking-wider text-[#8a7a2a]">
+                      {feedError ? `UPLINK FAULT: ${feedError}` : "ACQUIRING FEED..."}
+                    </div>
+                  ) : (
+                    news.map((item, i) => <FeedRow key={`${item.source}-${i}`} item={item} />)
+                  )}
+                  {reddit.length > 0 ? (
+                    <div className="sticky top-0 border-y border-[#ffd700]/40 bg-[#0a0800] px-3 py-1.5 text-[10px] font-bold tracking-[0.25em] text-[#ffd700]">
+                      REDDIT RELAY
+                    </div>
+                  ) : null}
+                  {reddit.map((item, i) => <FeedRow key={`r-${item.source}-${i}`} item={item} />)}
+                </div>
+              ) : view === "pnl" ? (
                 <PnLMonteCarlo active={view === "pnl"} />
               ) : (
                 <>
@@ -703,9 +720,26 @@ export function TerminalPage() {
                   <div className="absolute right-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
                     {geoData.length} INCIDENTS
                   </div>
-                  <div ref={globeRef} className="relative z-10 m-auto cursor-grab active:cursor-grabbing" />
-                  <div className="pointer-events-none absolute bottom-3 left-0 right-0 text-center font-mono text-[9px] tracking-[0.3em] text-[#6b5d1f]">
+                  <div ref={globeRef} className="relative z-10 m-auto cursor-grab active:cursor-grabbing sm:my-auto" />
+                  <div className="pointer-events-none absolute bottom-3 left-0 right-0 text-center font-mono text-[9px] tracking-[0.3em] text-[#6b5d1f] sm:bottom-3">
                     DRAG TO ROTATE // SCROLL TO ZOOM // DOTS = NEWS LOCATIONS
+                  </div>
+                  {/* Mobile: vertical clocks fill the space under the globe */}
+                  <div className="absolute inset-x-0 bottom-0 max-h-[42%] space-y-1 overflow-y-auto border-t border-[#ffd700]/20 bg-[#070500]/90 px-3 py-2 font-mono text-[11px] sm:hidden">
+                    {MARKETS.map((m) => {
+                      const { time } = marketNow(m.tz);
+                      const open = isOpen(m);
+                      return (
+                        <div key={m.code} className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <span className={`inline-block size-1.5 rounded-full ${open ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" : "bg-[#6b5d1f]"}`} />
+                            <span className="text-[#8a7a2a]">{m.code}</span>
+                          </span>
+                          <span className="text-[#e8d67a]">{time}</span>
+                          <span className={open ? "text-emerald-300/80" : "text-[#5a4d18]"}>{open ? "OPEN" : "CLSD"}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </>
               )}
@@ -824,6 +858,7 @@ export function TerminalPage() {
           { key: "globe", label: "GLOBE", onClick: () => setView("globe") },
           { key: "pnl", label: "P&L", onClick: () => setView("pnl") },
           { key: "battle", label: "BATTLE", onClick: () => setView("battle") },
+          { key: "news", label: "NEWS", onClick: () => setView("news") },
           { key: "home", label: "HOME", onClick: () => navigate("/") },
         ].map((t) => (
           <button
@@ -834,7 +869,36 @@ export function TerminalPage() {
               view === t.key ? "bg-[#ffd700] text-black" : "text-[#c9a92c] active:bg-[#1a1505]"
             }`}
           >
-            <span className="text-base leading-none">{t.key === "globe" ? "🌐" : t.key === "pnl" ? "📈" : t.key === "battle" ? "⚔️" : "⌂"}</span>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="size-5"
+            >
+              {t.key === "globe" ? (
+                <>
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </>
+              ) : t.key === "pnl" ? (
+                <path d="M3 3v18h18M7 14l4-4 3 3 5-6" />
+              ) : t.key === "battle" ? (
+                <>
+                  <path d="M12 3v18M3 12h18" />
+                  <path d="M12 3l-3 3 3 3 3-3-3-3zM12 15l-3 3 3 3 3-3-3-3z" />
+                </>
+              ) : t.key === "news" ? (
+                <>
+                  <path d="M4 4h16v16H4z" />
+                  <path d="M8 8h8M8 12h8M8 16h5" />
+                </>
+              ) : (
+                <path d="M3 10.5 12 3l9 7.5M5 9.5V21h14V9.5" />
+              )}
+            </svg>
             {t.label}
           </button>
         ))}

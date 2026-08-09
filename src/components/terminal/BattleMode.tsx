@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLiveAccount } from "@/lib/useLiveAccount";
 
 // ---------------------------------------------------------------------------
 // BATTLE MODE — 4-pane war room:
@@ -702,6 +703,7 @@ export type SummaryData = {
 };
 
 function StatsPane({ summary }: { summary: SummaryData | null }) {
+  const live = useLiveAccount(60_000);
   const totals = summary?.totals;
   const yearly = summary?.periods?.yearly_rows?.[0];
   const wins = yearly?.wins ?? 0;
@@ -715,6 +717,11 @@ function StatsPane({ summary }: { summary: SummaryData | null }) {
   const ret = totals?.return_on_50k ?? 0;
 
   const cells: Array<{ k: string; v: string; tone?: string }> = [
+    { k: "LIVE BALANCE", v: live.balance != null ? fmtMoney(live.balance) : (live.offline ? "OFFLINE" : "--"), tone: live.balance != null && live.balance >= 0 ? "text-emerald-400" : "text-[#e8d67a]" },
+    { k: "P&L DAY", v: live.pnl_day != null ? fmtMoney(live.pnl_day) : "--", tone: live.pnl_day != null ? (live.pnl_day >= 0 ? "text-emerald-400" : "text-red-400") : "text-[#e8d67a]" },
+    { k: "P&L WEEK", v: live.pnl_week != null ? fmtMoney(live.pnl_week) : "--", tone: live.pnl_week != null ? (live.pnl_week >= 0 ? "text-emerald-400" : "text-red-400") : "text-[#e8d67a]" },
+    { k: "P&L 90D", v: live.pnl_90d != null ? fmtMoney(live.pnl_90d) : "--", tone: live.pnl_90d != null ? (live.pnl_90d >= 0 ? "text-emerald-400" : "text-red-400") : "text-[#e8d67a]" },
+    { k: "OPEN POSITIONS", v: String(live.open_positions) },
     { k: "TOTAL WINS", v: fmtNum(wins), tone: "text-emerald-400" },
     { k: "TOTAL LOSSES", v: fmtNum(losses), tone: "text-red-400" },
     { k: "WIN RATE", v: `${(winRate * 100).toFixed(1)}%` },
@@ -745,6 +752,11 @@ function StatsPane({ summary }: { summary: SummaryData | null }) {
         </div>
         <div className="mt-2 border border-[#ffd700]/30 bg-[#0a0800] px-2 py-1.5 font-mono text-[8px] tracking-[0.16em] text-[#6b5d1f]">
           COVERED FROM {totals?.covered_from ?? "--"} // REALTIME SIM SYNC // DAILY REFRESH 06:30 ET
+        </div>
+        <div className={`mt-1 px-2 py-1 font-mono text-[8px] tracking-[0.16em] ${live.offline ? "text-[#6b5d1f]" : "text-emerald-400/80"}`}>
+          {live.offline
+            ? `LIVE ACCOUNT: OFFLINE${live.error ? ` (${live.error})` : ""}`
+            : `LIVE ACCOUNT: SYNCED${live.fetched_at ? ` ${live.fetched_at.slice(11, 19)}Z` : ""}${live.from_cache ? " (CACHE)" : ""} · POLL 60S`}
         </div>
       </div>
     </div>
