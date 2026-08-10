@@ -79,6 +79,10 @@ type FeedPayload = {
 
 const GEO_DEFAULT = { lat: 40.7128, lng: -74.006, label: "New York" };
 
+// Imperative handle for the AUTO console command — points at the mounted globe
+// pane (null when GLOBE view is inactive, so AUTO becomes a safe no-op).
+let globeApi: { spin: () => void } | null = null;
+
 // Major trading venues: tz, session window (local wall-clock minutes), weekdays only
 const MARKETS = [
   { code: "NY", name: "NYSE", tz: "America/New_York", open: 9.5 * 60, close: 16 * 60 },
@@ -226,9 +230,6 @@ const COMMANDS: Array<{ cmd: string; out: string }> = [
 
 export function TerminalPage() {
   const navigate = useNavigate();
-  const globeRef = useRef<HTMLDivElement | null>(null);
-  const globeInst = useRef<GlobeInstance | null>(null);
-  const spinRef = useRef<number | null>(null);
   const [payload, setPayload] = useState<FeedPayload | null>(null);
   const [feedError, setFeedError] = useState<string | null>(null);
   const [lastPoll, setLastPoll] = useState<Date | null>(null);
@@ -384,80 +385,6 @@ export function TerminalPage() {
     };
   }, []);
 
-  // Globe: vector/traffic style, interactive (drag rotate, scroll zoom)
-  useEffect(() => {
-    if (!globeRef.current || globeInst.current) return;
-    const inst = new Globe(globeRef.current);
-    globeInst.current = inst;
-
-    inst
-      .backgroundColor("rgba(0,0,0,0)")
-      .showAtmosphere(true)
-      .atmosphereColor("#ffd700")
-      .atmosphereAltitude(0.22)
-      .showGraticules(true)
-      .globeMaterial({ color: "#0a1220", emissive: "#050b16", emissiveIntensity: 0.35 })
-      .pointsData([])
-      .pointLat("lat")
-      .pointLng("lng")
-      .pointAltitude(0.02)
-      .pointRadius(0.55)
-      .pointColor("color")
-      .pointLabel((d: { title?: string }) => d.title ?? "")
-      .arcsData([])
-      .arcColor(() => "rgba(255,215,0,0.35)")
-      .arcAltitude(0.35)
-      .arcStroke(0.4)
-      .arcDashLength(0.6)
-      .arcDashGap(0.8)
-      .arcDashAnimateTime(2000)
-      .polygonsData([])
-      .polygonCapColor(() => "rgba(20,34,54,0.9)")
-      .polygonSideColor(() => "rgba(255,215,0,0.08)")
-      .polygonStrokeColor(() => "rgba(255,215,0,0.5)")
-      .polygonAltitude(0.01)
-      .width(typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches ? 280 : 620)
-      .height(typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches ? 280 : 620);
-
-    // Load country outlines for the traffic-view landmasses
-    void fetch(COUNTRY_GEOJSON_URL)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((geo) => {
-        if (geo?.features) inst.polygonsData(geo.features);
-      })
-      .catch(() => {
-        /* vector globe still renders with graticules only */
-      });
-
-    // Auto-spin; pauses while the user drags/zooms
-    function startSpin() {
-      if (spinRef.current != null) return;
-      let angle = 0;
-      spinRef.current = window.setInterval(() => {
-        angle += 0.0016;
-        inst.pointOfView({ lat: 15, lng: angle * (180 / Math.PI), altitude: 2.2 }, 0);
-      }, 30);
-    }
-    function stopSpin() {
-      if (spinRef.current != null) {
-        window.clearInterval(spinRef.current);
-        spinRef.current = null;
-      }
-    }
-    startSpin();
-
-    const el = globeRef.current;
-    el?.addEventListener("pointerdown", stopSpin);
-    el?.addEventListener("pointerup", () => {
-      // resume after 4s idle
-      window.setTimeout(startSpin, 4000);
-    });
-
-    return () => {
-      stopSpin();
-    };
-  }, []);
-
   // Feed data -> globe points + arcs (news + geopolitical markets)
   const geoData = useMemo(() => {
     const newsGeo = (payload?.news ?? []).filter((n) => n.geo != null).map((n) => ({
@@ -477,19 +404,6 @@ export function TerminalPage() {
     return [...newsGeo, ...polyGeo].slice(0, 80).map((g, i) => ({ id: i, ...g, size: 0.8 }));
   }, [payload]);
 
-  useEffect(() => {
-    const inst = globeInst.current;
-    if (!inst) return;
-    inst.pointsData(geoData);
-    const arcs = geoData.map((g) => ({
-      startLat: g.lat,
-      startLng: g.lng,
-      endLat: GEO_DEFAULT.lat,
-      endLng: GEO_DEFAULT.lng,
-    }));
-    inst.arcsData(arcs);
-  }, [geoData]);
-
   function submitCommand(raw: string) {
     const cmd = raw.trim().toUpperCase();
     if (!cmd) return;
@@ -507,14 +421,7 @@ export function TerminalPage() {
     } else if (cmd === "WHO") {
       setWhoOpen(true);
     } else if (cmd === "AUTO") {
-      const inst = globeInst.current;
-      if (inst && spinRef.current == null) {
-        let angle = 0;
-        spinRef.current = window.setInterval(() => {
-          angle += 0.0016;
-          inst.pointOfView({ lat: 15, lng: angle * (180 / Math.PI), altitude: 2.2 }, 0);
-        }, 30);
-      }
+      globeApi?.spin();
     }
     const hit = COMMANDS.find((c) => c.cmd === cmd);
     const out = hit ? hit.out : `UNRECOGNIZED COMMAND: ${cmd} // TYPE HELP`;
@@ -712,37 +619,8 @@ export function TerminalPage() {
               ) : view === "pnl" ? (
                 <PnLMonteCarlo active={view === "pnl"} />
               ) : null}
-              {/* Globe — kept mounted (hidden when not active) so it never vanishes */}
-              <div className={view === "globe" ? "absolute inset-0" : "hidden"}>
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.05),transparent_60%)]" />
-                <div className="absolute left-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
-                  ● GLOBAL NEWS TRACKING // VECTOR VIEW
-                </div>
-                <div className="absolute right-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
-                  {geoData.length} INCIDENTS
-                </div>
-                <div ref={globeRef} className="relative z-10 m-auto cursor-grab active:cursor-grabbing sm:my-auto" />
-                <div className="pointer-events-none absolute bottom-3 left-0 right-0 text-center font-mono text-[9px] tracking-[0.3em] text-[#6b5d1f] sm:bottom-3">
-                  DRAG TO ROTATE // SCROLL TO ZOOM // DOTS = NEWS LOCATIONS
-                </div>
-                {/* Mobile: vertical clocks fill the space under the globe */}
-                <div className="absolute inset-x-0 bottom-0 max-h-[42%] space-y-1 overflow-y-auto border-t border-[#ffd700]/20 bg-[#070500]/90 px-3 py-2 font-mono text-[11px] sm:hidden">
-                  {MARKETS.map((m) => {
-                    const { time } = marketNow(m.tz);
-                    const open = isOpen(m);
-                    return (
-                      <div key={m.code} className="flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          <span className={`inline-block size-1.5 rounded-full ${open ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" : "bg-[#6b5d1f]"}`} />
-                          <span className="text-[#8a7a2a]">{m.code}</span>
-                        </span>
-                        <span className="text-[#e8d67a]">{time}</span>
-                        <span className={open ? "text-emerald-300/80" : "text-[#5a4d18]"}>{open ? "OPEN" : "CLSD"}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              {/* Globe — mounted only while GLOBE view is active; remounts fresh on every return */}
+              {view === "globe" ? <GlobePane geoData={geoData} /> : null}
             </div>
 
             {/* Right: collapsible feeds — hidden on mobile */}
@@ -1046,6 +924,153 @@ export function TerminalPage() {
           to { width: 100%; }
         }
       `}</style>
+    </div>
+  );
+}
+
+type GlobePoint = {
+  id: number;
+  lat: number;
+  lng: number;
+  color: string;
+  title: string;
+  size: number;
+};
+
+/**
+ * Globe pane — rendered ONLY while the GLOBE view is active. Switching to any
+ * other tab unmounts it and returning mounts a brand-new instance, so a stale
+ * WebGL context / dead canvas can never make the globe vanish. Properly disposes
+ * the three.js renderer on unmount to free the GPU context.
+ */
+function GlobePane({ geoData }: { geoData: GlobePoint[] }) {
+  const globeRef = useRef<HTMLDivElement | null>(null);
+  const globeInst = useRef<GlobeInstance | null>(null);
+  const spinRef = useRef<number | null>(null);
+
+  // Globe: vector/traffic style, interactive (drag rotate, scroll zoom)
+  useEffect(() => {
+    if (!globeRef.current) return;
+    const inst = new Globe(globeRef.current);
+    globeInst.current = inst;
+
+    inst
+      .backgroundColor("rgba(0,0,0,0)")
+      .showAtmosphere(true)
+      .atmosphereColor("#ffd700")
+      .atmosphereAltitude(0.22)
+      .showGraticules(true)
+      .globeMaterial({ color: "#0a1220", emissive: "#050b16", emissiveIntensity: 0.35 })
+      .pointsData([])
+      .pointLat("lat")
+      .pointLng("lng")
+      .pointAltitude(0.02)
+      .pointRadius(0.55)
+      .pointColor("color")
+      .pointLabel((d: { title?: string }) => d.title ?? "")
+      .arcsData([])
+      .arcColor(() => "rgba(255,215,0,0.35)")
+      .arcAltitude(0.35)
+      .arcStroke(0.4)
+      .arcDashLength(0.6)
+      .arcDashGap(0.8)
+      .arcDashAnimateTime(2000)
+      .polygonsData([])
+      .polygonCapColor(() => "rgba(20,34,54,0.9)")
+      .polygonSideColor(() => "rgba(255,215,0,0.08)")
+      .polygonStrokeColor(() => "rgba(255,215,0,0.5)")
+      .polygonAltitude(0.01)
+      .width(typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches ? 280 : 620)
+      .height(typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches ? 280 : 620);
+
+    // Load country outlines for the traffic-view landmasses
+    void fetch(COUNTRY_GEOJSON_URL)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((geo) => {
+        if (geo?.features) inst.polygonsData(geo.features);
+      })
+      .catch(() => {
+        /* vector globe still renders with graticules only */
+      });
+
+    // Auto-spin; pauses while the user drags/zooms
+    function startSpin() {
+      if (spinRef.current != null) return;
+      let angle = 0;
+      spinRef.current = window.setInterval(() => {
+        angle += 0.0016;
+        inst.pointOfView({ lat: 15, lng: angle * (180 / Math.PI), altitude: 2.2 }, 0);
+      }, 30);
+    }
+    function stopSpin() {
+      if (spinRef.current != null) {
+        window.clearInterval(spinRef.current);
+        spinRef.current = null;
+      }
+    }
+    startSpin();
+    globeApi = { spin: startSpin };
+
+    const el = globeRef.current;
+    el?.addEventListener("pointerdown", stopSpin);
+    el?.addEventListener("pointerup", () => {
+      // resume after 4s idle
+      window.setTimeout(startSpin, 4000);
+    });
+
+    return () => {
+      stopSpin();
+      globeApi = null;
+      globeInst.current = null;
+      inst.renderer()?.dispose();
+      if (el) el.innerHTML = "";
+    };
+  }, []);
+
+  // Feed data -> globe points + arcs (news + geopolitical markets)
+  useEffect(() => {
+    const inst = globeInst.current;
+    if (!inst) return;
+    inst.pointsData(geoData);
+    const arcs = geoData.map((g) => ({
+      startLat: g.lat,
+      startLng: g.lng,
+      endLat: GEO_DEFAULT.lat,
+      endLng: GEO_DEFAULT.lng,
+    }));
+    inst.arcsData(arcs);
+  }, [geoData]);
+
+  return (
+    <div className="absolute inset-0 flex items-center justify-center pb-[42%] sm:pb-0">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.05),transparent_60%)]" />
+      <div className="absolute left-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
+        ● GLOBAL NEWS TRACKING // VECTOR VIEW
+      </div>
+      <div className="absolute right-4 top-3 font-mono text-[9px] tracking-[0.25em] text-[#8a7a2a]">
+        {geoData.length} INCIDENTS
+      </div>
+      <div ref={globeRef} className="relative z-10 cursor-grab active:cursor-grabbing" />
+      <div className="pointer-events-none absolute bottom-3 left-0 right-0 text-center font-mono text-[9px] tracking-[0.3em] text-[#6b5d1f] sm:bottom-3">
+        DRAG TO ROTATE // SCROLL TO ZOOM // DOTS = NEWS LOCATIONS
+      </div>
+      {/* Mobile: vertical clocks fill the space under the globe */}
+      <div className="absolute inset-x-0 bottom-0 max-h-[42%] space-y-1 overflow-y-auto border-t border-[#ffd700]/20 bg-[#070500]/90 px-3 py-2 font-mono text-[11px] sm:hidden">
+        {MARKETS.map((m) => {
+          const { time } = marketNow(m.tz);
+          const open = isOpen(m);
+          return (
+            <div key={m.code} className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <span className={`inline-block size-1.5 rounded-full ${open ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" : "bg-[#6b5d1f]"}`} />
+                <span className="text-[#8a7a2a]">{m.code}</span>
+              </span>
+              <span className="text-[#e8d67a]">{time}</span>
+              <span className={open ? "text-emerald-300/80" : "text-[#5a4d18]"}>{open ? "OPEN" : "CLSD"}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
