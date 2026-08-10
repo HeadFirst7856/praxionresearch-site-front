@@ -1,6 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { lazy, Suspense } from "react";
-import { AuthProvider } from "@/components/auth/AuthProvider";
+import { AuthProvider, useAuth } from "@/components/auth/AuthProvider";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { AppShell } from "@/components/layout/AppShell";
 import { HomePage } from "@/pages/HomePage";
@@ -13,6 +13,13 @@ import { isSignupEnabled } from "@/lib/features";
 
 // Heavy WebGL terminal — loaded only when an operator opens the hidden route.
 const TerminalPage = lazy(() => import("@/pages/TerminalPage"));
+
+// Root route: logged-in operators go straight to the terminal — never the
+// landing page. Logged-out visitors still get the marketing page.
+function HomeRedirect() {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <Navigate to="/terminal" replace /> : <HomePage />;
+}
 
 function App() {
   const signupEnabled = isSignupEnabled();
@@ -39,7 +46,7 @@ function App() {
             />
           </Route>
           <Route element={<AppShell />}>
-            <Route index element={<HomePage />} />
+            <Route index element={<HomeRedirect />} />
             <Route path="/login" element={<LoginPage />} />
             {signupEnabled ? <Route path="/signup" element={<SignupPage />} /> : null}
             <Route path="/about" element={<AboutPage />} />
