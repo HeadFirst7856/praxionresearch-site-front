@@ -709,9 +709,9 @@ export function TerminalPage() {
                   ) : null}
                   {reddit.map((item, i) => <FeedRow key={`r-${item.source}-${i}`} item={item} />)}
                 </div>
-              ) : (
+              ) : view === "pnl" ? (
                 <PnLMonteCarlo active={view === "pnl"} />
-              )}
+              ) : null}
               {/* Globe — kept mounted (hidden when not active) so it never vanishes */}
               <div className={view === "globe" ? "absolute inset-0" : "hidden"}>
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.05),transparent_60%)]" />
