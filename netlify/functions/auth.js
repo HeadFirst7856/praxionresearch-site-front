@@ -71,7 +71,13 @@ async function loadUsers(event) {
 function json(res, status) {
   return {
     statusCode: status,
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    },
     body: JSON.stringify(res),
   };
 }
@@ -80,6 +86,9 @@ export const handler = async (event) => {
   const method = event.httpMethod;
   const path = event.path || "";
   try {
+    if (method === "OPTIONS") {
+      return json({ ok: true }, 204);
+    }
     if (method === "POST" && path.endsWith("/auth/login")) {
       const body = JSON.parse(event.body || "{}");
       const email = String(body.email || "").trim().toLowerCase();
