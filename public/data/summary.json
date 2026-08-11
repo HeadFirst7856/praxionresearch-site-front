@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-10T06:37:08-04:00",
+  "generated_at": "2026-08-11T06:48:20-04:00",
   "timezone": "America/New_York",
   "source": {
     "mode": "bar_core_strategy_simulator",
@@ -22,13 +22,13 @@
   },
   "totals": {
     "bars_processed": 115140,
-    "closed_trades": 2253,
-    "closed_pnl_dollars": 4928.04,
-    "continuous_pnl_dollars": 4928.04,
+    "closed_trades": 2273,
+    "closed_pnl_dollars": 4885.8,
+    "continuous_pnl_dollars": 4885.8,
     "days_covered": 83,
     "covered_from": "2026-03-09",
     "covered_to": "2026-07-08",
-    "return_on_50k": 0.098561,
+    "return_on_50k": 0.097716,
     "max_margin_used_dollars": 9000.0,
     "max_margin_contracts": 5,
     "max_margin_strategy": "Orb Martingale 2",
@@ -39,18 +39,18 @@
       {
         "period": "2026",
         "start_balance": 50000.0,
-        "end_balance": 54928.04,
-        "pnl_dollars": 4928.04,
-        "closed_trades": 1769,
-        "wins": 1075,
-        "losses": 693,
-        "win_rate": 0.6077,
-        "gross_profit": 45788.42,
-        "gross_loss": 40860.38,
-        "profit_factor": 1.1206,
+        "end_balance": 54885.8,
+        "pnl_dollars": 4885.8,
+        "closed_trades": 1785,
+        "wins": 1085,
+        "losses": 699,
+        "win_rate": 0.6078,
+        "gross_profit": 46016.08,
+        "gross_loss": 41130.28,
+        "profit_factor": 1.1188,
         "max_drawdown": 2144.63,
         "first_trade_time": "2026-03-02T13:27:00-05:00",
-        "last_trade_time": "2026-08-07T14:49:00-04:00"
+        "last_trade_time": "2026-08-10T13:55:00-04:00"
       }
     ],
     "monthly_rows": [
@@ -137,18 +137,18 @@
       {
         "period": "2026-08",
         "start_balance": 54306.17,
-        "end_balance": 54928.04,
-        "pnl_dollars": 621.87,
-        "closed_trades": 62,
-        "wins": 41,
-        "losses": 21,
-        "win_rate": 0.6613,
-        "gross_profit": 1447.03,
-        "gross_loss": 825.16,
-        "profit_factor": 1.7536,
-        "max_drawdown": 180.19,
+        "end_balance": 54885.8,
+        "pnl_dollars": 579.63,
+        "closed_trades": 78,
+        "wins": 51,
+        "losses": 27,
+        "win_rate": 0.6538,
+        "gross_profit": 1674.69,
+        "gross_loss": 1095.06,
+        "profit_factor": 1.5293,
+        "max_drawdown": 185.5,
         "first_trade_time": "2026-08-03T10:04:00-04:00",
-        "last_trade_time": "2026-08-07T14:49:00-04:00"
+        "last_trade_time": "2026-08-10T13:55:00-04:00"
       }
     ],
     "weekly_rows": [
@@ -542,6 +542,23 @@
         "first_trade_time": "2026-08-03T10:04:00-04:00",
         "last_trade_time": "2026-08-07T14:49:00-04:00",
         "week": "2026-W32"
+      },
+      {
+        "period": "2026-W33",
+        "start_balance": 54928.04,
+        "end_balance": 54885.8,
+        "pnl_dollars": -42.24,
+        "closed_trades": 16,
+        "wins": 10,
+        "losses": 6,
+        "win_rate": 0.625,
+        "gross_profit": 227.66,
+        "gross_loss": 269.9,
+        "profit_factor": 0.8435,
+        "max_drawdown": 163.26,
+        "first_trade_time": "2026-08-10T10:15:00-04:00",
+        "last_trade_time": "2026-08-10T13:55:00-04:00",
+        "week": "2026-W33"
       }
     ],
     "daily_rows": [
@@ -2482,6 +2499,23 @@
         "first_trade_time": "2026-08-07T10:16:00-04:00",
         "last_trade_time": "2026-08-07T14:49:00-04:00",
         "day": "2026-08-07"
+      },
+      {
+        "period": "2026-08-10",
+        "start_balance": 54928.04,
+        "end_balance": 54885.8,
+        "pnl_dollars": -42.24,
+        "closed_trades": 16,
+        "wins": 10,
+        "losses": 6,
+        "win_rate": 0.625,
+        "gross_profit": 227.66,
+        "gross_loss": 269.9,
+        "profit_factor": 0.8435,
+        "max_drawdown": 163.26,
+        "first_trade_time": "2026-08-10T10:15:00-04:00",
+        "last_trade_time": "2026-08-10T13:55:00-04:00",
+        "day": "2026-08-10"
       }
     ]
   }
