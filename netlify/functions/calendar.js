@@ -2,114 +2,88 @@
  * Praxion — market calendar proxy (Netlify function).
  * Route: /api/v1/calendar
  *
- * Returns this week's market-moving events: FOMC meetings (Fed's public JSON),
- * recurring US data releases (rule-based, ET times, impact-rated), quad witching,
- * earnings-season windows, and US market holidays. "expected to move the market"
- * is expressed as an impact tag: HIGH / MED / LOW / CLOSED.
+ * This week's market-moving events (Mon–Fri, ET times, impact-rated):
+ *  - Real BLS release dates (CPI / NFP / PPI) from the published 2026 schedule
+ *  - FOMC decisions (Fed announced 2026 dates)
+ *  - Rule-based approximations for PCE / GDP / Retail Sales / ISM (marked ~)
+ *  - Weekly recurring (jobless claims, crude inventories), quad witching,
+ *    earnings windows, US market holidays (CLOSED)
  */
-
-const NYSE_HOLIDAYS = [
-  { m: 0, d: 1 },   // New Year's
-  { m: 0, d: 19 },  // MLK (3rd Mon Jan — approx; fine-tuned below)
-  { m: 1, d: 16 },  // Presidents (3rd Mon Feb — approx)
-  { m: 4, d: 25 },  // Memorial (last Mon May — approx)
-  { m: 6, d: 4 },   // Juneteenth
-  { m: 6, d: 3 },   // Independence (observed Fri if 4th is Sat)
-  { m: 8, d: 7 },   // Labor (1st Mon Sep — approx)
-  { m: 10, d: 27 }, // Thanksgiving (4th Thu Nov — approx)
-  { m: 11, d: 25 }, // Christmas
-];
 
 const IMPACT = { HIGH: "HIGH", MED: "MED", LOW: "LOW", CLOSED: "CLOSED" };
 
-// Keyword -> impact boost used by the app for news ranking; kept here for reference.
-const ET = "America/New_York";
+// ---- REAL BLS 2026 release dates (from bls.gov/schedule/news_release) --------
+const BLS_DATES = [
+  // CPI (8:30 ET)
+  { date: "2026-08-12", time: "08:30", title: "CPI (Consumer Price Index)", impact: IMPACT.HIGH, source: "BLS" },
+  { date: "2026-09-11", time: "08:30", title: "CPI (Consumer Price Index)", impact: IMPACT.HIGH, source: "BLS" },
+  { date: "2026-10-14", time: "08:30", title: "CPI (Consumer Price Index)", impact: IMPACT.HIGH, source: "BLS" },
+  { date: "2026-11-10", time: "08:30", title: "CPI (Consumer Price Index)", impact: IMPACT.HIGH, source: "BLS" },
+  { date: "2026-12-10", time: "08:30", title: "CPI (Consumer Price Index)", impact: IMPACT.HIGH, source: "BLS" },
+  // Employment Situation / NFP (8:30 ET)
+  { date: "2026-09-04", time: "08:30", title: "Employment Situation (NFP / Unemployment)", impact: IMPACT.HIGH, source: "BLS" },
+  { date: "2026-10-02", time: "08:30", title: "Employment Situation (NFP / Unemployment)", impact: IMPACT.HIGH, source: "BLS" },
+  { date: "2026-11-06", time: "08:30", title: "Employment Situation (NFP / Unemployment)", impact: IMPACT.HIGH, source: "BLS" },
+  { date: "2026-12-04", time: "08:30", title: "Employment Situation (NFP / Unemployment)", impact: IMPACT.HIGH, source: "BLS" },
+  // PPI (8:30 ET)
+  { date: "2026-08-13", time: "08:30", title: "PPI (Producer Price Index)", impact: IMPACT.MED, source: "BLS" },
+  { date: "2026-09-10", time: "08:30", title: "PPI (Producer Price Index)", impact: IMPACT.MED, source: "BLS" },
+  { date: "2026-10-15", time: "08:30", title: "PPI (Producer Price Index)", impact: IMPACT.MED, source: "BLS" },
+  { date: "2026-11-13", time: "08:30", title: "PPI (Producer Price Index)", impact: IMPACT.MED, source: "BLS" },
+  { date: "2026-12-15", time: "08:30", title: "PPI (Producer Price Index)", impact: IMPACT.MED, source: "BLS" },
+];
 
-function zonedDate(offsetDays = 0) {
-  const d = new Date(Date.now() + offsetDays * 86400000);
-  return new Date(d.toLocaleString("en-US", { timeZone: ET }));
-}
-
-function startOfWeek(base) {
-  const d = new Date(base);
-  const day = d.getDay(); // 0 Sun
-  const diff = (day + 6) % 7; // days since Monday
-  d.setDate(d.getDate() - diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
+// ---- Rule-based approximations (BEA/Census/ISM don't publish machine-read schedules) --
 function nthWeekday(year, month, weekday, n) {
-  // month: 0-based; weekday: 0=Sun..6=Sat; n: 1..5 (5 = last)
   const first = new Date(year, month, 1);
   const offset = (weekday - first.getDay() + 7) % 7;
-  const day = 1 + offset + (n - 1) * 7;
-  return new Date(year, month, day);
+  return new Date(year, month, 1 + offset + (n - 1) * 7);
 }
-
 function lastWeekday(year, month, weekday) {
   const last = new Date(year, month + 1, 0);
   const offset = (last.getDay() - weekday + 7) % 7;
   return new Date(year, month, last.getDate() - offset);
 }
-
 function isoDay(d) {
   return d.toISOString().slice(0, 10);
 }
-
 function keyOf(d) {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
+function parseLocal(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d); // local (ET)
+}
 
-// ---- Recurring US data releases (ET times, impact) -------------------------
-function recurringEvents(year, month, list) {
+function approxEvents(year, month) {
   const out = [];
-  for (const ev of list) {
-    let d = null;
-    if (ev.rule === "nth") d = nthWeekday(year, month, ev.weekday, ev.n);
-    else if (ev.rule === "last") d = lastWeekday(year, month, ev.weekday);
-    else if (ev.rule === "fixed") d = new Date(year, month, ev.day);
-    if (d) {
-      out.push({
-        date: isoDay(d),
-        key: keyOf(d),
-        time: ev.time,
-        title: ev.title,
-        impact: ev.impact,
-        source: ev.source ?? "BLS",
-        approx: !!ev.approx,
-      });
+  const push = (d, time, title, impact, source) => {
+    if (d.getMonth() === month && d.getFullYear() === year) {
+      out.push({ date: isoDay(d), key: keyOf(d), time, title, impact, source, approx: true });
     }
-  }
+  };
+  push(lastWeekday(year, month, 5), "08:30", "PCE Price Index (Fed's inflation gauge)", IMPACT.HIGH, "BEA");
+  push(lastWeekday(year, month, 4), "08:30", "GDP (advance/2nd/final estimate)", IMPACT.MED, "BEA");
+  push(new Date(year, month, 16), "08:30", "Retail Sales", IMPACT.MED, "Census");
+  push(nthWeekday(year, month, 4, 1), "10:00", "ISM Manufacturing PMI", IMPACT.MED, "ISM");
   return out;
 }
 
-const MONTHLY_EVENTS = [
-  { rule: "nth", weekday: 5, n: 1, time: "08:30", title: "Employment Situation (NFP / Unemployment)", impact: IMPACT.HIGH, source: "BLS" },
-  { rule: "fixed", day: 10, time: "08:30", title: "CPI (Consumer Price Index)", impact: IMPACT.HIGH, source: "BLS", approx: true },
-  { rule: "fixed", day: 14, time: "08:30", title: "PPI (Producer Price Index)", impact: IMPACT.MED, source: "BLS", approx: true },
-  { rule: "last", weekday: 5, time: "08:30", title: "PCE Price Index (Fed's inflation gauge)", impact: IMPACT.HIGH, source: "BEA", approx: true },
-  { rule: "last", weekday: 4, time: "08:30", title: "GDP (advance/2nd/final estimate)", impact: IMPACT.MED, source: "BEA", approx: true },
-  { rule: "fixed", day: 16, time: "08:30", title: "Retail Sales", impact: IMPACT.MED, source: "Census", approx: true },
-  { rule: "fixed", day: 16, time: "10:00", title: "NAHB Housing Market Index", impact: IMPACT.LOW, source: "NAHB", approx: true },
-  { rule: "nth", weekday: 4, n: 1, time: "10:00", title: "ISM Manufacturing PMI", impact: IMPACT.MED, source: "ISM" },
-];
-
-// ---- US market holidays (rule-based; observed) -----------------------------
+// ---- US market holidays (rule-based; observed) -------------------------------
 function holidaysIn(year, month) {
   const out = [];
-  const mlk = nthWeekday(year, 0, 1, 3);
-  const pres = nthWeekday(year, 1, 1, 3);
-  const memorial = lastWeekday(year, 4, 1);
-  const juneteenth = new Date(year, 5, 19);
-  const indep = new Date(year, 6, 4);
-  const labor = nthWeekday(year, 8, 1, 1);
-  const thanks = nthWeekday(year, 10, 4, 4);
-  const xmas = new Date(year, 11, 25);
-  const nyd = new Date(year, 0, 1);
-  const all = [nyd, mlk, pres, memorial, juneteenth, indep, labor, thanks, xmas];
+  const all = [
+    new Date(year, 0, 1),
+    nthWeekday(year, 0, 1, 3),
+    nthWeekday(year, 1, 1, 3),
+    lastWeekday(year, 4, 1),
+    new Date(year, 5, 19),
+    new Date(year, 6, 4),
+    nthWeekday(year, 8, 1, 1),
+    nthWeekday(year, 10, 4, 4),
+    new Date(year, 11, 25),
+  ];
   for (const h of all) {
-    // observe Saturday holidays on Friday, Sunday on Monday
     let obs = h;
     if (h.getDay() === 6) obs = new Date(h.getFullYear(), h.getMonth(), h.getDate() - 1);
     if (h.getDay() === 0) obs = new Date(h.getFullYear(), h.getMonth(), h.getDate() + 1);
@@ -120,53 +94,20 @@ function holidaysIn(year, month) {
   return out;
 }
 
-// ---- FOMC (Fed public JSON, falling back to announced schedule) -------------
-// Statement dates, 14:00 ET. The Fed's public JSON endpoint was retired; the
-// schedule below is the announced 2026 calendar (rest of year).
-const FOMC_FALLBACK = ["2026-09-16", "2026-10-28", "2026-12-09"];
+// ---- FOMC (announced 2026 schedule, 14:00 ET) --------------------------------
+const FOMC_DATES = ["2026-09-16", "2026-10-28", "2026-12-09"];
+const FOMC_MINUTES_OFFSET_DAYS = 21;
 
-async function fetchFomc() {
-  try {
-    const res = await fetch("https://www.federalreserve.gov/json/ne-fin-json/FOMC.json", {
-      headers: { "User-Agent": "PraxionTerminal/1.0 (research desk)" },
-    });
-    if (res.ok) {
-      const json = await res.json();
-      const out = [];
-      for (const m of json?.meetings ?? []) {
-        const ds = m?.dates ?? [];
-        if (ds.length) {
-          const d = new Date(ds[0]);
-          if (!isNaN(d.getTime())) {
-            out.push({
-              date: d.toISOString().slice(0, 10),
-              key: keyOf(d),
-              time: "14:00",
-              title: `FOMC Decision + Statement${m.press_conference ? " + Press Conference" : ""}`,
-              impact: IMPACT.HIGH,
-              source: "FEDERAL RESERVE",
-              approx: false,
-            });
-          }
-        }
-      }
-      if (out.length) return out;
-    }
-  } catch (e) {
-    console.error("fomc fetch error:", e?.message ?? e);
-  }
-  return FOMC_FALLBACK.map((dstr) => {
-    const d = new Date(dstr + "T00:00:00Z");
-    return {
-      date: dstr,
-      key: keyOf(d),
-      time: "14:00",
-      title: "FOMC Decision + Statement",
-      impact: IMPACT.HIGH,
-      source: "FEDERAL RESERVE",
-      approx: false,
-    };
-  });
+function fomcEvents() {
+  return FOMC_DATES.map((dstr) => ({
+    date: dstr,
+    key: keyOf(parseLocal(dstr)),
+    time: "14:00",
+    title: "FOMC Decision + Statement",
+    impact: IMPACT.HIGH,
+    source: "FEDERAL RESERVE",
+    approx: false,
+  }));
 }
 
 async function handler(event) {
@@ -182,15 +123,17 @@ async function handler(event) {
     };
   }
 
-  const now = zonedDate();
-  const weekStart = startOfWeek(now);
-  const year = weekStart.getFullYear();
-  const month = weekStart.getMonth();
+  // Trading week: Monday..Friday, ET
+  const now = new Date();
+  const et = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const day = et.getDay();
+  const diff = (day + 6) % 7;
+  const mon = new Date(et.getFullYear(), et.getMonth(), et.getDate() - diff);
 
-  const events = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
-    events.push({
+  const days = [];
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
+    days.push({
       date: isoDay(d),
       key: keyOf(d),
       dow: d.toLocaleDateString("en-US", { weekday: "short" }),
@@ -202,85 +145,45 @@ async function handler(event) {
       items: [],
     });
   }
-
-  const byKey = new Map(events.map((e) => [e.key, e]));
+  const byKey = new Map(days.map((e) => [e.key, e]));
   const inWeek = (k) => byKey.has(k);
 
-  const rec = recurringEvents(year, month, MONTHLY_EVENTS);
-  for (const ev of rec) if (inWeek(ev.key)) byKey.get(ev.key).items.push(ev);
-
-  for (const ev of holidaysIn(year, month)) {
+  const add = (ev) => {
     if (inWeek(ev.key)) byKey.get(ev.key).items.push(ev);
+  };
+
+  for (const ev of BLS_DATES) {
+    add({ ...ev, key: keyOf(parseLocal(ev.date)), approx: false });
   }
 
-  // FOMC minutes 3 weeks after each meeting (approx), quad witching, earnings windows
-  const fomc = await fetchFomc();
-  for (const m of fomc) {
-    if (inWeek(m.key)) byKey.get(m.key).items.push(m);
-  }
-  for (const m of fomc) {
-    const d = new Date(m.date + "T14:00:00Z");
-    d.setDate(d.getDate() + 21);
-    const min = {
-      date: d.toISOString().slice(0, 10),
-      key: keyOf(d),
-      time: "14:00",
-      title: "FOMC Minutes (3 weeks post-meeting)",
-      impact: IMPACT.MED,
-      source: "FEDERAL RESERVE",
-      approx: true,
-    };
-    if (inWeek(min.key)) byKey.get(min.key).items.push(min);
+  for (const ev of approxEvents(mon.getFullYear(), mon.getMonth())) add(ev);
+  for (const ev of holidaysIn(mon.getFullYear(), mon.getMonth())) add(ev);
+
+  for (const ev of fomcEvents()) add(ev);
+  for (const m of FOMC_DATES) {
+    const d = parseLocal(m);
+    d.setDate(d.getDate() + FOMC_MINUTES_OFFSET_DAYS);
+    add({ date: isoDay(d), key: keyOf(d), time: "14:00", title: "FOMC Minutes (3 weeks post-meeting)", impact: IMPACT.MED, source: "FEDERAL RESERVE", approx: true });
   }
 
-  // Quad witching: 3rd Friday of Mar/Jun/Sep/Dec — 16:00 (options/futures expiry)
+  // Quad witching: 3rd Friday of Mar/Jun/Sep/Dec
   for (const qm of [2, 5, 8, 11]) {
-    const w = nthWeekday(year, qm, 5, 3);
-    const ev = {
-      date: isoDay(w),
-      key: keyOf(w),
-      time: "16:00",
-      title: "Quad Witching — options & futures expiry (elevated volume)",
-      impact: IMPACT.MED,
-      source: "CME/OPEX",
-      approx: false,
-    };
-    if (inWeek(ev.key)) byKey.get(ev.key).items.push(ev);
+    const w = nthWeekday(mon.getFullYear(), qm, 5, 3);
+    add({ date: isoDay(w), key: keyOf(w), time: "16:00", title: "Quad Witching — options & futures expiry", impact: IMPACT.MED, source: "CME/OPEX", approx: false });
   }
 
-  // Earnings season kickoffs (bank-heavy windows) — impact MED
-  for (const [em, ed] of [[0, 14], [3, 14], [6, 15], [9, 14]]) {
-    const w = nthWeekday(year, em, 5, 3); // ~3rd Friday of window month
-    const ev = {
-      date: isoDay(w),
-      key: keyOf(w),
-      time: "09:30",
-      title: `Earnings season window opens (Q${em / 3 + 1} reports ramp up)`,
-      impact: IMPACT.MED,
-      source: "EARNINGS",
-      approx: true,
-    };
-    if (inWeek(ev.key)) byKey.get(ev.key).items.push(ev);
-  }
-
-  // Weekly recurring: jobless claims (Thu 08:30), crude inventories (Wed 10:30)
-  for (const d of events) {
+  // Weekly recurring: claims (Thu 08:30), crude inventories (Wed 10:30)
+  for (const d of days) {
     const dt = new Date(d.date + "T12:00:00Z");
     const dow = dt.getUTCDay();
-    if (dow === 4) {
-      d.items.push({ date: d.date, key: d.key, time: "08:30", title: "Initial Jobless Claims", impact: IMPACT.LOW, source: "DOL", approx: false });
-    }
-    if (dow === 3) {
-      d.items.push({ date: d.date, key: d.key, time: "10:30", title: "EIA Crude Oil Inventories", impact: IMPACT.LOW, source: "EIA", approx: false });
-    }
+    if (dow === 4) add({ date: d.date, key: d.key, time: "08:30", title: "Initial Jobless Claims", impact: IMPACT.LOW, source: "DOL", approx: false });
+    if (dow === 3) add({ date: d.date, key: d.key, time: "10:30", title: "EIA Crude Oil Inventories", impact: IMPACT.LOW, source: "EIA", approx: false });
   }
 
-  // Sort each day's items by time, then by impact weight
   const impactRank = { HIGH: 0, MED: 1, LOW: 2, CLOSED: 3 };
-  for (const e of events) {
-    e.items.sort((a, b) => (a.time.localeCompare(b.time) || (impactRank[a.impact] ?? 9) - (impactRank[b.impact] ?? 9)));
+  for (const e of days) {
+    e.items.sort((a, b) => a.time.localeCompare(b.time) || (impactRank[a.impact] ?? 9) - (impactRank[b.impact] ?? 9));
   }
-  events.sort((a, b) => a.date.localeCompare(b.date));
 
   return {
     statusCode: 200,
@@ -289,7 +192,7 @@ async function handler(event) {
       "Cache-Control": "no-store",
       "Access-Control-Allow-Origin": "*",
     },
-    body: JSON.stringify({ generatedAt: new Date().toISOString(), weekStart: isoDay(weekStart), events }),
+    body: JSON.stringify({ generatedAt: new Date().toISOString(), weekStart: isoDay(mon), events: days }),
   };
 }
 
