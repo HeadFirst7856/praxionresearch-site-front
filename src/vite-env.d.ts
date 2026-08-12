@@ -8,3 +8,4 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+// deploy-poke 2026-08-12 — force Netlify rebuild
