@@ -269,19 +269,27 @@ async function fetchReddit() {
   redditRotation += 1;
 
   try {
-    const text = await fetchWithTimeout(`https://www.reddit.com/r/${target.sub}/.rss?limit=12`, {
+    // JSON API carries engagement (ups/score) — RSS does not. Rotation keeps us under rate limits.
+    const text = await fetchWithTimeout(`https://www.reddit.com/r/${target.sub}/hot.json?limit=15`, {
       headers: { "User-Agent": "PraxionTerminal/1.0 (research desk)" },
     });
-    const parsed = parseAtom(text);
+    const json = JSON.parse(text);
+    const kids = json?.data?.children ?? [];
     redditCache.set(target.sub, {
-      items: parsed.map((item) => ({
-        source: `R/${target.name}`,
-        title: item.title,
-        link: item.link,
-        desc: item.desc,
-        pub: item.pub,
-        geo: null,
-      })),
+      items: kids
+        .map((c) => c?.data ?? {})
+        .filter((d) => d?.title)
+        .map((d) => ({
+          source: `R/${target.name}`,
+          title: stripHtml(d.title),
+          link: `https://www.reddit.com${d.permalink ?? ""}`,
+          desc: String(d.selftext ?? "").slice(0, 300),
+          pub: new Date((d.created_utc ?? Date.now() / 1000) * 1000).toISOString(),
+          score: d.score ?? 0,
+          ups: d.ups ?? 0,
+          numComments: d.num_comments ?? 0,
+          geo: null,
+        })),
       fetchedAt: Date.now(),
     });
   } catch (e) {
@@ -312,6 +320,7 @@ async function fetchSec() {
         link: item.link,
         desc: item.desc,
         pub: item.pub,
+        score: 0,
         geo: null,
       }));
     }),
