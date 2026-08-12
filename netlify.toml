@@ -28,6 +28,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/v1/headlines"
+  to = "/.netlify/functions/headlines"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
