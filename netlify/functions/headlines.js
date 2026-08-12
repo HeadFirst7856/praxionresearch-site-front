@@ -103,6 +103,7 @@ async function fetchPolymarket() {
         source: "POLY",
         title: ev.title,
         link: `https://polymarket.com/event/${ev.slug}`,
+        score: 0,
         desc: `YES ${Math.round(price * 100)}% · 24H VOL $${vol >= 1000 ? `${(vol / 1000).toFixed(1)}K` : vol.toFixed(0)}`,
         pub: ev.endDate ?? ev.startDate ?? "",
         geo: polyGeo(`${ev.title} ${tags.join(" ")}`),
@@ -251,6 +252,7 @@ async function fetchNews() {
         link: item.link,
         desc: item.desc,
         pub: item.pub,
+        score: 0,
         geo: geoTag(item, feed),
       }));
     }),
@@ -271,10 +273,11 @@ async function fetchReddit() {
   try {
     // JSON API carries engagement (ups/score) — RSS does not. Rotation keeps us under rate limits.
     const text = await fetchWithTimeout(`https://www.reddit.com/r/${target.sub}/hot.json?limit=15`, {
-      headers: { "User-Agent": "PraxionTerminal/1.0 (research desk)" },
+      headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" },
     });
     const json = JSON.parse(text);
     const kids = json?.data?.children ?? [];
+    if (kids.length === 0) throw new Error("empty json feed");
     redditCache.set(target.sub, {
       items: kids
         .map((c) => c?.data ?? {})
@@ -293,7 +296,28 @@ async function fetchReddit() {
       fetchedAt: Date.now(),
     });
   } catch (e) {
-    console.error("reddit feed error:", e?.message ?? e);
+    console.error("reddit json error:", e?.message ?? e, "— falling back to RSS");
+    try {
+      // Fallback: RSS (no scores, but never empty)
+      const text = await fetchWithTimeout(`https://www.reddit.com/r/${target.sub}/.rss?limit=12`, {
+        headers: { "User-Agent": "PraxionTerminal/1.0 (research desk)" },
+      });
+      const parsed = parseAtom(text);
+      redditCache.set(target.sub, {
+        items: parsed.map((item) => ({
+          source: `R/${target.name}`,
+          title: item.title,
+          link: item.link,
+          desc: item.desc,
+          pub: item.pub,
+          score: 0,
+          geo: null,
+        })),
+        fetchedAt: Date.now(),
+      });
+    } catch (e2) {
+      console.error("reddit rss fallback error:", e2?.message ?? e2);
+    }
   }
 
   let items = [];
