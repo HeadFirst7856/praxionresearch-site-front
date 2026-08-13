@@ -1,58 +1,58 @@
 [
   {
-    "time": "2026-08-11T14:27:00-04:00",
-    "event": "sim_trade",
-    "strategy": "rvwap_unfiltered",
-    "status": "info",
-    "context": "long 1 | entry 29583.5 | exit 29569.041124497584 | pnl -28.92"
-  },
-  {
-    "time": "2026-08-11T14:27:00-04:00",
-    "event": "sim_trade",
-    "strategy": "rvwap_bar_chop",
-    "status": "info",
-    "context": "long 1 | entry 29583.5 | exit 29569.041124497584 | pnl -28.92"
-  },
-  {
-    "time": "2026-08-11T14:32:00-04:00",
+    "time": "2026-08-12T14:10:00-04:00",
     "event": "sim_trade",
     "strategy": "rvwap_day_opening_chop",
     "status": "info",
-    "context": "long 1 | entry 29551.75 | exit 29565.746697263145 | pnl 27.99"
+    "context": "long 1 | entry 29895.0 | exit 29903.18951983649 | pnl 16.38"
   },
   {
-    "time": "2026-08-11T14:32:00-04:00",
+    "time": "2026-08-12T14:45:00-04:00",
     "event": "sim_trade",
     "strategy": "rvwap_unfiltered",
     "status": "info",
-    "context": "long 1 | entry 29551.75 | exit 29565.746697263145 | pnl 27.99"
+    "context": "short 1 | entry 29921.75 | exit 29913.397103774085 | pnl 16.71"
   },
   {
-    "time": "2026-08-11T15:59:00-04:00",
+    "time": "2026-08-12T14:45:00-04:00",
+    "event": "sim_trade",
+    "strategy": "rvwap_bar_chop",
+    "status": "info",
+    "context": "short 1 | entry 29921.75 | exit 29913.397103774085 | pnl 16.71"
+  },
+  {
+    "time": "2026-08-12T14:45:00-04:00",
+    "event": "sim_trade",
+    "strategy": "rvwap_day_opening_chop",
+    "status": "info",
+    "context": "short 1 | entry 29921.75 | exit 29913.397103774085 | pnl 16.71"
+  },
+  {
+    "time": "2026-08-12T15:59:00-04:00",
     "event": "sim_trade",
     "strategy": "orb",
     "status": "info",
-    "context": "short 1 | entry 29664.75 | exit 29635.75 | pnl 58.0"
+    "context": "short 1 | entry 29843.25 | exit 29853.0 | pnl -19.5"
   },
   {
-    "time": "2026-08-11T15:59:00-04:00",
+    "time": "2026-08-12T15:59:00-04:00",
     "event": "sim_trade",
     "strategy": "orb-martingale-1",
     "status": "info",
-    "context": "short 1 | entry 29664.75 | exit 29635.75 | pnl 58.0"
+    "context": "short 1 | entry 29843.25 | exit 29853.0 | pnl -19.5"
   },
   {
-    "time": "2026-08-11T15:59:00-04:00",
+    "time": "2026-08-12T15:59:00-04:00",
     "event": "sim_trade",
     "strategy": "orb-martingale-2",
     "status": "info",
-    "context": "short 2 | entry 29664.75 | exit 29635.75 | pnl 116.0"
+    "context": "short 2 | entry 29843.25 | exit 29853.0 | pnl -39.0"
   },
   {
-    "time": "2026-08-11T15:59:00-04:00",
+    "time": "2026-08-12T15:59:00-04:00",
     "event": "sim_trade",
     "strategy": "orb-martingale-3",
     "status": "info",
-    "context": "short 3 | entry 29664.75 | exit 29635.75 | pnl 174.0"
+    "context": "short 1 | entry 29843.25 | exit 29853.0 | pnl -19.5"
   }
 ]
