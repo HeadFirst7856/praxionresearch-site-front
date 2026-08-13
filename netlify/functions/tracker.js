@@ -9,7 +9,7 @@
  */
 
 const OPENSKY_URL =
-  "https://opensky-network.org/api/states/all?lamin=24&lomin=-126&lamax=50&lomax=-66";
+  "https://opensky-network.org/api/states/all?lamin=28&lomin=-118&lamax=47&lomax=-75";
 
 // Notable callsign prefixes — tankers, recon, VIP, specials (case-insensitive)
 const NOTABLE_PATTERNS = [
@@ -45,10 +45,11 @@ function notableScore(state) {
 }
 
 async function fetchAircraft() {
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const res = await fetch(OPENSKY_URL, {
         headers: { "User-Agent": "PraxionTerminal/1.0 (research desk)" },
+        signal: AbortSignal.timeout(6000),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -78,7 +79,7 @@ async function fetchAircraft() {
     return out.slice(0, 60);
       } catch (e) {
         console.error("opensky error (attempt " + (attempt + 1) + "):", e?.message ?? e);
-        if (attempt < 2) await new Promise((r) => setTimeout(r, 2000));
+        if (attempt < 1) await new Promise((r) => setTimeout(r, 1000));
       }
   }
   return cache.aircraft?.items ?? [];
