@@ -9,7 +9,7 @@
  */
 
 const OPENSKY_URL =
-  "https://opensky-network.org/api/states/all?lamin=18&lomin=-135&lamax=52&lomax=-60";
+  "https://opensky-network.org/api/states/all?lamin=24&lomin=-126&lamax=50&lomax=-66";
 
 // Notable callsign prefixes — tankers, recon, VIP, specials (case-insensitive)
 const NOTABLE_PATTERNS = [
@@ -25,7 +25,8 @@ const NOTABLE_PATTERNS = [
 const MILITARY_SQUAWKS = new Set(["3000", "3001", "3002", "3003", "3004", "3005", "3006", "7777", "7401"]);
 
 const cache = { aircraft: null, ships: null, at: 0 };
-const TTL = 30000; // refresh server-side every 30s (OpenSky anonymous = 1 req/10s)
+const TTL = 30000; // refresh attempt window
+const SUCCESS_TTL = 300000; // keep serving good data 5 min even if a poll fails
 
 function notableScore(state) {
   const callsign = String(state[1] ?? "").trim();
@@ -44,13 +45,15 @@ function notableScore(state) {
 }
 
 async function fetchAircraft() {
-  try {
-    const res = await fetch(OPENSKY_URL, {
-      headers: { "User-Agent": "PraxionTerminal/1.0 (research desk)" },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    const states = json?.states ?? [];
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(OPENSKY_URL, {
+        headers: { "User-Agent": "PraxionTerminal/1.0 (research desk)" },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const states = json?.states ?? [];
+      if (states.length === 0) throw new Error("empty states");
     const out = [];
     for (const s of states) {
       const { cat, w } = notableScore(s);
@@ -73,10 +76,12 @@ async function fetchAircraft() {
     }
     out.sort((a, b) => b.weight - a.weight || b.altFt - a.altFt);
     return out.slice(0, 60);
-  } catch (e) {
-    console.error("opensky error:", e?.message ?? e);
-    return cache.aircraft?.items ?? [];
+      } catch (e) {
+        console.error("opensky error (attempt " + (attempt + 1) + "):", e?.message ?? e);
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 2000));
+      }
   }
+  return cache.aircraft?.items ?? [];
 }
 
 // Naval name prefixes + AIS military type codes (35-37 = military ops)
@@ -134,7 +139,9 @@ async function handler(event) {
   const now = Date.now();
   if (!cache.aircraft || now - cache.at > TTL) {
     const [aircraft, ships] = await Promise.all([fetchAircraft(), fetchShips()]);
-    cache.aircraft = { items: aircraft, at: now };
+    if (aircraft.length > 0 || !cache.aircraft) {
+      cache.aircraft = { items: aircraft, at: now };
+    }
     cache.ships = ships;
     cache.at = now;
   }
