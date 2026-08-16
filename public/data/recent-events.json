@@ -2,21 +2,21 @@
   {
     "time": "2026-08-13T14:15:00-04:00",
     "event": "sim_trade",
-    "strategy": "rvwap_unfiltered",
+    "strategy": "rvwap_bar_chop",
     "status": "info",
     "context": "long 1 | entry 30197.25 | exit 30206.82627341923 | pnl 19.15"
   },
   {
     "time": "2026-08-13T14:28:00-04:00",
     "event": "sim_trade",
-    "strategy": "rvwap_bar_chop",
+    "strategy": "rvwap_unfiltered",
     "status": "info",
     "context": "long 1 | entry 30189.75 | exit 30195.42706490491 | pnl 11.35"
   },
   {
     "time": "2026-08-13T14:28:00-04:00",
     "event": "sim_trade",
-    "strategy": "rvwap_unfiltered",
+    "strategy": "rvwap_bar_chop",
     "status": "info",
     "context": "long 1 | entry 30189.75 | exit 30195.42706490491 | pnl 11.35"
   },
