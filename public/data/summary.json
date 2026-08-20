@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-19T06:37:09-04:00",
+  "generated_at": "2026-08-20T06:37:08-04:00",
   "timezone": "America/New_York",
   "source": {
     "mode": "bar_core_strategy_simulator",
@@ -22,13 +22,13 @@
   },
   "totals": {
     "bars_processed": 115140,
-    "closed_trades": 2395,
-    "closed_pnl_dollars": 4921.98,
-    "continuous_pnl_dollars": 4921.98,
+    "closed_trades": 2417,
+    "closed_pnl_dollars": 5167.39,
+    "continuous_pnl_dollars": 5167.39,
     "days_covered": 83,
     "covered_from": "2026-03-09",
     "covered_to": "2026-07-08",
-    "return_on_50k": 0.09844,
+    "return_on_50k": 0.103348,
     "max_margin_used_dollars": 9000.0,
     "max_margin_contracts": 5,
     "max_margin_strategy": "Orb Martingale 2",
@@ -39,18 +39,18 @@
       {
         "period": "2026",
         "start_balance": 50000.0,
-        "end_balance": 54921.98,
-        "pnl_dollars": 4921.98,
-        "closed_trades": 1882,
-        "wins": 1147,
-        "losses": 734,
-        "win_rate": 0.6095,
-        "gross_profit": 47320.28,
-        "gross_loss": 42398.3,
-        "profit_factor": 1.1161,
+        "end_balance": 55167.39,
+        "pnl_dollars": 5167.39,
+        "closed_trades": 1899,
+        "wins": 1160,
+        "losses": 738,
+        "win_rate": 0.6108,
+        "gross_profit": 47733.13,
+        "gross_loss": 42565.74,
+        "profit_factor": 1.1214,
         "max_drawdown": 2144.63,
         "first_trade_time": "2026-03-02T13:27:00-05:00",
-        "last_trade_time": "2026-08-18T14:13:00-04:00"
+        "last_trade_time": "2026-08-19T14:04:00-04:00"
       }
     ],
     "monthly_rows": [
@@ -137,18 +137,18 @@
       {
         "period": "2026-08",
         "start_balance": 54306.17,
-        "end_balance": 54921.98,
-        "pnl_dollars": 615.81,
-        "closed_trades": 175,
-        "wins": 113,
-        "losses": 62,
-        "win_rate": 0.6457,
-        "gross_profit": 2978.89,
-        "gross_loss": 2363.08,
-        "profit_factor": 1.2606,
+        "end_balance": 55167.39,
+        "pnl_dollars": 861.22,
+        "closed_trades": 192,
+        "wins": 126,
+        "losses": 66,
+        "win_rate": 0.6562,
+        "gross_profit": 3391.74,
+        "gross_loss": 2530.52,
+        "profit_factor": 1.3403,
         "max_drawdown": 613.83,
         "first_trade_time": "2026-08-03T10:04:00-04:00",
-        "last_trade_time": "2026-08-18T14:13:00-04:00"
+        "last_trade_time": "2026-08-19T14:04:00-04:00"
       }
     ],
     "weekly_rows": [
@@ -563,18 +563,18 @@
       {
         "period": "2026-W34",
         "start_balance": 55023.05,
-        "end_balance": 54921.98,
-        "pnl_dollars": -101.07,
-        "closed_trades": 22,
-        "wins": 12,
-        "losses": 10,
-        "win_rate": 0.5455,
-        "gross_profit": 228.62,
-        "gross_loss": 329.69,
-        "profit_factor": 0.6934,
+        "end_balance": 55167.39,
+        "pnl_dollars": 144.34,
+        "closed_trades": 39,
+        "wins": 25,
+        "losses": 14,
+        "win_rate": 0.641,
+        "gross_profit": 641.47,
+        "gross_loss": 497.13,
+        "profit_factor": 1.2903,
         "max_drawdown": 170.59,
         "first_trade_time": "2026-08-17T10:53:00-04:00",
-        "last_trade_time": "2026-08-18T14:13:00-04:00",
+        "last_trade_time": "2026-08-19T14:04:00-04:00",
         "week": "2026-W34"
       }
     ],
@@ -2635,6 +2635,23 @@
         "first_trade_time": "2026-08-18T11:05:00-04:00",
         "last_trade_time": "2026-08-18T14:13:00-04:00",
         "day": "2026-08-18"
+      },
+      {
+        "period": "2026-08-19",
+        "start_balance": 54921.98,
+        "end_balance": 55167.39,
+        "pnl_dollars": 245.41,
+        "closed_trades": 17,
+        "wins": 13,
+        "losses": 4,
+        "win_rate": 0.7647,
+        "gross_profit": 412.85,
+        "gross_loss": 167.44,
+        "profit_factor": 2.4657,
+        "max_drawdown": 137.1,
+        "first_trade_time": "2026-08-19T10:16:00-04:00",
+        "last_trade_time": "2026-08-19T14:04:00-04:00",
+        "day": "2026-08-19"
       }
     ]
   }
