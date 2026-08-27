@@ -23,6 +23,7 @@ type Trader = {
 type Category = {
   id: string;
   label: string;
+  status?: "ready" | "warming";
   traders: Trader[];
 };
 
@@ -46,8 +47,13 @@ function fmtPnl(n: number): string {
   return `${sign}$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 }
 
+const PROXY_NAME_RE = /^0x[a-fA-F0-9]{40}(-\d{13})?$/;
+
 function traderLabel(t: Trader): string {
-  return t.name || t.pseudonym || shortWallet(t.wallet);
+  // Server cleans these, but be defensive: never show a raw proxy-wallet hex as a name.
+  const name = t.name ?? "";
+  if (!name || PROXY_NAME_RE.test(name)) return t.pseudonym || shortWallet(t.wallet);
+  return name;
 }
 
 function shortWallet(w: string): string {
@@ -155,9 +161,18 @@ export function PolyquantPage() {
                 <div className="mb-4 flex items-baseline gap-3">
                   <h2 className={`text-xl font-semibold ${CATEGORY_ACCENT[cat.id] ?? "text-slate-200"}`}>{cat.label}</h2>
                   <span className="text-xs text-slate-500">{cat.traders.length} traders</span>
+                  {cat.status === "warming" && (
+                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-amber-300">
+                      warming up
+                    </span>
+                  )}
                 </div>
                 {cat.traders.length === 0 ? (
-                  <p className="text-sm text-slate-500">No traders in this category right now.</p>
+                  <p className="text-sm text-slate-500">
+                    {cat.status === "warming"
+                      ? "Still scanning the tape for profitable traders in this category — check back shortly."
+                      : "No traders in this category right now."}
+                  </p>
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2">
                     {cat.traders.map((t, i) => (

@@ -8,19 +8,44 @@
  * Data: Polymarket public Data API (no auth). Two hops:
  *   1. GET data-api.polymarket.com/trades  -> discover active wallets (by notional)
  *   2. GET data-api.polymarket.com/positions?user=<wallet> -> realizedPnl + open size
- * No server-side database. Optional best-effort Blob cache to keep the list warm
- * and reduce calls to the Data API; in-memory cache is always the primary layer.
+ *
+ * v3 (2026-08-27): persistent candidate pool + leaderboard snapshot in Netlify
+ * Blobs. The recent tape alone never contains enough profitable wallets per
+ * category (only ~12% of active wallets are net-positive), so we accumulate
+ * discovered wallets across refreshes and prioritise previously-profitable
+ * ones. Output is a stable 10-minute snapshot, not a per-request reshuffle.
  */
+
+import { connectLambda, getStore } from "@netlify/blobs";
 
 const DATA_API = "https://data-api.polymarket.com";
 const UA = "PraxionPolyquant/1.0 (research desk)";
 
-// How many distinct wallets to discover & score from the trade tape.
-const CANDIDATE_COUNT = 120;
-// How many of those we actually fetch detailed positions for (top-scoring subset).
-const TOP_SCORE_FETCH = 60;
+const BLOB_NAME = "praxion-polyquant";
+const POOL_KEY = "pool-v1";
+const SNAP_KEY = "snap-v1";
+
+// Spread the trade-tape sample across offset windows (limit=200 per call).
+const TAPE_LIMIT = 200;
+const TAPE_WINDOWS = [0, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800];
+// Selection: previously-profitable wallets always refetched, then top notional,
+// then a few random explorations to surface quiet whales.
+const PREV_QUAL_FETCH = 60;
+const TOP_SCORE_FETCH = 80;
+const EXPLORE_FETCH = 30;
+// Wallets fetched concurrently per batch (positions API is fast, keep bounded).
+const BATCH = 20;
 // Number of traders surfaced per category in the final output.
 const PER_CATEGORY = 10;
+// Below this many qualifying traders, a category reports status "warming".
+const MIN_CATEGORY = 3;
+// Pool cap (oldest/lowest-scoring wallets are dropped beyond this).
+const POOL_CAP = 2500;
+
+const TTL = 300000; // 5 min between full refresh attempts
+const SNAP_TTL = 600000; // serve blob snapshot up to 10 min old
+const SUCCESS_TTL = 1800000; // serve last good result up to 30 min on failure
+const BUILD_DEADLINE = 9000; // fall back to stale instead of 502 if build stalls
 
 // ------------------------------------------------------------------ categories --
 // Coarse classification from slug + title. Order matters (first match wins).
@@ -47,8 +72,6 @@ const CATEGORIES = [
   },
 ];
 
-const GEOPOLITICS_ALSO = /(recession|inflation|cpi|gdp|unemployment|rate-cut|rate-hike|fed-funds|sp500|nasdaq|dow|oil|gas|crude|gold)\b/i;
-
 function classify(slug, title) {
   const hay = `${slug ?? ""} ${title ?? ""}`;
   for (const c of CATEGORIES) {
@@ -59,23 +82,88 @@ function classify(slug, title) {
 
 const CATEGORY_ORDER = ["sports", "crypto", "politics", "geopolitics", "other"];
 
+// ------------------------------------------------------------------ blob store --
+// Mirrors chat.js: decode Lambda-compat blob context, fall back to explicit
+// siteID + token, and degrade gracefully to in-memory when no store exists
+// (e.g. local test runs).
+let _store = null;
+let _storeTried = false;
+
+function getBlobStore() {
+  if (_storeTried) return _store;
+  _storeTried = true;
+  try {
+    _store = getStore({ name: BLOB_NAME });
+  } catch {
+    try {
+      const siteID = process.env.SITE_ID || process.env.NETLIFY_SITE_ID;
+      const token = process.env.NETLIFY_FUNCTIONS_TOKEN;
+      if (siteID && token) _store = getStore({ name: BLOB_NAME, siteID, token });
+    } catch {
+      _store = null;
+    }
+  }
+  return _store;
+}
+
+async function blobGet(key) {
+  const store = getBlobStore();
+  if (!store) return null;
+  try {
+    return (await store.get(key, { type: "json" })) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function blobSet(key, value) {
+  const store = getBlobStore();
+  if (!store) return;
+  try {
+    await store.set(key, JSON.stringify(value), { type: "application/json" });
+  } catch {
+    /* non-fatal */
+  }
+}
+
+// In-memory fallbacks (also the primary read layer).
+const memory = { pool: null, snap: null, data: null, at: 0 };
+
 // ------------------------------------------------------------------ data fetchers --
-async function fetchTrades(limit) {
-  const res = await fetch(`${DATA_API}/trades?limit=${limit}`, {
+async function fetchTrades(limit, offset = 0) {
+  const res = await fetch(`${DATA_API}/trades?limit=${limit}&offset=${offset}`, {
     headers: { "User-Agent": UA },
-    signal: AbortSignal.timeout(9000),
+    signal: AbortSignal.timeout(6000),
   });
   if (!res.ok) throw new Error(`trades HTTP ${res.status}`);
   return (await res.json()) ?? [];
 }
 
 async function fetchPositions(user) {
-  const res = await fetch(`${DATA_API}/positions?user=${encodeURIComponent(user)}`, {
-    headers: { "User-Agent": UA },
-    signal: AbortSignal.timeout(9000),
-  });
-  if (!res.ok) throw new Error(`positions HTTP ${res.status}`);
-  return (await res.json()) ?? [];
+  // Data API intermittently 400s on some wallets (transient); retry twice.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(`${DATA_API}/positions?user=${encodeURIComponent(user)}`, {
+        headers: { "User-Agent": UA },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!res.ok) {
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
+          continue;
+        }
+        throw new Error(`positions HTTP ${res.status}`);
+      }
+      return (await res.json()) ?? [];
+    } catch (e) {
+      if (attempt < 2 && e?.name !== "AbortError") {
+        await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
+        continue;
+      }
+      throw e;
+    }
+  }
+  return [];
 }
 
 // ------------------------------------------------------------------ aggregation --
@@ -106,6 +194,55 @@ function discoverCandidates(trades) {
     rec.score += notional;
   }
   return [...map.values()].sort((a, b) => b.score - a.score);
+}
+
+/** Merge freshly discovered tape wallets into the persistent pool. */
+function mergeIntoPool(pool, candidates, now) {
+  const byWallet = new Map(pool.wallets.map((w) => [w.w, w]));
+  for (const c of candidates) {
+    let rec = byWallet.get(c.wallet);
+    if (!rec) {
+      rec = { w: c.wallet, name: c.name, pseudonym: c.pseudonym, firstSeen: now, lastSeen: now, score: 0, n: 0, qual: 0 };
+      byWallet.set(c.wallet, rec);
+      pool.wallets.push(rec);
+    }
+    if (!rec.name && c.name) rec.name = c.name;
+    if (!rec.pseudonym && c.pseudonym) rec.pseudonym = c.pseudonym;
+    rec.score += c.score;
+    rec.n += 1;
+    rec.lastSeen = now;
+  }
+  // Keep the strongest wallets (score + profitability bonus), drop the tail.
+  pool.wallets.sort((a, b) => b.score + Math.max(0, b.qual || 0) * 5 - (a.score + Math.max(0, a.qual || 0) * 5));
+  if (pool.wallets.length > POOL_CAP) pool.wallets.length = POOL_CAP;
+}
+
+/** Pick the fetch list: previously-profitable, top notional, plus exploration.
+ *  `deep` (young pool) sweeps harder to seed categories on the first builds. */
+function selectFetchList(pool, deep) {
+  const now = Date.now();
+  const prevQual = pool.wallets
+    .filter((w) => (w.qual || 0) > 0)
+    .sort((a, b) => (b.qual || 0) - (a.qual || 0))
+    .slice(0, PREV_QUAL_FETCH);
+  const picked = new Set(prevQual.map((w) => w.w));
+  const byScore = pool.wallets
+    .filter((w) => !picked.has(w.w))
+    .sort((a, b) => b.score - a.score);
+  const topScore = byScore.slice(0, deep ? 150 : TOP_SCORE_FETCH);
+  for (const w of topScore) picked.add(w.w);
+  const rest = byScore.slice(deep ? 150 : TOP_SCORE_FETCH);
+  // Deterministic-ish exploration: stable shuffle keyed by wallet, then recency.
+  const explore = rest
+    .sort((a, b) => (hashWallet(a.w) % 1000) - (hashWallet(b.w) % 1000) || b.lastSeen - a.lastSeen)
+    .slice(0, deep ? 50 : EXPLORE_FETCH);
+  return [...prevQual, ...topScore, ...explore];
+}
+
+function hashWallet(w) {
+  let h = 0;
+  for (let i = 0; i < w.length; i++) h = (h * 31 + w.charCodeAt(i)) >>> 0;
+  return h;
 }
 
 /**
@@ -148,10 +285,20 @@ function scorePositions(positions) {
   }
 
   // "Profitability" score = realized (settled) + unrealized (open), a total return.
-  // Realized is the honest, locked-in number; unrealized is mark-to-market.
   const totalPnl = realizedPnl + unrealizedPnl;
 
   return { realizedPnl, unrealizedPnl, totalPnl, largestSize, largestValue, openCount, bets };
+}
+
+// ------------------------------------------------------------------ display names --
+// Raw proxy-wallet display names come back as hex (sometimes with a -<unix_ms>
+// suffix). Don't show those as a trader's name; fall back to pseudonym / null.
+const PROXY_NAME_RE = /^0x[a-fA-F0-9]{40}(-\d{13})?$/;
+
+function cleanTraderName(name, pseudonym) {
+  const n = (name ?? "").trim();
+  if (!n || PROXY_NAME_RE.test(n)) return pseudonym || null;
+  return n.replace(/-\d{13}$/, "");
 }
 
 // ------------------------------------------------------------------ handlers --
@@ -179,36 +326,41 @@ function err(statusCode, message) {
   };
 }
 
-// In-memory cache shared across warm invocations.
-const cache = { data: null, at: 0 };
-const TTL = 120000; // 2 min between full refresh attempts
-const SUCCESS_TTL = 600000; // serve last good result up to 10 min on failure
-
 async function build() {
-  // 1. Discover candidates from a recent slice of the trade tape.
-  //    Fetch a couple of page-windows to widen the wallet pool.
-  const windows = [];
-  const [t1, t2, t3] = await Promise.all([
-    fetchTrades(200).catch(() => []),
-    fetchTrades(200).catch(() => []),
-    fetchTrades(200).catch(() => []),
-  ]);
-  const trades = [...t1, ...t2, ...t3];
+  const now = Date.now();
+
+  // 1. Load persistent pool (blob) or fall back to in-memory.
+  let pool = memory.pool;
+  if (!pool) {
+    const fromBlob = await blobGet(POOL_KEY);
+    pool = fromBlob && Array.isArray(fromBlob.wallets) ? fromBlob : { wallets: [], updatedAt: now };
+  }
+
+  // 2. Discover candidates from several offset windows of the trade tape.
+  const windows = await Promise.all(
+    TAPE_WINDOWS.map((off) => fetchTrades(TAPE_LIMIT, off).catch(() => [])),
+  );
+  const trades = windows.flat();
   if (trades.length === 0) throw new Error("empty trade tape");
 
-  const candidates = discoverCandidates(trades).slice(0, TOP_SCORE_FETCH);
+  // 3. Merge into the pool, then pick who to fetch positions for.
+  //    Young pools get a deep sweep to seed categories fast.
+  const deep = pool.wallets.length < 300;
+  mergeIntoPool(pool, discoverCandidates(trades), now);
+  const fetchList = selectFetchList(pool, deep);
 
-  // 2. Fetch positions (realized P&L) for the top candidates, concurrently but
-  //    bounded to avoid hammering the Data API.
+  // 4. Fetch positions concurrently, bounded by batches (small delay between
+  //    batches to stay polite to the Data API and avoid burst rate-limits).
   const scored = [];
-  const BATCH = 10;
-  for (let i = 0; i < candidates.length; i += BATCH) {
-    const batch = candidates.slice(i, i + BATCH);
+  for (let i = 0; i < fetchList.length; i += BATCH) {
+    const batch = fetchList.slice(i, i + BATCH);
     const results = await Promise.all(
       batch.map(async (c) => {
         try {
-          const positions = await fetchPositions(c.wallet);
+          const positions = await fetchPositions(c.w);
           const s = scorePositions(positions);
+          c.qual = Math.round(s.totalPnl * 100) / 100;
+          c.lastSeen = now;
           return { ...c, ...s, positions: positions.length };
         } catch {
           return null;
@@ -216,15 +368,19 @@ async function build() {
       }),
     );
     for (const r of results) if (r) scored.push(r);
+    if (i + BATCH < fetchList.length) await new Promise((r) => setTimeout(r, 150));
   }
 
-  // 3. Rank: profitability (totalPnl) desc, then largest open position desc.
-  scored.sort((a, b) => b.totalPnl - a.totalPnl || b.largestValue - a.largestValue);
+  // 5. Gate: only genuinely profitable, active wallets qualify for "top" lists.
+  const qualifiers = scored.filter((s) => s.totalPnl > 0 && (s.openPositions > 0 || s.realizedPnl > 0));
 
-  // 4. Bucket by category and take the top PER_CATEGORY per category.
+  // 6. Rank: profitability (totalPnl) desc, then largest open position desc.
+  qualifiers.sort((a, b) => b.totalPnl - a.totalPnl || b.largestValue - a.largestValue);
+
+  // 7. Bucket by category and take the top PER_CATEGORY per category.
   const byCategory = {};
   for (const id of CATEGORY_ORDER) byCategory[id] = [];
-  for (const s of scored) {
+  for (const s of qualifiers) {
     // A trader's category = their single biggest category by number of bets
     // (so they appear once, under their dominant focus area).
     const counts = {};
@@ -244,14 +400,23 @@ async function build() {
     }
   }
 
-  return {
-    generatedAt: new Date().toISOString(),
+  // 8. Persist pool + snapshot (best-effort), and cache in memory.
+  pool.updatedAt = now;
+  memory.pool = pool;
+  await blobSet(POOL_KEY, pool);
+
+  const data = {
+    generatedAt: new Date(now).toISOString(),
     methodology:
-      "Ranked by realized + unrealized P&L (totalPnl), tie-broken by largest open position. " +
-      "Trader appears once, under their dominant category by bet count.",
-    traders: scored.slice(0, 60).map((s) => ({
+      "Ranked by realized + unrealized P&L (totalPnl) among profitable tracked wallets, " +
+      "tie-broken by largest open position. Trader appears once, under their dominant " +
+      "category by bet count. Wallets with negative net P&L are excluded from ranking. " +
+      "Tracked wallets accumulate over time from the public trade tape.",
+    tracked: scored.length,
+    poolSize: pool.wallets.length,
+    traders: qualifiers.slice(0, 60).map((s) => ({
       wallet: s.wallet,
-      name: s.name,
+      name: cleanTraderName(s.name, s.pseudonym),
       pseudonym: s.pseudonym,
       realizedPnl: round2(s.realizedPnl),
       unrealizedPnl: round2(s.unrealizedPnl),
@@ -270,27 +435,37 @@ async function build() {
         category: b.category,
       })),
     })),
-    categories: CATEGORY_ORDER.map((id) => ({
-      id,
-      label: CATEGORIES.find((c) => c.id === id)?.label ?? id,
-      traders: (byCategory[id] ?? []).map((s) => ({
-        wallet: s.wallet,
-        name: s.name,
-        pseudonym: s.pseudonym,
-        realizedPnl: round2(s.realizedPnl),
-        unrealizedPnl: round2(s.unrealizedPnl),
-        totalPnl: round2(s.totalPnl),
-        largestPosition: round2(s.largestValue),
-        openPositions: s.openCount,
-        bets: s.bets.slice(0, 6).map((b) => ({
-          title: b.title,
-          outcome: b.outcome,
-          size: round4(b.size),
-          cashPnl: round2(b.cashPnl),
+    categories: CATEGORY_ORDER.map((id) => {
+      const list = byCategory[id] ?? [];
+      return {
+        id,
+        label: CATEGORIES.find((c) => c.id === id)?.label ?? id,
+        status: list.length >= MIN_CATEGORY ? "ready" : "warming",
+        traders: list.map((s) => ({
+          wallet: s.wallet,
+          name: cleanTraderName(s.name, s.pseudonym),
+          pseudonym: s.pseudonym,
+          realizedPnl: round2(s.realizedPnl),
+          unrealizedPnl: round2(s.unrealizedPnl),
+          totalPnl: round2(s.totalPnl),
+          largestPosition: round2(s.largestValue),
+          openPositions: s.openCount,
+          bets: s.bets.slice(0, 6).map((b) => ({
+            title: b.title,
+            outcome: b.outcome,
+            size: round4(b.size),
+            cashPnl: round2(b.cashPnl),
+          })),
         })),
-      })),
-    })),
+      };
+    }),
   };
+
+  const snap = { data, at: now };
+  memory.snap = snap;
+  await blobSet(SNAP_KEY, snap);
+
+  return data;
 }
 
 function round2(n) {
@@ -313,21 +488,45 @@ async function handler(event) {
     };
   }
 
-  const now = Date.now();
-  if (cache.data && now - cache.at < TTL) {
-    return ok(cache.data);
+  // Decode the Lambda-compat blob context (event.blobs) into the store env.
+  try {
+    if (event.blobs) connectLambda(event);
+  } catch {
+    /* fall through to explicit paths */
   }
 
+  const now = Date.now();
+
+  // Fast path: in-memory fresh.
+  if (memory.data && now - memory.at < TTL) {
+    return ok(memory.data);
+  }
+
+  // Snapshot path: blob snapshot fresh (stable output across cold starts).
+  if (!memory.snap) memory.snap = await blobGet(SNAP_KEY);
+  if (memory.snap && now - memory.snap.at < SNAP_TTL) {
+    memory.data = memory.snap.data;
+    memory.at = now;
+    return ok(memory.snap.data);
+  }
+
+  // Build path: refresh the snapshot.
   try {
-    const data = await build();
-    cache.data = data;
-    cache.at = now;
+    const data = await Promise.race([
+      build(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("build timeout")), BUILD_DEADLINE)),
+    ]);
+    memory.data = data;
+    memory.at = now;
     return ok(data);
   } catch (e) {
     console.error("polyquant build error:", e?.message ?? e);
-    if (cache.data && now - cache.at < SUCCESS_TTL) {
+    if (memory.snap && now - memory.snap.at < SUCCESS_TTL) {
       // Serve last good result, flagged stale.
-      return ok({ ...cache.data, stale: true, generatedAt: cache.data.generatedAt });
+      return ok({ ...memory.snap.data, stale: true, generatedAt: memory.snap.data.generatedAt });
+    }
+    if (memory.data && now - memory.at < SUCCESS_TTL) {
+      return ok({ ...memory.data, stale: true, generatedAt: memory.data.generatedAt });
     }
     return err(502, `polyquant unavailable: ${e?.message ?? e}`);
   }
