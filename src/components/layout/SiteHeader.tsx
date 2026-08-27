@@ -16,6 +16,7 @@ import {
 const baseLinks = [
   { to: "/", label: "Home" },
   { to: "/regime.html", label: "Regime" },
+  { to: "/polyquant", label: "Polyquant" },
 ];
 
 const aboutLink = { to: "/about", label: "About Us" };
