@@ -48,6 +48,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/v1/ponybook"
+  to = "/.netlify/functions/ponybook"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

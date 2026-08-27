@@ -17,6 +17,7 @@ const baseLinks = [
   { to: "/", label: "Home" },
   { to: "/regime.html", label: "Regime" },
   { to: "/polyquant", label: "Polyquant" },
+  { to: "/ponybook", label: "Ponybook" },
 ];
 
 const aboutLink = { to: "/about", label: "About Us" };

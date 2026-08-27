@@ -7,6 +7,7 @@ import { HomePage } from "@/pages/HomePage";
 import { StrategyLabPage } from "@/pages/StrategyLabPage";
 import { AboutPage } from "@/pages/AboutPage";
 import { PolyquantPage } from "@/pages/PolyquantPage";
+import { PonybookPage } from "@/pages/PonybookPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { SignupPage } from "@/pages/SignupPage";
 import { Toaster } from "@/components/ui/sonner";
@@ -48,6 +49,7 @@ function App() {
             {signupEnabled ? <Route path="/signup" element={<SignupPage />} /> : null}
             <Route path="/about" element={<AboutPage />} />
             <Route path="/polyquant" element={<PolyquantPage />} />
+            <Route path="/ponybook" element={<PonybookPage />} />
             <Route element={<RequireAuth />}>
               <Route path="/strategy-lab" element={<StrategyLabPage />} />
             </Route>
