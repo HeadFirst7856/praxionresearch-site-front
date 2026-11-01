@@ -4,6 +4,7 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { AppShell } from "@/components/layout/AppShell";
 import { HomePage } from "@/pages/HomePage";
+import { StationPage } from "@/pages/StationPage";
 import { StrategyLabPage } from "@/pages/StrategyLabPage";
 import { AboutPage } from "@/pages/AboutPage";
 import { PolyquantPage } from "@/pages/PolyquantPage";
@@ -42,6 +43,10 @@ function App() {
                 </Suspense>
               }
             />
+          </Route>
+          {/* Fullscreen Praxion Control — inside the login wall, outside the site shell. */}
+          <Route element={<RequireAuth />}>
+            <Route path="/station" element={<StationPage />} />
           </Route>
           <Route element={<AppShell />}>
             <Route index element={<HomePage />} />

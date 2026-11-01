@@ -52,6 +52,12 @@
   to = "/.netlify/functions/ponybook"
   status = 200
 
+# Praxion Control dashboard proxy (JWT-gated; forwarded to local control-server + router)
+[[redirects]]
+  from = "/api/station/*"
+  to = "/.netlify/functions/station-proxy"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
