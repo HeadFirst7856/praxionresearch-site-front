@@ -19,11 +19,16 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { loadAuthSession } from "@/lib/authStorage";
 import controlUiHtml from "./station/control-ui.html?raw";
 
+// Option 1: point the station dashboard at the live Cloudflare tunnel directly.
+// (Until we move to the auth'd station-proxy path, tunnel carries real data.)
+const STATION_ORIGIN = "https://station.praxionresearch.com";
+
 const ROUTER_RE = /var\s+ROUTER\s*=\s*'http:\/\/127\.0\.0\.1:8791'/;
-const ROUTER_REPLACE = "var ROUTER='/api/station/chat'";
+const ROUTER_REPLACE = `var ROUTER='${STATION_ORIGIN}'`;
 
 function patchedHtml(): string {
-  // Rewrite the hardcoded session-router origin to a same-origin path the proxy handles.
+  // Rewrite the hardcoded session-router origin to the tunnel origin.
+  // (control-ui appends '/chat...' to ROUTER, so ROUTER should be the bare origin.)
   return controlUiHtml.replace(ROUTER_RE, ROUTER_REPLACE);
 }
 
@@ -52,9 +57,9 @@ export function StationPage() {
       win.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
         let url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
 
-        // ROUTER is already '/api/station/chat'; just ensure any leftover '/api/' is namespaced.
+        // Rewrite same-origin '/api/*' calls to the tunnel origin directly.
         if (url.startsWith("/api/")) {
-          url = "/api/station/" + url.slice("/api/".length);
+          url = STATION_ORIGIN + url;
         }
 
         const headers = new Headers(init?.headers);
