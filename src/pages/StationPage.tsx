@@ -19,16 +19,15 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { loadAuthSession } from "@/lib/authStorage";
 import controlUiHtml from "./station/control-ui.html?raw";
 
-// Option 1: point the station dashboard at the live Cloudflare tunnel directly.
-// (Until we move to the auth'd station-proxy path, tunnel carries real data.)
-const STATION_ORIGIN = "https://station.praxionresearch.com";
-
+// Route the station dashboard through Netlify's station-proxy (JWT-gated).
+// The proxy verifies the Station JWT, injects the control token server-side,
+// and forwards to the local control-server (8890) + session-router (8791).
+// The browser NEVER talks to the tunnel/backend directly and NEVER sees the control token.
 const ROUTER_RE = /var\s+ROUTER\s*=\s*'http:\/\/127\.0\.0\.1:8791'/;
-const ROUTER_REPLACE = `var ROUTER='${STATION_ORIGIN}'`;
+const ROUTER_REPLACE = "var ROUTER='/api/station/chat'";
 
 function patchedHtml(): string {
-  // Rewrite the hardcoded session-router origin to the tunnel origin.
-  // (control-ui appends '/chat...' to ROUTER, so ROUTER should be the bare origin.)
+  // Rewrite the hardcoded session-router origin to a same-origin path the proxy handles.
   return controlUiHtml.replace(ROUTER_RE, ROUTER_REPLACE);
 }
 
@@ -57,9 +56,9 @@ export function StationPage() {
       win.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
         let url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
 
-        // Rewrite same-origin '/api/*' calls to the tunnel origin directly.
+        // Rewrite same-origin '/api/*' calls to the namespaced proxy path '/api/station/*'.
         if (url.startsWith("/api/")) {
-          url = STATION_ORIGIN + url;
+          url = "/api/station/" + url.slice("/api/".length);
         }
 
         const headers = new Headers(init?.headers);
