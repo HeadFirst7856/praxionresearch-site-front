@@ -1,7 +1,7 @@
 {
-  "name": "NanoQuant",
-  "short_name": "NanoQuant",
-  "description": "NanoQuant \u2014 quantitative trading terminal: battle mode war room, Monte Carlo walk-forward, trade log, operator chat, news & price alerts.",
+  "name": "Praxion Station",
+  "short_name": "Praxion Station",
+  "description": "Praxion Station \u2014 quantitative trading terminal: battle mode war room, Monte Carlo walk-forward, trade log, operator chat, news & price alerts.",
   "start_url": "/terminal",
   "scope": "/",
   "display": "standalone",

@@ -1,5 +1,5 @@
 // StationPage — embeds the "Praxion Control" dashboard (control-server UI) behind the
-// NanoQuant login wall. The original control-ui.html is self-contained (inline CSS + one
+// Praxion Station login wall. The original control-ui.html is self-contained (inline CSS + one
 // <script> block) and calls:
 //   - fetch('/api/...')             -> control-server (8890)
 //   - fetch(ROUTER + '/chat...')    -> session-router (8791)
@@ -8,7 +8,7 @@
 // install a small fetch shim inside that iframe that:
 //   1. Rewrites '/api/*'            -> '/api/station/*'  (control-server via proxy)
 //   2. Rewrites the hardcoded ROUTER host -> '/api/station/chat' (router via proxy)
-//   3. Attaches the NanoQuant JWT as 'Authorization: Bearer <token>'
+//   3. Attaches the Station JWT as 'Authorization: Bearer <token>'
 //
 // The proxy (netlify/functions/station-proxy.js) then verifies the JWT and injects the
 // shared STATION_CONTROL_TOKEN server-side before forwarding to the local servers.
@@ -50,7 +50,7 @@ export function StationPage() {
     doc.close();
 
     // Install a fetch shim inside the iframe so all '/api/*' calls rewrite to
-    // '/api/station/*' and carry the NanoQuant JWT.
+    // '/api/station/*' and carry the Station JWT.
     const win = iframe.contentWindow as (Window & typeof globalThis) | null;
     if (win) {
       const nativeFetch = win.fetch.bind(win);

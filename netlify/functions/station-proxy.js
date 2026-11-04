@@ -1,13 +1,13 @@
 // Netlify Function — station-proxy
 // Proxies the "Praxion Control" dashboard API (control-server.js:8890) and the
 // session-router chat API (session-router.js:8791) to the browser, but ONLY after
-// verifying a valid NanoQuant JWT.
+// verifying a valid Station JWT.
 //
 // Security model:
-//   - Outer wall: a valid NanoQuant JWT (same secret as netlify/functions/auth.js).
+//   - Outer wall: a valid Station JWT (same secret as netlify/functions/auth.js).
 //   - Inner wall: the shared control token (STATION_CONTROL_TOKEN) is injected here,
 //     server-side, and never exposed to the browser. The browser only ever sends
-//     its NanoQuant JWT to this function, never the control token.
+//     its Station JWT to this function, never the control token.
 //
 // Env required:
 //   - SIGNAL_JWT_SECRET          (must equal the backend's .env value)
@@ -69,7 +69,7 @@ export const handler = async (event) => {
 
   if (method === "OPTIONS") return json({ ok: true }, 204);
 
-  // --- Auth guard: require a valid NanoQuant JWT on every request. ---
+  // --- Auth guard: require a valid Station JWT on every request. ---
   const auth = event.headers?.authorization || "";
   if (!auth.toLowerCase().startsWith("bearer ")) return json({ detail: "missing_bearer_token" }, 401);
   const payload = await verifyJwt(auth.slice(7).trim());

@@ -3,7 +3,7 @@ import { AuthHeader } from "@/components/auth/AuthHeader";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { isSignupEnabled } from "@/lib/features";
 
-// NanoQuant operator login — terminal-themed (black + gold) on all screens.
+// Praxion Station operator login — terminal-themed (black + gold) on all screens.
 export function LoginPage() {
   const signupEnabled = isSignupEnabled();
 
