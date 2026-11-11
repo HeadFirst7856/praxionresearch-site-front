@@ -82,6 +82,8 @@ body{background:radial-gradient(1200px 800px at 50% -10%,#0a1226 0%,#05070d 60%)
 .facct{font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums}
 .fbal{margin-left:auto;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
 .fbal.pos{color:#3ddc84}.fbal.neg{color:#ff5f6d}
+.fpnl{font-size:9px;font-weight:600;letter-spacing:.3px;margin-top:1px;opacity:.85}
+.fpnl.pos{color:#3ddc84}.fpnl.neg{color:#ff5f6d}
 .fmeta{font-size:10px;color:var(--dim);text-align:right;min-width:92px;line-height:1.5}
 .fmeta .ok{color:#3ddc84}.fmeta .warn{color:#ffc23d}.fmeta .bad{color:#ff5f6d}
 .fnote{font-size:10px;color:#ffc23d;padding-left:21px}
@@ -938,8 +940,15 @@ function renderFleet(d){
   var h='';
   d.lanes.forEach(function(L){
     var st=L.status||'red';
-    var bal=(L.balance==null)?'—':money(L.balance);
-    var balCls=(L.balance==null)?'':(L.balance>=0?'pos':'neg');
+    // Prefer running balance (cash + open P&L) when the broker provides it.
+    var balNum = (L.runningBalance!=null) ? L.runningBalance : L.balance;
+    var bal = (balNum==null) ? '—' : money(balNum);
+    var balCls = (balNum==null) ? '' : (balNum>=0?'pos':'neg');
+    var pnl = L.openPnl;
+    var pnlTxt = '';
+    if (pnl != null && Math.abs(pnl) >= 0.005) {
+      pnlTxt = '<div class="fpnl '+(pnl>=0?'pos':'neg')+'">'+(pnl>=0?'+':'')+money(pnl)+' open</div>';
+    }
     h+='<div class="fleetrow">'
       +'<span class="fdot '+st+'" title="'+st+' — '+esc(L.name)+'"></span>'
       +'<span class="fname">'+esc(L.name)+'</span>'
@@ -949,7 +958,7 @@ function renderFleet(d){
         +'<span class="'+(L.laneOk?'ok':'bad')+'">lane '+fmtAge(L.laneAgeSec)+'</span> · '
         +'<span class="'+(L.seeded?'ok':'warn')+'">'+(L.seeded?'seeded':'unseeded')+'</span>'
       +'</span>'
-      +'<span class="fbal '+balCls+'">'+bal+'</span>'
+      +'<span class="fbal '+balCls+'">'+bal+pnlTxt+'</span>'
     +'</div>';
     if(L.note) h+='<div class="fnote">'+esc(L.note)+'</div>';
   });
