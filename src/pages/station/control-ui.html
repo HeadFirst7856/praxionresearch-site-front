@@ -85,6 +85,44 @@ body{background:radial-gradient(1200px 800px at 50% -10%,#0a1226 0%,#05070d 60%)
 .fpnl{font-size:9px;font-weight:600;letter-spacing:.3px;margin-top:1px;opacity:.85}
 .fpnl.pos{color:#3ddc84}.fpnl.neg{color:#ff5f6d}
 
+/* ---- ORB Backtest panel ---- */
+.btpanel{margin:0 14px 10px;border:1px solid rgba(126,224,255,.13);border-radius:10px;background:rgba(12,18,30,.62);overflow:hidden}
+.bthead{display:flex;align-items:center;gap:10px;padding:7px 11px;border-bottom:1px solid rgba(126,224,255,.09)}
+.btmeta{font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums}
+.btrun{margin-left:auto;background:rgba(126,224,255,.1);color:#7ee0ff;border:1px solid rgba(126,224,255,.35);border-radius:6px;padding:4px 11px;font:inherit;font-size:10px;font-weight:700;letter-spacing:.6px;cursor:pointer}
+.btrun:hover{background:rgba(126,224,255,.2)}
+.btrun:disabled{opacity:.5;cursor:default}
+.btbody{padding:9px 11px 11px}
+.btidle{font-size:11px;color:var(--dim);padding:6px 0 2px}
+.btgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+@media(max-width:820px){.btgrid{grid-template-columns:1fr}}
+.btcard{border:1px solid rgba(126,224,255,.12);border-radius:9px;background:rgba(8,13,22,.75);padding:9px 10px}
+.btname{font-size:11px;font-weight:800;letter-spacing:.8px;color:var(--text);margin-bottom:2px}
+.btpnl{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;margin:1px 0 5px}
+.btpnl.pos{color:#3ddc84}.btpnl.neg{color:#ff5f6d}
+.btstats{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums}
+.btstats b{color:var(--text);font-weight:700}
+.btlast{margin-top:7px;border-top:1px solid rgba(126,224,255,.09);padding-top:6px}
+.btlasthd{font-size:9px;letter-spacing:1.1px;text-transform:uppercase;color:var(--dim);margin-bottom:3px}
+.btrow{display:flex;gap:6px;font-size:10px;line-height:1.7;font-variant-numeric:tabular-nums;color:var(--dim)}
+.btrow .d{color:var(--text)}
+.btrow .dir{font-weight:700;font-size:9px;padding:0 4px;border-radius:3px}
+.btrow .dir.long{color:#3ddc84;background:rgba(61,220,132,.12)}
+.btrow .dir.short{color:#ff5f6d;background:rgba(255,95,109,.12)}
+.btrow .x{margin-left:auto}
+.btrow .x.tp{color:#3ddc84}.btrow .x.sl{color:#ff5f6d}.btrow .x.eod{color:#e8c46a}
+.btrow .p{margin-left:8px;font-weight:700}
+
+/* summary scorecard rows (strategy / last-3 dates / PT|SL|EOD / P&L) */
+.btsummary{margin:0 14px 10px;border:1px solid rgba(126,224,255,.13);border-radius:10px;background:rgba(12,18,30,.62);padding:8px 11px}
+.btsrow{display:flex;align-items:center;gap:10px;font-size:10px;line-height:1.9;font-variant-numeric:tabular-nums;border-bottom:1px solid rgba(126,224,255,.06);padding:2px 0}
+.btsrow:last-child{border-bottom:0}
+.btsname{font-weight:800;letter-spacing:.5px;color:var(--text);min-width:78px}
+.btsdates{color:var(--dim);min-width:110px}
+.btsexi{color:var(--dim);min-width:132px}
+.btspnl{margin-left:auto;font-weight:800}
+.btspnl.pos{color:#3ddc84}.btspnl.neg{color:#ff5f6d}
+
 /* per-position breakdown */
 .fpositions{margin:2px 0 6px 21px;border-left:2px solid rgba(126,224,255,.18);padding-left:9px}
 .fpos{display:flex;align-items:center;gap:7px;font-size:10px;line-height:1.75;font-variant-numeric:tabular-nums}
@@ -245,11 +283,20 @@ body{background:radial-gradient(1200px 800px at 50% -10%,#0a1226 0%,#05070d 60%)
   <div class="main">
     <div class="topbar"><span class="t" id="topbar-title">OVERVIEW</span><span class="stat" id="topbar-stat"></span><button class="cog" id="cog" onclick="toggleSettings()" title="Settings">⚙</button></div>
     <div class="graph-wrap" id="graphwrap"><span class="glabel" id="graph-label">Workflow</span><span class="graph-toggle" id="graph-toggle" onclick="toggleGraph()">▼ hide</span><canvas id="graph"></canvas></div>
+    <div class="btpanel" id="btpanel">
+      <div class="bthead">
+        <span class="glabel">ORB Backtest · 3 variants</span>
+        <span class="btmeta" id="bt-meta"></span>
+        <button class="btrun" id="bt-run" onclick="runBacktest()">▶ Run backtest</button>
+      </div>
+      <div class="btbody" id="bt-body"><div class="btidle">Click <b>Run backtest</b> to simulate the ORB at 0.50x / 0.75x / 1.00x with gap and regime alignment.</div></div>
+    </div>
     <div class="plwrap">
       <div class="fleet" id="fleet"><div class="fleethead"><span class="glabel">ORB Fleet</span><span class="fagen" id="fleet-age"></span></div><div id="fleet-rows" style="font-size:11px;color:var(--dim)">loading…</div></div>
       <div class="plhead"><span class="glabel">Projects · P&amp;L</span><span class="hiddenchip" id="hiddenchip" style="display:none" onclick="toggleHidden()"></span></div>
       <div class="hiddenpop" id="hiddenpop" style="display:none"></div>
       <div class="pnlsummary" id="pnlsummary"></div>
+      <div class="btsummary" id="btsummary" style="display:none"></div>
       <div class="plgrid" id="plgrid"></div>
     </div>
   </div>
@@ -909,6 +956,107 @@ async function renderResearch(){
 }
 function researchTabs(active){ return ['ideas','features','graveyard'].map(function(t){return '<span class="rtab'+(active===t?' on':'')+'" onclick="researchTabSwitch(\''+t+'\')">'+t+'</span>'}).join(''); }
 var researchOffset=0;
+
+/* ---- ORB Backtest (workflow tab) ----
+ * Runs only when the user clicks, per EDP's request. Results are cached in
+ * memory for the session so re-clicking is instant; the server serves a
+ * precomputed JSON (see scripts/sync_orb_backtest.sh) rather than recomputing.
+ */
+var _btData=null;
+
+function runBacktest(){
+  var btn=document.getElementById('bt-run');
+  var body=document.getElementById('bt-body');
+  if(_btData){ renderBacktest(_btData); return; }
+  if(btn){ btn.disabled=true; btn.textContent='running…'; }
+  if(body){ body.innerHTML='<div class="btidle">Loading backtest…<div style="margin-top:7px;height:3px;border-radius:99px;background:rgba(126,224,255,.14);overflow:hidden"><div id="btbar" style="width:10%;height:100%;background:linear-gradient(90deg,#7ee0ff,#3ddc84);transition:width .4s"></div></div></div>'; }
+  var p=6, timer=setInterval(function(){ p=Math.min(90,p+12); var b=document.getElementById('btbar'); if(b) b.style.width=p+'%'; },260);
+  fetch('/api/backtest')
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(d){
+      clearInterval(timer);
+      if(!d || !d.ok || !d.variants || !d.variants.length) throw new Error((d&&d.reason)||'no data');
+      _btData=d; renderBacktest(d);
+    })
+    .catch(function(e){
+      clearInterval(timer);
+      if(body) body.innerHTML='<div class="btidle">Backtest unavailable — '+esc(e.message||'error')+'.</div>';
+      if(btn){ btn.disabled=false; btn.textContent='\u25b6 Run backtest'; }
+    });
+}
+
+function renderBacktest(d){
+  var btn=document.getElementById('bt-run');
+  var body=document.getElementById('bt-body');
+  var meta=document.getElementById('bt-meta');
+  if(btn){ btn.disabled=false; btn.textContent='\u21bb Refresh'; }
+  if(meta){ meta.textContent=(d.window?d.window.start+' \u2192 '+d.window.end+' \u00b7 ':'')+(d.sessions||0)+' sessions'; }
+  if(body){
+    var h='<div class="btgrid">';
+    d.variants.forEach(function(v){
+      h+=btCard(v);
+    });
+    h+='</div>';
+    body.innerHTML=h;
+  }
+  renderBacktestSummary(d);
+}
+
+// Count PT / SL / EOD outcomes across the recent trade window.
+function btExitCounts(v){
+  var c={TP:0,SL:0,EOD:0,FLAT:0};
+  (v.recent||[]).forEach(function(t){ if(c[t.exit_reason]!=null) c[t.exit_reason]++; });
+  return c;
+}
+
+function btCard(v){
+  var cls=v.totalPnl>=0?'pos':'neg';
+  var ex=btExitCounts(v);
+  return '<div class="btcard">'
+    + '<div class="btname">'+esc(v.name)+'</div>'
+    + '<div class="btpnl '+cls+'">'+(v.totalPnl>=0?'+':'')+money(v.totalPnl)+'</div>'
+    + '<div class="btstats">'
+      + '<span>Trades <b>'+v.trades+'</b></span>'
+      + '<span>Win <b>'+v.winRate+'%</b></span>'
+      + '<span>PF <b>'+v.profitFactor+'</b></span>'
+      + '<span>MaxDD <b>'+money(v.maxDrawdown)+'</b></span>'
+      + '<span>PT <b style="color:#3ddc84">'+ex.TP+'</b></span>'
+      + '<span>SL <b style="color:#ff5f6d">'+ex.SL+'</b></span>'
+      + '<span>EOD <b style="color:#e8c46a">'+ex.EOD+'</b></span>'
+      + '<span>Full tier <b>'+v.fullTierTrades+'</b></span>'
+    + '</div>'
+    + '<div class="btlast"><div class="btlasthd">Last 3 fires</div>'
+    + (v.last3||[]).map(function(t){
+        var xc=t.exit_reason==='TP'?'tp':(t.exit_reason==='SL'?'sl':'eod');
+        return '<div class="btrow">'
+          + '<span class="d">'+esc(t.date)+'</span>'
+          + '<span class="dir '+esc((t.direction||'').toLowerCase())+'">'+esc((t.direction||'').toUpperCase())+'</span>'
+          + '<span class="x '+xc+'">'+esc(t.exit_reason)+'</span>'
+          + '<span class="p '+(t.pnl>=0?'pos':'neg')+'">'+(t.pnl>=0?'+':'')+money(t.pnl)+'</span>'
+        + '</div>';
+      }).join('')
+    + '</div></div>';
+}
+
+// Summary scorecard: one row per strategy, showing name, the last three days
+// it fired, P&L, and the PT/SL/EOD breakdown.
+function renderBacktestSummary(d){
+  var host=document.getElementById('btsummary');
+  if(!host) return;
+  var h='';
+  d.variants.forEach(function(v){
+    var cls=v.totalPnl>=0?'pos':'neg';
+    var ex=btExitCounts(v);
+    h+='<div class="btsrow">'
+      + '<span class="btsname">'+esc(v.name)+'</span>'
+      + '<span class="btsdates">'+(v.last3||[]).map(function(t){return esc(t.date.slice(5))}).join(' \u00b7 ')+'</span>'
+      + '<span class="btsexi"><span style="color:#3ddc84">PT '+ex.TP+'</span> <span style="color:#ff5f6d">SL '+ex.SL+'</span> <span style="color:#e8c46a">EOD '+ex.EOD+'</span></span>'
+      + '<span class="btspnl '+cls+'">'+(v.totalPnl>=0?'+':'')+money(v.totalPnl)+'</span>'
+    + '</div>';
+  });
+  host.innerHTML='<div class="btlasthd" style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);margin-bottom:3px">ORB backtest \u00b7 3 variants</div>'+h;
+  host.style.display='';
+}
 
 function toggleGraph(){
   var w=document.getElementById('graphwrap'), t=document.getElementById('graph-toggle');
