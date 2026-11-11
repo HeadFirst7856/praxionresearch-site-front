@@ -14,7 +14,7 @@
 // shared STATION_CONTROL_TOKEN server-side before forwarding to the local servers.
 //
 // The browser NEVER sees the control token — only this page's JWT.
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { loadAuthSession } from "@/lib/authStorage";
 import controlUiHtml from "./station/control-ui.html?raw";
@@ -49,11 +49,36 @@ function patchedHtml(): string {
 })();
 </script>`;
 
+  // Signal readiness to the parent overlay: the dashboard sets this once its
+  // first successful boot() render has populated the grid.
+  const ready = `<script>
+(function(){
+  var tries = 0;
+  function check(){
+    tries++;
+    var grid = document.getElementById('plgrid');
+    var cards = document.querySelectorAll('.pbox').length;
+    if (cards > 0 || tries > 200) {
+      try { parent.postMessage({ type: 'praxion-station-ready' }, '*'); } catch (e) {}
+      return;
+    }
+    setTimeout(check, 100);
+  }
+  if (document.readyState === 'complete') setTimeout(check, 60);
+  else window.addEventListener('load', function(){ setTimeout(check, 60); });
+})();
+</script>`;
+
   // Inject before the dashboard's own <script> so the shim is already in place.
   if (html.includes('</head>')) {
     html = html.replace('</head>', shim + '\n</head>');
   } else {
     html = shim + html;
+  }
+  if (html.includes('</body>')) {
+    html = html.replace('</body>', ready + '\n</body>');
+  } else {
+    html = html + ready;
   }
   return html;
 }
@@ -62,7 +87,44 @@ export function StationPage() {
   const { token } = useAuth();
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const tokenRef = useRef<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [pct, setPct] = useState(6);
+  const [phase, setPhase] = useState("Connecting…");
   tokenRef.current = token ?? loadAuthSession()?.token ?? null;
+
+  // Listen for the dashboard's ready signal (posted from inside the iframe).
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      if (e.data && e.data.type === "praxion-station-ready") {
+        setPct(100);
+        setPhase("Ready");
+        // small beat so the bar visibly completes
+        setTimeout(() => setLoaded(true), 220);
+      }
+    };
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
+
+  // Tick the bar forward while we wait. It stalls at 92% until the real
+  // ready signal lands, so it never claims to be finished when it isn't.
+  useEffect(() => {
+    if (loaded) return;
+    const phrases = [
+      "Connecting…",
+      "Warming lanes…",
+      "Fetching balances…",
+      "Loading position P&L…",
+      "Almost there…",
+    ];
+    let i = 0;
+    const t = setInterval(() => {
+      setPct((p) => (p >= 92 ? 92 : p + Math.max(1.5, (92 - p) * 0.13)));
+      i = (i + 1) % phrases.length;
+      setPhase(phrases[i]);
+    }, 620);
+    return () => clearInterval(t);
+  }, [loaded]);
 
   useEffect(() => {
     const iframe = frameRef.current;
@@ -89,11 +151,76 @@ export function StationPage() {
   }, []);
 
   return (
-    <iframe
-      ref={frameRef}
-      title="Praxion Control"
-      className="fixed inset-0 h-full w-full border-0 bg-[#05070d]"
-      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-    />
+    <>
+      <iframe
+        ref={frameRef}
+        title="Praxion Control"
+        className="fixed inset-0 h-full w-full border-0 bg-[#05070d]"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+      />
+      {!loaded && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            background: "#05070d",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 18,
+            transition: "opacity .22s ease",
+            fontFamily:
+              "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              letterSpacing: 3,
+              textTransform: "uppercase",
+              color: "#7ee0ff",
+              fontWeight: 700,
+            }}
+          >
+            Praxion Station
+          </div>
+
+          <div
+            style={{
+              width: "min(320px, 74vw)",
+              height: 4,
+              borderRadius: 999,
+              background: "rgba(126,224,255,.14)",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${pct}%`,
+                height: "100%",
+                borderRadius: 999,
+                background:
+                  "linear-gradient(90deg,#7ee0ff,#3ddc84)",
+                boxShadow: "0 0 12px rgba(126,224,255,.55)",
+                transition: "width .45s cubic-bezier(.4,0,.2,1)",
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              fontSize: 10,
+              letterSpacing: 1.4,
+              color: "#6b7a90",
+              minHeight: 14,
+            }}
+          >
+            {phase}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

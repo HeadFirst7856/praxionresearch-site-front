@@ -424,7 +424,8 @@ function renderPnl(){
   document.getElementById('hiddenpop').style.display='none';
 
   // ORB Fleet + persisted panel state
-  fetchFleet();
+  // (fetchFleet is kicked off once at script start, in parallel with the
+  // snapshot, so the fleet card isn't waiting on the slower projects payload.)
   try { if (localStorage.getItem('praxion.fleetHidden')==='1') { var fEl=document.getElementById('fleet'); if (fEl) fEl.style.display='none'; } } catch(e) {}
   try { if (localStorage.getItem('praxion.graphCollapsed')==='1') { var wEl=document.getElementById('graphwrap'); if (wEl) wEl.classList.add('collapsed'); } } catch(e) {}
 
@@ -1060,7 +1061,11 @@ function closeSettings(){
   if(c) c.classList.remove('active');
 }
 
-boot(); setInterval(boot,10000);
+boot();
+// Kick the fleet fetch immediately rather than waiting for the first snapshot
+// render, so the fleet card and the project grid load in parallel.
+try { fetchFleet(true); } catch(e) {}
+setInterval(boot,10000);
 </script>
 </body>
 </html>
