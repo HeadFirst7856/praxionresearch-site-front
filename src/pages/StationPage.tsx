@@ -49,36 +49,11 @@ function patchedHtml(): string {
 })();
 </script>`;
 
-  // Signal readiness to the parent overlay: the dashboard sets this once its
-  // first successful boot() render has populated the grid.
-  const ready = `<script>
-(function(){
-  var tries = 0;
-  function check(){
-    tries++;
-    var grid = document.getElementById('plgrid');
-    var cards = document.querySelectorAll('.pbox').length;
-    if (cards > 0 || tries > 200) {
-      try { parent.postMessage({ type: 'praxion-station-ready' }, '*'); } catch (e) {}
-      return;
-    }
-    setTimeout(check, 100);
-  }
-  if (document.readyState === 'complete') setTimeout(check, 60);
-  else window.addEventListener('load', function(){ setTimeout(check, 60); });
-})();
-</script>`;
-
   // Inject before the dashboard's own <script> so the shim is already in place.
   if (html.includes('</head>')) {
     html = html.replace('</head>', shim + '\n</head>');
   } else {
     html = shim + html;
-  }
-  if (html.includes('</body>')) {
-    html = html.replace('</body>', ready + '\n</body>');
-  } else {
-    html = html + ready;
   }
   return html;
 }
@@ -92,19 +67,47 @@ export function StationPage() {
   const [phase, setPhase] = useState("Connecting…");
   tokenRef.current = token ?? loadAuthSession()?.token ?? null;
 
-  // Listen for the dashboard's ready signal (posted from inside the iframe).
+  // Detect readiness by polling the iframe DOM directly. The iframe is
+  // same-origin (allow-same-origin), so the parent can read it. This is more
+  // robust than postMessage, which the sandbox can silently drop.
   useEffect(() => {
-    const onMsg = (e: MessageEvent) => {
-      if (e.data && e.data.type === "praxion-station-ready") {
+    if (loaded) return;
+    let cancelled = false;
+    const started = Date.now();
+    const poll = () => {
+      if (cancelled) return;
+      let ready = false;
+      try {
+        const doc = frameRef.current?.contentDocument;
+        if (doc) {
+          const cards = doc.querySelectorAll(".pbox").length;
+          const grid = doc.getElementById("plgrid");
+          const gridFilled = grid && grid.innerHTML.length > 100;
+          ready = cards > 0 && !!gridFilled;
+        }
+      } catch {
+        // cross-origin or not yet parsed; keep waiting
+      }
+      if (ready) {
         setPct(100);
         setPhase("Ready");
-        // small beat so the bar visibly completes
-        setTimeout(() => setLoaded(true), 220);
+        setTimeout(() => !cancelled && setLoaded(true), 200);
+        return;
       }
+      // Hard cap: never trap the user behind the overlay. If the dashboard is
+      // slow or broken, reveal it anyway after 20s rather than hiding errors.
+      if (Date.now() - started > 20000) {
+        setPhase("Still loading…");
+        setTimeout(() => !cancelled && setLoaded(true), 1200);
+        return;
+      }
+      setTimeout(poll, 150);
     };
-    window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
-  }, []);
+    poll();
+    return () => {
+      cancelled = true;
+    };
+  }, [loaded]);
 
   // Tick the bar forward while we wait. It stalls at 92% until the real
   // ready signal lands, so it never claims to be finished when it isn't.
