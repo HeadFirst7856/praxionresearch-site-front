@@ -84,6 +84,18 @@ body{background:radial-gradient(1200px 800px at 50% -10%,#0a1226 0%,#05070d 60%)
 .fbal.pos{color:#3ddc84}.fbal.neg{color:#ff5f6d}
 .fpnl{font-size:9px;font-weight:600;letter-spacing:.3px;margin-top:1px;opacity:.85}
 .fpnl.pos{color:#3ddc84}.fpnl.neg{color:#ff5f6d}
+
+/* per-position breakdown */
+.fpositions{margin:2px 0 6px 21px;border-left:2px solid rgba(126,224,255,.18);padding-left:9px}
+.fpos{display:flex;align-items:center;gap:7px;font-size:10px;line-height:1.75;font-variant-numeric:tabular-nums}
+.fpside{font-weight:700;font-size:9px;letter-spacing:.5px;padding:1px 5px;border-radius:4px}
+.fpside.long{color:#3ddc84;background:rgba(61,220,132,.12)}
+.fpside.short{color:#ff5f6d;background:rgba(255,95,109,.12)}
+.fpqty{font-weight:700;color:var(--text)}
+.fpsym{color:var(--text)}
+.fpentry,.fpmark{color:var(--dim)}
+.fppnl{margin-left:auto;font-weight:700}
+.fppnl.pos{color:#3ddc84}.fppnl.neg{color:#ff5f6d}
 .fmeta{font-size:10px;color:var(--dim);text-align:right;min-width:92px;line-height:1.5}
 .fmeta .ok{color:#3ddc84}.fmeta .warn{color:#ffc23d}.fmeta .bad{color:#ff5f6d}
 .fnote{font-size:10px;color:#ffc23d;padding-left:21px}
@@ -949,6 +961,23 @@ function renderFleet(d){
     if (pnl != null && Math.abs(pnl) >= 0.005) {
       pnlTxt = '<div class="fpnl '+(pnl>=0?'pos':'neg')+'">'+(pnl>=0?'+':'')+money(pnl)+' open</div>';
     }
+    // Per-position breakdown
+    var posHtml = '';
+    (L.positions || []).forEach(function(p){
+      if (!p || !p.qty) return;
+      var pp = p.openPnl;
+      var cls = (pp==null) ? '' : (pp>=0?'pos':'neg');
+      var pnlStr = (pp==null) ? 'no mark' : ((pp>=0?'+':'')+money(pp));
+      var ptsStr = (p.points==null) ? '' : (' · '+(p.points>=0?'+':'')+p.points+' pts');
+      posHtml += '<div class="fpos">'
+        + '<span class="fpside '+p.side.toLowerCase()+'">'+esc(p.side)+'</span>'
+        + '<span class="fpqty">'+p.qty+'</span>'
+        + '<span class="fpsym">'+esc(p.name || p.symbol || '')+'</span>'
+        + '<span class="fpentry">@ '+p.entry+'</span>'
+        + '<span class="fpmark">→ '+(p.mark==null?'—':p.mark)+esc(ptsStr)+'</span>'
+        + '<span class="fppnl '+cls+'">'+pnlStr+'</span>'
+      + '</div>';
+    });
     h+='<div class="fleetrow">'
       +'<span class="fdot '+st+'" title="'+st+' — '+esc(L.name)+'"></span>'
       +'<span class="fname">'+esc(L.name)+'</span>'
@@ -961,6 +990,7 @@ function renderFleet(d){
       +'<span class="fbal '+balCls+'">'+bal+pnlTxt+'</span>'
     +'</div>';
     if(L.note) h+='<div class="fnote">'+esc(L.note)+'</div>';
+    if(posHtml) h+='<div class="fpositions">'+posHtml+'</div>';
   });
   if(d.isolation){
     h+='<div class="fiso">credential isolation: <span class="'+(d.isolation.pass?'ok':'bad')+'">'+(d.isolation.pass?'PASS':'FAIL '+esc((d.isolation.offenders||[]).join(',')))+'</span></div>';
