@@ -2,7 +2,7 @@
  * App-shell caching with network-first for data/API so the terminal loads
  * offline and always gets fresh quotes/news when connected.
  */
-const CACHE = "praxion-shell-v1";
+const CACHE = "praxion-shell-v2";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/icon-maskable-512.png", "/apple-touch-icon.png"];
 
 self.addEventListener("install", (event) => {
@@ -47,19 +47,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets: stale-while-revalidate.
+  // Static assets: network-first so a fresh deploy is picked up immediately.
+  // (Was stale-while-revalidate, which served an outdated JS bundle for one
+  //  extra page load after every deploy — long enough to look permanently broken.)
   event.respondWith(
-    caches.match(req).then((cached) => {
-      const fresh = fetch(req)
-        .then((res) => {
-          if (res && res.status === 200) {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(req, copy));
-          }
-          return res;
-        })
-        .catch(() => cached);
-      return cached || fresh;
-    }),
+    fetch(req)
+      .then((res) => {
+        if (res && res.status === 200) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
+        return res;
+      })
+      .catch(() => caches.match(req))
+      .then((r) => r || Response.error()),
   );
 });
