@@ -86,9 +86,11 @@ export const handler = async (event) => {
   if (path.startsWith(chatPrefix)) {
     upstream = ROUTER_ORIGIN;
     upstreamPath = path.slice("/api/station".length); // -> /chat, /chat/:id
-  } else if (path.startsWith("/api/station/")) {
+  } else if (path === "/api/station" || path.startsWith("/api/station/")) {
     upstream = CONTROL_ORIGIN;
-    upstreamPath = path.slice("/api/station".length); // -> /api/snapshot, /api/project/..., etc.
+    // Control-server routes live under /api/*, so map /api/station/snapshot -> /api/snapshot.
+    const rest = path.slice("/api/station".length); // -> "" | "/snapshot" | "/project/..."
+    upstreamPath = rest.startsWith("/api/") ? rest : "/api" + (rest || "/snapshot");
   } else {
     return json({ detail: "not_found" }, 404);
   }
