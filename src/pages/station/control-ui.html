@@ -1002,10 +1002,11 @@ function renderBacktest(d){
   renderBacktestSummary(d);
 }
 
-// Count PT / SL / EOD outcomes across the recent trade window.
+// Full-set PT / SL / EOD counts, straight from the engine.
 function btExitCounts(v){
-  var c={TP:0,SL:0,EOD:0,FLAT:0};
-  (v.recent||[]).forEach(function(t){ if(c[t.exit_reason]!=null) c[t.exit_reason]++; });
+  if (v.exitCounts) return v.exitCounts;
+  var c = { TP: 0, SL: 0, EOD: 0 };
+  (v.recent || []).forEach(function (t) { if (c[t.exit_reason] != null) c[t.exit_reason]++; });
   return c;
 }
 
@@ -1020,10 +1021,10 @@ function btCard(v){
       + '<span>Win <b>'+v.winRate+'%</b></span>'
       + '<span>PF <b>'+v.profitFactor+'</b></span>'
       + '<span>MaxDD <b>'+money(v.maxDrawdown)+'</b></span>'
+      + '<span>Full tier <b>'+v.fullTierTrades+'</b></span>'
       + '<span>PT <b style="color:#3ddc84">'+ex.TP+'</b></span>'
       + '<span>SL <b style="color:#ff5f6d">'+ex.SL+'</b></span>'
       + '<span>EOD <b style="color:#e8c46a">'+ex.EOD+'</b></span>'
-      + '<span>Full tier <b>'+v.fullTierTrades+'</b></span>'
     + '</div>'
     + '<div class="btlast"><div class="btlasthd">Last 3 fires</div>'
     + (v.last3||[]).map(function(t){
