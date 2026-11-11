@@ -915,7 +915,7 @@ function toggleGraph(){
 var _fleetLast=0;
 function fetchFleet(force){
   var now=Date.now();
-  if(!force && now-_fleetLast<25000) return;
+  if(!force && now-_fleetLast<8000) return;
   _fleetLast=now;
   fetch('/api/fleet').then(function(r){return r.json()}).then(renderFleet).catch(function(){
     var el=document.getElementById('fleet-rows');
