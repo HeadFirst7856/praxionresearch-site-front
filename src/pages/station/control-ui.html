@@ -66,6 +66,50 @@ body{background:radial-gradient(1200px 800px at 50% -10%,#0a1226 0%,#05070d 60%)
 .plhead .glabel{font-size:11px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
 .hiddenchip{font-size:11px;color:var(--dim);cursor:pointer;border:1px solid var(--stroke);border-radius:8px;padding:4px 9px}
 .hiddenchip:hover{color:var(--glow);border-color:var(--glow)}
+
+/* ---- ORB Fleet status ---- */
+.fleet{margin-bottom:14px;border:1px solid var(--stroke);border-radius:10px;background:var(--panel);padding:12px 14px}
+.fleethead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.fleethead .glabel{font-size:11px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+.fleethead .fagen{font-size:10px;color:var(--dim)}
+.fleetrow{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid rgba(255,255,255,.05)}
+.fleetrow:first-of-type{border-top:none}
+.fdot{width:9px;height:9px;border-radius:50%;flex-shrink:0;box-shadow:0 0 8px currentColor}
+.fdot.green{background:#3ddc84;color:#3ddc84}
+.fdot.yellow{background:#ffc23d;color:#ffc23d}
+.fdot.red{background:#ff5f6d;color:#ff5f6d}
+.fname{font-size:12px;font-weight:700;min-width:118px}
+.facct{font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums}
+.fbal{margin-left:auto;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.fbal.pos{color:#3ddc84}.fbal.neg{color:#ff5f6d}
+.fmeta{font-size:10px;color:var(--dim);text-align:right;min-width:92px;line-height:1.5}
+.fmeta .ok{color:#3ddc84}.fmeta .warn{color:#ffc23d}.fmeta .bad{color:#ff5f6d}
+.fnote{font-size:10px;color:#ffc23d;padding-left:21px}
+.fiso{font-size:10px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.05)}
+.fiso .ok{color:#3ddc84}.fiso .bad{color:#ff5f6d}
+
+/* ---- settings cog ---- */
+.cog{background:none;border:none;color:var(--dim);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1}
+.cog:hover{color:var(--glow);background:rgba(126,224,255,.08)}
+.cog.active{color:var(--glow);background:rgba(126,224,255,.14)}
+.sdrawer{position:fixed;top:0;right:0;bottom:0;width:320px;max-width:88vw;background:#080d18;border-left:1px solid var(--stroke);z-index:60;display:none;flex-direction:column;box-shadow:-8px 0 30px rgba(0,0,0,.5)}
+.sdrawer.open{display:flex}
+.sdhead{padding:14px 16px;border-bottom:1px solid var(--stroke);display:flex;align-items:center;justify-content:space-between}
+.sdhead .t{font-size:12px;font-weight:700;letter-spacing:1px;color:var(--glow)}
+.sdhead .x{cursor:pointer;color:var(--dim);font-size:15px;padding:2px 6px}
+.sdhead .x:hover{color:var(--text)}
+.sdbody{flex:1;overflow-y:auto;padding:12px 16px}
+.sdsec{font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin:14px 0 8px}
+.sdsec:first-child{margin-top:0}
+.sditem{display:flex;align-items:center;gap:9px;padding:7px 0;font-size:12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.03)}
+.sditem:hover{color:var(--glow)}
+.sditem input{cursor:pointer;accent-color:#7ee0ff;width:14px;height:14px}
+.sditem .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sdfoot{padding:10px 16px;border-top:1px solid var(--stroke);font-size:10px;color:var(--dim);display:flex;gap:8px}
+.sdfoot button{flex:1;background:rgba(126,224,255,.1);border:1px solid var(--stroke);color:var(--text);border-radius:6px;padding:6px;font-size:10px;cursor:pointer;font-family:inherit}
+.sdfoot button:hover{border-color:var(--glow);color:var(--glow)}
+.sdbackdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:55;display:none}
+.sdbackdrop.open{display:block}
 .hiddenpop{position:absolute;top:28px;right:0;width:280px;background:#0b1222;border:1px solid var(--stroke);border-radius:10px;padding:10px;z-index:30;box-shadow:0 8px 30px rgba(0,0,0,.6)}
 .hiddenpop .hitem{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 4px;font-size:12px;border-bottom:1px solid rgba(28,42,68,.6)}
 .hiddenpop .hitem:last-child{border-bottom:none}
@@ -185,9 +229,10 @@ body{background:radial-gradient(1200px 800px at 50% -10%,#0a1226 0%,#05070d 60%)
     <div class="agents" id="agents"></div>
   </div>
   <div class="main">
-    <div class="topbar"><span class="t" id="topbar-title">OVERVIEW</span><span class="stat" id="topbar-stat"></span></div>
+    <div class="topbar"><span class="t" id="topbar-title">OVERVIEW</span><span class="stat" id="topbar-stat"></span><button class="cog" id="cog" onclick="toggleSettings()" title="Settings">⚙</button></div>
     <div class="graph-wrap" id="graphwrap"><span class="glabel" id="graph-label">Workflow</span><span class="graph-toggle" id="graph-toggle" onclick="toggleGraph()">▼ hide</span><canvas id="graph"></canvas></div>
     <div class="plwrap">
+      <div class="fleet" id="fleet"><div class="fleethead"><span class="glabel">ORB Fleet</span><span class="fagen" id="fleet-age"></span></div><div id="fleet-rows" style="font-size:11px;color:var(--dim)">loading…</div></div>
       <div class="plhead"><span class="glabel">Projects · P&amp;L</span><span class="hiddenchip" id="hiddenchip" style="display:none" onclick="toggleHidden()"></span></div>
       <div class="hiddenpop" id="hiddenpop" style="display:none"></div>
       <div class="pnlsummary" id="pnlsummary"></div>
@@ -200,6 +245,13 @@ body{background:radial-gradient(1200px 800px at 50% -10%,#0a1226 0%,#05070d 60%)
   <div class="cbody" id="chat-body"></div>
   <div class="cinput"><textarea id="chat-input" placeholder="message (coherent with Telegram)…"></textarea><button id="chat-send" onclick="send()">Send</button></div>
 </div>
+<div class="sdbackdrop" id="sdbackdrop" onclick="closeSettings()"></div>
+<div class="sdrawer" id="sdrawer">
+  <div class="sdhead"><span class="t">SETTINGS</span><span class="x" onclick="closeSettings()">✕</span></div>
+  <div class="sdbody" id="sdbody"></div>
+  <div class="sdfoot"><button onclick="sdShowAll()">Show all</button><button onclick="sdReset()">Reset to default</button></div>
+</div>
+
 <div class="detail" id="detail" style="display:none">
   <div class="dhead"><span class="who" id="detail-who"></span><span class="x" onclick="closeDetail()">✕</span></div>
   <div class="dbody" id="detail-body"></div>
@@ -356,6 +408,11 @@ function renderPnl(){
   if(snap.hidden.length){ hc.style.display=''; hc.textContent='Hidden ('+snap.hidden.length+')'; }
   else { hc.style.display='none'; }
   document.getElementById('hiddenpop').style.display='none';
+
+  // ORB Fleet + persisted panel state
+  fetchFleet();
+  try { if (localStorage.getItem('praxion.fleetHidden')==='1') { var fEl=document.getElementById('fleet'); if (fEl) fEl.style.display='none'; } } catch(e) {}
+  try { if (localStorage.getItem('praxion.graphCollapsed')==='1') { var wEl=document.getElementById('graphwrap'); if (wEl) wEl.classList.add('collapsed'); } } catch(e) {}
 
   // split projects into P&L (income) vs research (non-income)
   var pnlProjs = snap.projects.filter(function(p){ return p.extra && p.extra.kind==='pnl'; });
@@ -852,6 +909,117 @@ function toggleGraph(){
   var c='0'; try{ c=localStorage.getItem('praxion.graphCollapsed')||'0'; }catch(e){}
   if(c==='1'){ w.classList.add('collapsed'); if(t) t.textContent='▲ show'; }
 })();
+
+
+/* ---- ORB Fleet ---- */
+var _fleetLast=0;
+function fetchFleet(force){
+  var now=Date.now();
+  if(!force && now-_fleetLast<25000) return;
+  _fleetLast=now;
+  fetch('/api/fleet').then(function(r){return r.json()}).then(renderFleet).catch(function(){
+    var el=document.getElementById('fleet-rows');
+    if(el) el.innerHTML='<span style="color:#ff5f6d">fleet unavailable</span>';
+  });
+}
+function fmtAge(s){
+  if(s==null) return '—';
+  if(s<60) return s+'s';
+  if(s<3600) return Math.round(s/60)+'m';
+  if(s<86400) return Math.round(s/3600)+'h';
+  return Math.round(s/86400)+'d';
+}
+function renderFleet(d){
+  var rows=document.getElementById('fleet-rows'); if(!rows) return;
+  if(!d || !d.ok || !d.lanes || !d.lanes.length){
+    rows.innerHTML='<span style="color:#ff5f6d">'+((d&&d.reason)||'no data')+'</span>';
+    return;
+  }
+  var h='';
+  d.lanes.forEach(function(L){
+    var st=L.status||'red';
+    var bal=(L.balance==null)?'—':money(L.balance);
+    var balCls=(L.balance==null)?'':(L.balance>=0?'pos':'neg');
+    h+='<div class="fleetrow">'
+      +'<span class="fdot '+st+'" title="'+st+' — '+esc(L.name)+'"></span>'
+      +'<span class="fname">'+esc(L.name)+'</span>'
+      +'<span class="facct">'+esc(L.account||'—')+'</span>'
+      +'<span class="fmeta">'
+        +'<span class="'+(L.barsOk?'ok':'bad')+'">bars '+fmtAge(L.barAgeSec)+'</span><br>'
+        +'<span class="'+(L.laneOk?'ok':'bad')+'">lane '+fmtAge(L.laneAgeSec)+'</span> · '
+        +'<span class="'+(L.seeded?'ok':'warn')+'">'+(L.seeded?'seeded':'unseeded')+'</span>'
+      +'</span>'
+      +'<span class="fbal '+balCls+'">'+bal+'</span>'
+    +'</div>';
+    if(L.note) h+='<div class="fnote">'+esc(L.note)+'</div>';
+  });
+  if(d.isolation){
+    h+='<div class="fiso">credential isolation: <span class="'+(d.isolation.pass?'ok':'bad')+'">'+(d.isolation.pass?'PASS':'FAIL '+esc((d.isolation.offenders||[]).join(',')))+'</span></div>';
+  }
+  rows.innerHTML=h;
+  var ag=document.getElementById('fleet-age');
+  if(ag && d.ts) ag.textContent='upd '+new Date(d.ts*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+/* ---- settings drawer ---- */
+function renderSettings(){
+  var body=document.getElementById('sdbody'); if(!body) return;
+  var keys=(snap&&snap.projects)||[];
+  var hidden={};
+  ((snap&&snap.hidden)||[]).forEach(function(x){ hidden[x.key]=true; });
+  var h='<div class="sdsec">Scorecards</div>';
+  if(!keys.length) h+='<div style="font-size:11px;color:var(--dim)">no scorecards</div>';
+  else keys.forEach(function(k){
+    h+='<label class="sditem"><input type="checkbox" '+(hidden[k.key]?'':'checked')+' onchange="sdToggle(\''+k.key+'\',this.checked)"><span class="nm">'+esc(k.name)+'</span></label>';
+  });
+  h+='<div class="sdsec">Panels</div>';
+  var gc=(localStorage.getItem('praxion.graphCollapsed')==='1');
+  h+='<label class="sditem"><input type="checkbox" '+(gc?'':'checked')+' onchange="sdGraph(this.checked)"><span class="nm">Workflow graph</span></label>';
+  h+='<label class="sditem"><input type="checkbox" '+(localStorage.getItem('praxion.fleetHidden')==='1'?'':'checked')+' onchange="sdFleet(this.checked)"><span class="nm">ORB Fleet status</span></label>';
+  body.innerHTML=h;
+}
+function sdToggle(key, show){
+  fetch(show?'/api/unhide':'/api/hide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:key})})
+    .then(function(){ return boot(); }).then(renderSettings).catch(function(){});
+}
+function sdGraph(show){
+  var w=document.getElementById('graphwrap'), t=document.getElementById('graph-toggle');
+  if(!w) return;
+  var collapsed=!show;
+  w.classList.toggle('collapsed', collapsed);
+  if(t) t.textContent=collapsed?'▲ show':'▼ hide';
+  try{ localStorage.setItem('praxion.graphCollapsed', collapsed?'1':'0'); }catch(e){}
+}
+function sdFleet(show){
+  var f=document.getElementById('fleet'); if(!f) return;
+  f.style.display = show ? '' : 'none';
+  try{ localStorage.setItem('praxion.fleetHidden', show?'0':'1'); }catch(e){}
+}
+function sdShowAll(){
+  var hidden=(snap&&snap.hidden)||[];
+  if(!hidden.length){ renderSettings(); return; }
+  Promise.all(hidden.map(function(x){
+    return fetch('/api/unhide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:x.key})});
+  })).then(function(){ return boot(); }).then(renderSettings).catch(function(){});
+}
+function sdReset(){
+  try{ localStorage.removeItem('praxion.graphCollapsed'); localStorage.removeItem('praxion.fleetHidden'); }catch(e){}
+  sdGraph(true); sdFleet(true); sdShowAll();
+}
+function toggleSettings(){
+  var d=document.getElementById('sdrawer'), bg=document.getElementById('sdbackdrop'), c=document.getElementById('cog');
+  if(!d) return;
+  var open=d.classList.toggle('open');
+  if(bg) bg.classList.toggle('open', open);
+  if(c) c.classList.toggle('active', open);
+  if(open) renderSettings();
+}
+function closeSettings(){
+  var d=document.getElementById('sdrawer'), bg=document.getElementById('sdbackdrop'), c=document.getElementById('cog');
+  if(d) d.classList.remove('open');
+  if(bg) bg.classList.remove('open');
+  if(c) c.classList.remove('active');
+}
 
 boot(); setInterval(boot,10000);
 </script>
