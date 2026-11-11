@@ -33,7 +33,13 @@
           window.location.reload();
         });
         window.addEventListener("load", () => {
-          navigator.serviceWorker.register("/sw.js").then((reg) => {
+          // Unregister any older worker first, then register the versioned one.
+          // This guarantees a stale sw.js can never keep serving an old bundle.
+          navigator.serviceWorker.getRegistrations().then((regs) => {
+            return Promise.all(regs.map((r) => (r.active && r.active.scriptURL.indexOf("v=3") === -1 ? r.unregister() : Promise.resolve())));
+          }).catch(() => {}).then(() => {
+            return navigator.serviceWorker.register("/sw.js?v=3");
+          }).then((reg) => {
             // Check for an updated sw.js on every load.
             reg.update().catch(() => {});
           }).catch(() => {});
