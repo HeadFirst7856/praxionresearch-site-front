@@ -83,28 +83,9 @@ export function StationPage() {
     doc.write(html);
     doc.close();
 
-    // Install a fetch shim inside the iframe so all '/api/*' calls rewrite to
-    // '/api/station/*' and carry the Station JWT.
-    const win = iframe.contentWindow as (Window & typeof globalThis) | null;
-    if (win) {
-      const nativeFetch = win.fetch.bind(win);
-      win.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
-        let url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-
-        // Rewrite same-origin '/api/*' calls to the namespaced proxy path '/api/station/*'.
-        // Idempotent: skip paths already namespaced (the embedded shim may have run first).
-        if (url.startsWith("/api/") && !url.startsWith("/api/station/")) {
-          url = "/api/station/" + url.slice("/api/".length);
-        }
-
-        const headers = new Headers(init?.headers);
-        if (!headers.has("Authorization") && tokenRef.current) {
-          headers.set("Authorization", `Bearer ${tokenRef.current}`);
-        }
-
-        return nativeFetch(url, { ...init, headers });
-      }) as typeof fetch;
-    }
+    // NOTE: no second fetch shim here. The shim is embedded in the document <head>
+    // (see patchedHtml). Installing another one wrapped the already-rewritten
+    // '/api/station/snapshot' into '/api/station/station/snapshot' -> upstream 404.
   }, []);
 
   return (
