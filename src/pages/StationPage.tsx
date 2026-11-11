@@ -28,7 +28,34 @@ const ROUTER_REPLACE = "var ROUTER='/api/station/chat'";
 
 function patchedHtml(): string {
   // Rewrite the hardcoded session-router origin to a same-origin path the proxy handles.
-  return controlUiHtml.replace(ROUTER_RE, ROUTER_REPLACE);
+  let html = controlUiHtml.replace(ROUTER_RE, ROUTER_REPLACE);
+
+  // IMPORTANT: the dashboard calls boot() during parse, i.e. before React can touch
+  // iframe.contentWindow. So the fetch shim must be embedded in the document itself,
+  // ahead of the dashboard script, otherwise boot() hits raw '/api/*' with no JWT.
+  const shim = `<script>
+(function(){
+  var nativeFetch = window.fetch.bind(window);
+  window.fetch = function(input, init){
+    var url = typeof input === 'string' ? input
+            : (input instanceof URL ? input.toString() : input.url);
+    if (url.indexOf('/api/') === 0) { url = '/api/station/' + url.slice('/api/'.length); }
+    var headers = new Headers((init && init.headers) || undefined);
+    var tok = window.__PRAXION_STATION_TOKEN__;
+    if (!headers.has('Authorization') && tok) { headers.set('Authorization', 'Bearer ' + tok); }
+    var opts = Object.assign({}, init, { headers: headers });
+    return nativeFetch(url, opts);
+  };
+})();
+</script>`;
+
+  // Inject before the dashboard's own <script> so the shim is already in place.
+  if (html.includes('</head>')) {
+    html = html.replace('</head>', shim + '\n</head>');
+  } else {
+    html = shim + html;
+  }
+  return html;
 }
 
 export function StationPage() {
@@ -44,6 +71,14 @@ export function StationPage() {
     const html = patchedHtml();
     const doc = iframe.contentDocument;
     if (!doc) return;
+
+    // Stamp the JWT onto the iframe window BEFORE the document parses, so the
+    // embedded fetch shim can attach it to the very first /api call from boot().
+    const winEarly = iframe.contentWindow as
+      | (Window & typeof globalThis & { __PRAXION_STATION_TOKEN__?: string | null })
+      | null;
+    if (winEarly) winEarly.__PRAXION_STATION_TOKEN__ = tokenRef.current;
+
     doc.open();
     doc.write(html);
     doc.close();
@@ -57,7 +92,8 @@ export function StationPage() {
         let url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
 
         // Rewrite same-origin '/api/*' calls to the namespaced proxy path '/api/station/*'.
-        if (url.startsWith("/api/")) {
+        // Idempotent: skip paths already namespaced (the embedded shim may have run first).
+        if (url.startsWith("/api/") && !url.startsWith("/api/station/")) {
           url = "/api/station/" + url.slice("/api/".length);
         }
 
