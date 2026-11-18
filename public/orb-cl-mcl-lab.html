@@ -1,0 +1,228 @@
+<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ORB &mdash; CL / MCL Lab</title><style>
+:root{--bg:#0b0d10;--p:#141922;--l:#263141;--t:#eef3f8;--m:#8fa0b3;--g:#3fd17f;--r:#ff6170;--b:#6da8ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:13.5px/1.5 Inter,system-ui,sans-serif}
+header{padding:16px 22px;border-bottom:1px solid var(--l);background:#0f131a}h1{margin:0 0 4px;font-size:19px}
+.sub{color:var(--m);font-size:12.5px}main{padding:14px 22px 40px}
+.ctrls{display:flex;flex-wrap:wrap;gap:14px;align-items:center;background:var(--p);border:1px solid var(--l);border-radius:8px;padding:10px 12px;margin-bottom:14px}
+.grp{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.grp .lab{color:var(--m);font-size:11px;text-transform:uppercase;letter-spacing:.03em;margin-right:2px}
+button{background:#1b2431;color:var(--t);border:1px solid var(--l);border-radius:6px;padding:5px 10px;font-size:12.5px;cursor:pointer}
+button:hover{background:#22303f}button.active{background:#2a4a72;border-color:#3f6fb0;color:#fff}
+input[type=date]{background:#0f151e;color:var(--t);border:1px solid var(--l);border-radius:6px;padding:5px 8px;font-size:12.5px}
+.m{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px;margin-bottom:14px}
+.mc{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:10px 12px}
+.mc .k{color:var(--m);font-size:10.5px;text-transform:uppercase;letter-spacing:.03em}.mc .v{font-size:18px;font-weight:700;margin-top:2px}
+.card{background:var(--p);border:1px solid var(--l);border-radius:8px;padding:12px;margin-bottom:14px}
+h2{font-size:13.5px;margin:0 0 9px;color:#dce7f5}
+table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{padding:5px 8px;border-bottom:1px solid var(--l);text-align:right}
+th:first-child,td:first-child{text-align:left;color:var(--m)}th{color:var(--m);font-size:10.5px;background:#101720;position:sticky;top:0}
+.pos{color:var(--g)}.neg{color:var(--r)}.muted{color:var(--m)}
+.note{font-size:11.5px;color:var(--m);line-height:1.6;margin-top:8px}
+.warn{background:#0f2417;border:1px solid #1e5a34;border-radius:6px;padding:10px;color:#c9f7db;font-size:12px;line-height:1.6;margin-bottom:14px}
+.warn2{background:#2a1c10;border:1px solid #5a3a12;border-radius:6px;padding:10px;color:#ffd8a8;font-size:12px;line-height:1.6;margin-bottom:14px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:940px){.two{grid-template-columns:1fr}}
+svg{width:100%;height:210px;display:block}.lbl{color:var(--m);font-size:11px}
+.scroll{max-height:460px;overflow:auto}
+.cal td,.cal th{text-align:center}.cal td:first-child,.cal th:first-child{text-align:left}
+.broker{border:1px solid var(--l);border-radius:6px;padding:8px 10px}
+.bgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+</style></head><body>
+<header><h1>ORB &mdash; CL / MCL Lab</h1>
+<div class="sub">15-min opening range &middot; 2.5R target &middot; live regime classifier &middot; tiered 1/4 sizing &middot; <span id="spanLbl"></span> &middot; <span id="rowCount">-</span></div></header>
+<main>
+<div class="ctrls">
+  <div class="grp"><span class="lab">Instrument</span><span id="symBtns"></span></div>
+  <div class="grp"><span class="lab">Tier</span><span id="tierBtns"></span></div>
+  <div class="grp"><span class="lab">Year</span><span id="yearBtns"></span></div>
+  <div class="grp"><span class="lab">Range</span><span id="presets"></span></div>
+  <div class="grp"><span class="lab">From</span><input type="date" id="startDate"/><span class="lab">To</span><input type="date" id="endDate"/></div>
+</div>
+
+<div class="warn"><b>&#9888; READ FIRST:</b> Replay of the live ORB rule (15-min OR, 2.5R, <code>live/regime_classifier.py</code> identical thresholds) over Databento 1-min bars from the Studio. Sizing is the live tier ladder: strong regime + gap-aligned = <b>4 contracts</b>, else <b>1</b>. <b>MCL $100/pt, CL $1,000/pt.</b> Exits are modelled as stop / 2.5R target / end-of-day close &mdash; no slippage, no partials.</div>
+
+<div class="warn2" id="mclNote"><b>MCL:</b> the gated tier is the only cell with a usable return-to-drawdown. Treat +$2.2k over 15 months as thin &mdash; 28 gated trades is a small sample and the monthly P&amp;L is lumpy.</div>
+<div class="warn2" id="clNote"><b>CL:</b> gated net is positive but max drawdown was <b>-$7,680</b> from a $9,020 peak in 12 days. One contract carries ~$600-2,500 of risk. Not tradeable on a small account regardless of net P&amp;L.</div>
+
+<div class="m">
+<div class="mc"><div class="k">Net</div><div class="v pos" id="mProfit">-</div></div>
+<div class="mc"><div class="k">Profit Factor</div><div class="v" id="mPF">-</div></div>
+<div class="mc"><div class="k">Max Drawdown</div><div class="v neg" id="mMaxDD">-</div></div>
+<div class="mc"><div class="k">Trades</div><div class="v" id="mTrades">-</div></div>
+<div class="mc"><div class="k">Win Rate</div><div class="v" id="mWinRate">-</div></div>
+<div class="mc"><div class="k">Avg / Trade</div><div class="v" id="mAvg">-</div></div>
+</div>
+
+<div class="card"><h2>Brokerage Cost Model</h2>
+  <div class="grp" style="margin-bottom:10px"><span class="lab">Mode</span><span id="costMode"></span></div>
+  <div class="bgrid" id="costGrid"></div>
+  <div class="note">Futures commissions are per-contract-per-side. MCL at 4 lots costs ~4x the fees of 1 lot &mdash; check this before believing the gated tier.</div></div>
+
+<div class="card"><h2>Day-Quality &rarr; Contracts Ladder <span style="float:right;margin-top:-3px"><button id="applyBands">Apply quality sizing</button> <button id="resetLadder">Reset</button></span></h2>
+  <div class="lbl" style="margin-bottom:6px">Default = live tier ladder (1 or 4). "Apply quality sizing" re-ranks trades by realized |pts| quartile &rarr; 0/1/2/3 contracts. "Reset" returns to the live ladder.</div>
+  <svg id="ladder"></svg><div id="bandStats" class="note"></div></div>
+
+<div class="two">
+  <div class="card"><h2>Equity Curve (cumulative $)</h2><svg id="equity"></svg></div>
+  <div class="card"><h2>Per-Trade P&amp;L</h2><svg id="daily"></svg></div>
+</div>
+
+<div class="two">
+  <div class="card"><h2>P&amp;L by Regime</h2><svg id="regime"></svg></div>
+  <div class="card"><h2>P&amp;L by Exit Reason</h2><svg id="reasons"></svg></div>
+</div>
+
+<div class="two">
+  <div class="card"><h2>P&amp;L by Tier</h2><svg id="tiers"></svg><div id="tierStats" class="note"></div></div>
+  <div class="card"><h2>Side Split</h2><svg id="sides"></svg><div id="sideStats" class="note"></div></div>
+</div>
+
+<div class="card"><h2>Cumulative P&amp;L by Month</h2><table class="cal" id="calTbl"></table></div>
+
+<div class="card"><h2>Trade Log</h2><div class="note" style="margin-bottom:8px">Click any column header to sort.</div>
+<div class="scroll"><table id="rows"></table></div></div>
+
+<div class="note" style="margin-top:16px">
+Source: <code>Raw_Data/{MCL,CL}_RVWAP_ML</code> on the Praxion Mac Studio (Databento 1-min).
+Rule: <code>live/strategies/topstep_orb_ladder/orb_ladder_live.py</code>.
+Classifier: <code>live/regime_classifier.py</code>.
+Generated by the independent replay; no account or order logs were used.
+</div>
+</main>
+<script>
+const DATA={"MCL":[{"d":"2025-09-08","side":"short","reason":"END_OF_DAY","pts":0.0,"pnl":0.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2025-10-10","side":"short","reason":"END_OF_DAY","pts":0.75,"pnl":300.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2025-10-28","side":"short","reason":"END_OF_DAY","pts":0.15,"pnl":60.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2025-10-29","side":"long","reason":"END_OF_DAY","pts":0.2,"pnl":20.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2025-11-10","side":"short","reason":"CLOSE_STOP","pts":-0.27,"pnl":-27.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2025-11-19","side":"long","reason":"END_OF_DAY","pts":0.0,"pnl":0.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2025-11-25","side":"short","reason":"CLOSE_STOP","pts":-0.35,"pnl":-140.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-01-13","side":"long","reason":"CLOSE_STOP","pts":-0.34,"pnl":-34.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-01-16","side":"long","reason":"END_OF_DAY","pts":0.0,"pnl":0.0,"regime":"strong_bullish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-01-30","side":"short","reason":"END_OF_DAY","pts":-0.45,"pnl":-180.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-02-09","side":"long","reason":"END_OF_DAY","pts":0.0,"pnl":0.0,"regime":"strong_bullish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-02-24","side":"short","reason":"END_OF_DAY","pts":0.0,"pnl":0.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-03-06","side":"short","reason":"END_OF_DAY","pts":-0.65,"pnl":-65.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-03-09","side":"short","reason":"END_OF_DAY","pts":3.0,"pnl":300.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-03-19","side":"long","reason":"CLOSE_TP","pts":1.53,"pnl":153.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-03-20","side":"long","reason":"CLOSE_TP","pts":1.42,"pnl":142.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-03-24","side":"short","reason":"CLOSE_TP","pts":0.5,"pnl":50.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-03-26","side":"short","reason":"CLOSE_STOP","pts":-0.99,"pnl":-99.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-03-27","side":"short","reason":"CLOSE_TP","pts":0.48,"pnl":48.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-03-31","side":"short","reason":"CLOSE_TP","pts":1.1,"pnl":440.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-04-01","side":"short","reason":"END_OF_DAY","pts":-0.5,"pnl":-200.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-04-02","side":"short","reason":"CLOSE_TP","pts":1.48,"pnl":148.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-06","side":"long","reason":"CLOSE_TP","pts":0.13,"pnl":13.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-07","side":"long","reason":"CLOSE_STOP","pts":-0.54,"pnl":-54.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-08","side":"long","reason":"CLOSE_TP","pts":2.8,"pnl":280.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-09","side":"long","reason":"CLOSE_STOP","pts":-0.64,"pnl":-64.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-13","side":"short","reason":"CLOSE_STOP","pts":-1.5,"pnl":-150.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-14","side":"short","reason":"CLOSE_TP","pts":0.17,"pnl":17.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-15","side":"long","reason":"CLOSE_TP","pts":0.85,"pnl":85.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-16","side":"long","reason":"END_OF_DAY","pts":-0.11,"pnl":-11.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-17","side":"long","reason":"CLOSE_STOP","pts":-1.0,"pnl":-100.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-20","side":"long","reason":"END_OF_DAY","pts":0.21,"pnl":21.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-22","side":"long","reason":"CLOSE_STOP","pts":-0.19,"pnl":-19.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-23","side":"long","reason":"END_OF_DAY","pts":1.29,"pnl":129.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-24","side":"long","reason":"CLOSE_TP","pts":0.25,"pnl":25.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-27","side":"long","reason":"END_OF_DAY","pts":0.02,"pnl":2.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-28","side":"long","reason":"CLOSE_STOP","pts":-0.57,"pnl":-57.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-29","side":"short","reason":"CLOSE_STOP","pts":-0.17,"pnl":-17.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-04-30","side":"long","reason":"END_OF_DAY","pts":0.55,"pnl":55.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-01","side":"short","reason":"END_OF_DAY","pts":-0.2,"pnl":-80.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-05-05","side":"short","reason":"CLOSE_TP","pts":0.23,"pnl":92.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-05-06","side":"long","reason":"CLOSE_STOP","pts":-0.84,"pnl":-84.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-08","side":"long","reason":"END_OF_DAY","pts":0.34,"pnl":34.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-12","side":"short","reason":"CLOSE_STOP","pts":-0.4,"pnl":-40.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-13","side":"long","reason":"CLOSE_STOP","pts":-0.26,"pnl":-26.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-14","side":"long","reason":"CLOSE_STOP","pts":-0.81,"pnl":-81.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-15","side":"long","reason":"CLOSE_TP","pts":0.85,"pnl":85.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-18","side":"short","reason":"CLOSE_STOP","pts":-0.68,"pnl":-68.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-19","side":"short","reason":"END_OF_DAY","pts":-0.15,"pnl":-15.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-20","side":"short","reason":"CLOSE_STOP","pts":-0.26,"pnl":-26.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-21","side":"short","reason":"CLOSE_TP","pts":2.18,"pnl":218.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-22","side":"long","reason":"CLOSE_STOP","pts":-1.02,"pnl":-102.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-25","side":"long","reason":"CLOSE_STOP","pts":-0.23,"pnl":-23.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-26","side":"long","reason":"END_OF_DAY","pts":-0.14,"pnl":-14.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-27","side":"short","reason":"CLOSE_STOP","pts":-0.38,"pnl":-38.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-28","side":"short","reason":"CLOSE_TP","pts":1.4,"pnl":140.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-05-29","side":"long","reason":"CLOSE_STOP","pts":-0.35,"pnl":-35.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-06-01","side":"long","reason":"CLOSE_STOP","pts":-0.51,"pnl":-204.0,"regime":"strong_bullish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-06-02","side":"long","reason":"CLOSE_STOP","pts":-0.28,"pnl":-28.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-06-03","side":"long","reason":"END_OF_DAY","pts":0.59,"pnl":59.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-06-04","side":"short","reason":"END_OF_DAY","pts":-0.23,"pnl":-23.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-06-05","side":"short","reason":"CLOSE_TP","pts":1.1,"pnl":440.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-06-08","side":"long","reason":"END_OF_DAY","pts":0.36,"pnl":144.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-06-09","side":"short","reason":"CLOSE_TP","pts":1.22,"pnl":488.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-06-10","side":"long","reason":"CLOSE_TP","pts":0.75,"pnl":75.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-06-11","side":"short","reason":"CLOSE_STOP","pts":-0.67,"pnl":-67.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-06-12","side":"long","reason":"CLOSE_STOP","pts":-1.49,"pnl":-149.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-06-15","side":"short","reason":"CLOSE_STOP","pts":-0.37,"pnl":-37.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-06-16","side":"long","reason":"CLOSE_STOP","pts":-0.35,"pnl":-35.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-06-17","side":"short","reason":"CLOSE_STOP","pts":-0.36,"pnl":-36.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-06-18","side":"short","reason":"CLOSE_STOP","pts":-0.85,"pnl":-340.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-06-19","side":"long","reason":"CLOSE_TP","pts":0.73,"pnl":73.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-06-22","side":"short","reason":"END_OF_DAY","pts":-0.33,"pnl":-132.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-06-23","side":"long","reason":"CLOSE_STOP","pts":-0.34,"pnl":-34.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-06-24","side":"long","reason":"CLOSE_STOP","pts":-0.4,"pnl":-40.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-06-25","side":"long","reason":"CLOSE_TP","pts":0.52,"pnl":52.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-06-26","side":"short","reason":"END_OF_DAY","pts":-0.08,"pnl":-8.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-06-29","side":"long","reason":"END_OF_DAY","pts":0.11,"pnl":44.0,"regime":"strong_bullish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-06-30","side":"short","reason":"CLOSE_TP","pts":1.35,"pnl":135.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-01","side":"long","reason":"CLOSE_STOP","pts":-0.23,"pnl":-23.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-02","side":"long","reason":"CLOSE_STOP","pts":-0.27,"pnl":-27.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-03","side":"long","reason":"CLOSE_STOP","pts":-0.15,"pnl":-60.0,"regime":"strong_bullish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-07-06","side":"short","reason":"CLOSE_STOP","pts":-0.38,"pnl":-38.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-07","side":"long","reason":"CLOSE_TP","pts":1.03,"pnl":412.0,"regime":"strong_bullish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-07-08","side":"short","reason":"CLOSE_STOP","pts":-0.77,"pnl":-77.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-09","side":"short","reason":"CLOSE_TP","pts":1.15,"pnl":460.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-07-10","side":"short","reason":"CLOSE_STOP","pts":-0.53,"pnl":-53.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-13","side":"long","reason":"CLOSE_STOP","pts":-0.43,"pnl":-43.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-14","side":"short","reason":"END_OF_DAY","pts":-0.04,"pnl":-4.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-15","side":"short","reason":"CLOSE_STOP","pts":-0.63,"pnl":-63.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-16","side":"short","reason":"CLOSE_TP","pts":1.3,"pnl":520.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-07-17","side":"long","reason":"CLOSE_STOP","pts":-0.57,"pnl":-228.0,"regime":"strong_bullish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-07-20","side":"long","reason":"END_OF_DAY","pts":0.73,"pnl":73.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-21","side":"short","reason":"CLOSE_STOP","pts":-0.7,"pnl":-70.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-22","side":"long","reason":"CLOSE_STOP","pts":-0.81,"pnl":-81.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-23","side":"long","reason":"END_OF_DAY","pts":0.0,"pnl":0.0,"regime":"strong_bullish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-07-24","side":"short","reason":"CLOSE_TP","pts":1.22,"pnl":122.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-27","side":"short","reason":"END_OF_DAY","pts":1.56,"pnl":624.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-07-28","side":"long","reason":"CLOSE_STOP","pts":-0.63,"pnl":-63.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-29","side":"long","reason":"CLOSE_STOP","pts":-0.48,"pnl":-192.0,"regime":"strong_bullish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-07-30","side":"long","reason":"END_OF_DAY","pts":-0.09,"pnl":-9.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-31","side":"short","reason":"CLOSE_STOP","pts":-0.59,"pnl":-59.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-03","side":"long","reason":"CLOSE_STOP","pts":-0.77,"pnl":-77.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-04","side":"short","reason":"END_OF_DAY","pts":1.16,"pnl":464.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-08-05","side":"short","reason":"END_OF_DAY","pts":0.49,"pnl":49.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-06","side":"short","reason":"CLOSE_STOP","pts":-0.78,"pnl":-78.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-07","side":"long","reason":"CLOSE_TP","pts":1.38,"pnl":138.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-10","side":"short","reason":"CLOSE_STOP","pts":-0.53,"pnl":-53.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-11","side":"short","reason":"CLOSE_STOP","pts":-0.97,"pnl":-97.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-12","side":"short","reason":"CLOSE_STOP","pts":-0.39,"pnl":-156.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-08-13","side":"short","reason":"CLOSE_STOP","pts":-0.65,"pnl":-260.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-08-14","side":"long","reason":"CLOSE_STOP","pts":-0.39,"pnl":-39.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-17","side":"short","reason":"CLOSE_STOP","pts":-0.63,"pnl":-63.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-18","side":"long","reason":"CLOSE_STOP","pts":-0.35,"pnl":-35.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-19","side":"long","reason":"CLOSE_STOP","pts":-0.55,"pnl":-55.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-20","side":"short","reason":"CLOSE_STOP","pts":-0.42,"pnl":-42.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-21","side":"long","reason":"CLOSE_STOP","pts":-0.47,"pnl":-47.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1}],"CL":[{"d":"2026-07-06","side":"long","reason":"END_OF_DAY","pts":0.16,"pnl":160.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-07","side":"long","reason":"CLOSE_TP","pts":1.02,"pnl":4080.0,"regime":"strong_bullish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-07-08","side":"long","reason":"CLOSE_STOP","pts":-0.6,"pnl":-600.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-09","side":"short","reason":"END_OF_DAY","pts":1.23,"pnl":4920.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-07-10","side":"long","reason":"CLOSE_STOP","pts":-0.35,"pnl":-350.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-13","side":"short","reason":"CLOSE_STOP","pts":-0.46,"pnl":-460.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-14","side":"short","reason":"CLOSE_TP","pts":1.57,"pnl":1570.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-15","side":"long","reason":"CLOSE_STOP","pts":-0.68,"pnl":-2720.0,"regime":"strong_bullish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-07-16","side":"short","reason":"CLOSE_TP","pts":1.48,"pnl":1480.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-17","side":"long","reason":"CLOSE_STOP","pts":-0.73,"pnl":-2920.0,"regime":"strong_bullish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-07-20","side":"short","reason":"CLOSE_STOP","pts":-0.66,"pnl":-660.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-21","side":"long","reason":"CLOSE_STOP","pts":-0.51,"pnl":-2040.0,"regime":"strong_bullish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-07-22","side":"short","reason":"CLOSE_TP","pts":1.1,"pnl":1100.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-23","side":"short","reason":"CLOSE_STOP","pts":-0.77,"pnl":-770.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-24","side":"long","reason":"CLOSE_STOP","pts":-0.95,"pnl":-950.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-27","side":"long","reason":"CLOSE_STOP","pts":-0.64,"pnl":-640.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-28","side":"long","reason":"CLOSE_STOP","pts":-0.64,"pnl":-640.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-29","side":"short","reason":"CLOSE_STOP","pts":-0.55,"pnl":-550.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-30","side":"long","reason":"END_OF_DAY","pts":-0.9,"pnl":-900.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-07-31","side":"short","reason":"CLOSE_STOP","pts":-0.77,"pnl":-770.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-03","side":"long","reason":"CLOSE_STOP","pts":-0.76,"pnl":-760.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-04","side":"short","reason":"END_OF_DAY","pts":1.14,"pnl":4560.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-08-05","side":"short","reason":"END_OF_DAY","pts":0.46,"pnl":460.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-06","side":"short","reason":"CLOSE_STOP","pts":-0.7,"pnl":-700.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-07","side":"long","reason":"CLOSE_TP","pts":1.35,"pnl":1350.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-10","side":"short","reason":"CLOSE_STOP","pts":-0.52,"pnl":-520.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-11","side":"short","reason":"CLOSE_STOP","pts":-0.99,"pnl":-990.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-12","side":"short","reason":"CLOSE_STOP","pts":-0.38,"pnl":-1520.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-08-13","side":"short","reason":"CLOSE_STOP","pts":-0.63,"pnl":-2520.0,"regime":"strong_bearish_trend","src":"replay","tier":"GATED","qty":4},{"d":"2026-08-14","side":"long","reason":"CLOSE_STOP","pts":-0.38,"pnl":-380.0,"regime":"chop_neutral","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-17","side":"short","reason":"CLOSE_STOP","pts":-0.63,"pnl":-630.0,"regime":"bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-18","side":"long","reason":"CLOSE_STOP","pts":-0.32,"pnl":-320.0,"regime":"strong_bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-19","side":"long","reason":"CLOSE_STOP","pts":-0.55,"pnl":-550.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-20","side":"short","reason":"CLOSE_STOP","pts":-0.42,"pnl":-420.0,"regime":"strong_bearish_trend","src":"replay","tier":"UNGATED","qty":1},{"d":"2026-08-21","side":"long","reason":"CLOSE_STOP","pts":-0.48,"pnl":-480.0,"regime":"bullish_trend","src":"replay","tier":"UNGATED","qty":1}],"meta":{"MCL":{"pv":100.0,"minDate":"2025-09-08","maxDate":"2026-08-21"},"CL":{"pv":1000.0,"minDate":"2026-07-06","maxDate":"2026-08-21"}}};
+const BROKERS=[{"key":"topstep","name":"Topstep","comm":3.0,"fees":2.5},{"key":"tradovate","name":"Tradovate","comm":1.99,"fees":1.5},{"key":"apex","name":"Apex","comm":3.5,"fees":1.0}];
+let COST_MODE="gross";
+const MODE_KEYS={contracts:"topstep",netbasis:"tradovate"};
+let SYM="MCL", TIER="all", SORT={k:null,dir:1};
+const $=id=>document.getElementById(id);
+const fmtNum=(v,d=0)=>v==null?"-":Number(v).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtMoney=v=>(v<0?"-$":"$")+fmtNum(Math.abs(v),0);
+function addDays(dt,n){const x=new Date(dt);x.setDate(x.getDate()+n);return x;}
+function ymd(dt){return dt.toISOString().slice(0,10);}
+function costFor(ctr){if(!ctr||COST_MODE==="gross")return 0;const b=BROKERS.find(x=>x.key===MODE_KEYS[COST_MODE]);return ctr*2*(b.comm+b.fees);}
+function trades(){return DATA[SYM];}
+function filtered(){const s=$("startDate").value,e=$("endDate").value;
+  return trades().filter(t=>(!s||t.d>=s)&&(!e||t.d<=e)&&(TIER==="all"||t.tier===TIER));}
+
+function metrics(ts){const sized=ts.filter(t=>t.ctr>0);
+  const net=sized.reduce((a,t)=>a+t.lpnl,0);
+  const gp=sized.filter(t=>t.lpnl>0).reduce((a,t)=>a+t.lpnl,0);
+  const gl=-sized.filter(t=>t.lpnl<0).reduce((a,t)=>a+t.lpnl,0);
+  const pf=gl?gp/gl:Infinity; const wr=sized.length?sized.filter(t=>t.lpnl>0).length/sized.length*100:0;
+  let cum=0,mx=0,mdd=0; sized.forEach(t=>{cum+=t.lpnl;mx=Math.max(mx,cum);mdd=Math.min(mdd,cum-mx);});
+  return {net,pf,wr,n:sized.length,mdd,avg:sized.length?net/sized.length:0};}
+
+let BANDS_ON=false;
+function update(){
+  const ts=filtered().map(t=>Object.assign({},t));
+  if(BANDS_ON){
+    const sorted=[...ts].sort((a,b)=>Math.abs(a.pts)-Math.abs(b.pts));
+    const n=sorted.length||1; const q=Math.ceil(n/4); const bandOf={};
+    sorted.forEach((t,i)=>{bandOf[t.d]= i<q?0 : i<2*q?1 : i<3*q?2 : 3;});
+    ts.forEach(t=>{t.base=t.pnl/(t.qty||1);t.ctr=bandOf[t.d];t.lcost=costFor(t.ctr);t.lpnl=t.ctr*t.base-(t.lcost||0);});
+  } else {
+    ts.forEach(t=>{t.base=t.pnl;t.ctr=t.qty||1;t.lcost=costFor(t.ctr);t.lpnl=t.base;});
+  }
+  const mm=metrics(ts);
+  $("mProfit").textContent=fmtMoney(mm.net); $("mProfit").className="v "+(mm.net>=0?"pos":"neg");
+  $("mPF").textContent=isFinite(mm.pf)?mm.pf.toFixed(2):Infinity;
+  $("mMaxDD").textContent=fmtMoney(mm.mdd);
+  $("mTrades").textContent=mm.n; $("mWinRate").textContent=mm.wr.toFixed(1)+"%"; $("mAvg").textContent=fmtMoney(mm.avg);
+  renderCosts(ts); renderLadder(ts); drawEquity(ts); drawDaily(ts); drawRegime(ts); drawReasons(ts); drawTiers(ts); drawSides(ts); renderCal(ts); renderTable(ts);
+  $("spanLbl").textContent=SYM+"  "+$("startDate").value+" \u2192 "+$("endDate").value;
+  $("rowCount").textContent=ts.length+" trades";
+  $("mclNote").style.display=SYM==="MCL"?"block":"none";
+  $("clNote").style.display=SYM==="CL"?"block":"none";
+}
+function renderCosts(ts){const sized=ts.filter(t=>t.ctr>0);
+  const contracts=sized.reduce((a,t)=>a+t.ctr,0);
+  const gross=sized.reduce((a,t)=>a+t.lpnl+(t.lcost||0),0);
+  $("costGrid").innerHTML=BROKERS.map(b=>{const allIn=contracts*2*(b.comm+b.fees);const net=gross-allIn;
+    return `<div class="broker"><div><b>${b.name}</b></div><div class="muted">$${fmtNum(b.comm,2)} comm + $${fmtNum(b.fees,2)} fees / side &middot; ${contracts} ctrs</div><div>All-in: ${fmtMoney(allIn)}</div><div><span class="muted">Avg cost/trade</span> <b>${fmtMoney(sized.length?allIn/sized.length:0)}</b></div><div><span class="muted">Net after costs</span> <b class="${net>=0?'pos':'neg'}">${fmtMoney(net)}</b></div></div>`;}).join("");}
+function renderCostModes(){const M=["gross","netbasis","contracts"];const L={gross:"Gross",netbasis:"Net (Tradovate)",contracts:"Contracts (Topstep)"};
+  $("costMode").innerHTML=M.map(m=>`<button data-cm="${m}" class="${COST_MODE===m?'active':''}">${L[m]}</button>`).join("");
+  $("costMode").querySelectorAll("button").forEach(b=>b.onclick=()=>{COST_MODE=b.dataset.cm;renderCostModes();update();});}
+function drawLineSvg(id,pts,color){const w=600,h=210,pad=30;const el=$(id);if(!pts.length){el.innerHTML="";return;}
+  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);let mnx=Math.min(...xs),mxx=Math.max(...xs),mny=Math.min(...ys),mxy=Math.max(...ys);if(mxy===mny)mxy=mny+1;
+  const sx=x=>(x-mnx)/((mxx-mnx)||1)*(w-2*pad)+pad;const sy=y=>(h-pad)-((y-mny)/((mxy-mny)||1))*(h-2*pad);
+  const d=pts.map((p,i)=>(i?"L":"M")+sx(p[0]).toFixed(1)+" "+sy(p[1]).toFixed(1)).join(" ");const y0=sy(0);
+  el.setAttribute("viewBox",`0 0 ${w} ${h}`);
+  el.innerHTML=`<line x1="${pad}" y1="${y0.toFixed(1)}" x2="${w-pad}" y2="${y0.toFixed(1)}" stroke="#263141" stroke-dasharray="3 3"/><path d="${d}" fill="none" stroke="${color}" stroke-width="2"/>`;}
+function drawBarsSvg(id,items,cp,cn){const w=600,h=210,pad=30;const el=$(id);if(!items.length){el.innerHTML="";return;}
+  const vs=items.map(x=>x[1]);let mny=Math.min(0,...vs),mxy=Math.max(0,...vs);if(mxy===mny)mxy=mny+1;
+  const bw=(w-2*pad)/items.length;const sy=y=>(h-pad)-((y-mny)/((mxy-mny)||1))*(h-2*pad);const y0=sy(0);
+  let b="";items.forEach((it,i)=>{const x=pad+i*bw;const y=Math.min(sy(it[1]),y0);const hh=Math.abs(sy(it[1])-y0);b+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(1,bw-1).toFixed(1)}" height="${hh.toFixed(1)}" fill="${it[1]>=0?cp:cn}"/>`;});
+  el.setAttribute("viewBox",`0 0 ${w} ${h}`);el.innerHTML=`<line x1="${pad}" y1="${y0.toFixed(1)}" x2="${w-pad}" y2="${y0.toFixed(1)}" stroke="#263141"/>${b}`;}
+function drawEquity(ts){let cum=0;const pts=ts.map((t,i)=>{cum+=t.lpnl;return [i+1,cum];});drawLineSvg("equity",pts,"#3fd17f");}
+function drawDaily(ts){drawBarsSvg("daily",ts.map((t,i)=>[i+1,t.lpnl]),"#3fd17f","#ff6170");}
+function drawRegime(ts){const by={};ts.forEach(t=>{by[t.regime]=(by[t.regime]||0)+t.lpnl;});drawBarsSvg("regime",Object.entries(by),"#6da8ff","#ff6170");}
+function drawReasons(ts){const by={};ts.forEach(t=>{by[t.reason]=(by[t.reason]||0)+t.lpnl;});drawBarsSvg("reasons",Object.entries(by),"#3fd17f","#ff6170");}
+function drawTiers(ts){const by={};ts.forEach(t=>{by[t.tier]=(by[t.tier]||0)+t.lpnl;});drawBarsSvg("tiers",Object.entries(by),"#6da8ff","#ff6170");
+  const g=ts.filter(t=>t.tier==="GATED"),u=ts.filter(t=>t.tier==="UNGATED");
+  const st=a=>`${a.length} trades, ${fmtMoney(a.reduce((x,t)=>x+t.lpnl,0))}, win ${a.length?(a.filter(t=>t.lpnl>0).length/a.length*100).toFixed(1):0}%`;
+  $("tierStats").innerHTML=`<span style="margin-right:14px"><b>GATED</b>: ${st(g)}</span><span><b>UNGATED</b>: ${st(u)}</span>`;}
+function drawSides(ts){const by={};ts.forEach(t=>{by[t.side]=(by[t.side]||0)+t.lpnl;});drawBarsSvg("sides",Object.entries(by),"#6da8ff","#ff6170");
+  const L=ts.filter(t=>t.side==="long"),S=ts.filter(t=>t.side==="short");
+  const st=a=>`${a.length} trades, ${fmtMoney(a.reduce((x,t)=>x+t.lpnl,0))}, win ${a.length?(a.filter(t=>t.lpnl>0).length/a.length*100).toFixed(1):0}%`;
+  $("sideStats").innerHTML=`<span style="margin-right:14px"><b>Long</b>: ${st(L)}</span><span><b>Short</b>: ${st(S)}</span>`;}
+function renderCal(ts){const byYM={};ts.forEach(t=>{const k=t.d.slice(0,4)+"-"+ (+t.d.slice(5,7));byYM[k]=(byYM[k]||0)+t.lpnl;});
+  const years=[...new Set(ts.map(t=>t.d.slice(0,4)))].sort();
+  const keys=Object.keys(byYM).sort();let run=0;const cumMap={};keys.forEach(k=>{run+=byYM[k];cumMap[k]=run;});
+  let h="<thead><tr><th>Year</th>"+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map(m=>`<th>${m}</th>`).join("")+"<th>YTD</th></tr></thead><tbody>";
+  years.forEach(y=>{let ytd=0,row="";for(let m=1;m<=12;m++){const v=cumMap[y+"-"+m];if(v!=null){ytd=v;row+=`<td class="${v>=0?'pos':'neg'}">${fmtMoney(v)}</td>`;}else row+="<td class='muted'>-</td>";}
+    h+=`<tr><td>${y}</td>${row}<td class="${ytd>=0?'pos':'neg'}"><b>${ytd?fmtMoney(ytd):'-'}</b></td></tr>`;});
+  $("calTbl").innerHTML=h+"</tbody>";}
+function sortBy(k){if(SORT.k===k)SORT.dir*=-1;else{SORT.k=k;SORT.dir=1;}update();}
+function renderTable(ts){
+  if(SORT.k){const k=SORT.k;ts=[...ts].sort((a,b)=>{const x=a[k],y=b[k];if(typeof x==="number"&&typeof y==="number")return (x-y)*SORT.dir;return String(x)<String(y)?-SORT.dir:SORT.dir;});}
+  const body=ts.map((t,i)=>`<tr><td>${i+1}</td><td>${t.side}</td><td>${t.d}</td><td>${t.reason}</td><td>${t.regime}</td><td>${t.tier}</td><td class="${t.pts>=0?'pos':'neg'}">${t.pts}</td><td>${t.ctr}</td><td class="${t.lpnl>=0?'pos':'neg'}">${fmtMoney(t.lpnl)}</td></tr>`).join("");
+  const hdr=["side","d","reason","regime","tier","pts","ctr","lpnl"].reduce((acc,k)=>acc,{});
+  $("rows").innerHTML=`<thead><tr><th>#</th><th onclick="sortBy('side')">Side</th><th onclick="sortBy('d')">Date</th><th onclick="sortBy('reason')">Exit</th><th onclick="sortBy('regime')">Regime</th><th onclick="sortBy('tier')">Tier</th><th onclick="sortBy('pts')">Pts</th><th>Ctr</th><th onclick="sortBy('lpnl')">P&L</th></tr></thead><tbody>${body}</tbody>`;}
+function renderLadder(ts){const agg=[0,1,2,3,4].map(b=>({ctr:b,n:0,pnl:0}));
+  ts.forEach(t=>{const a=agg.find(x=>x.ctr===t.ctr);if(a){a.n++;a.pnl+=t.lpnl;}});
+  const el=$("ladder");const w=600,h=210,pad=30;const mx=Math.max(1,...agg.map(a=>Math.abs(a.pnl)));
+  let bars="";agg.forEach((a,i)=>{const bw=(w-2*pad)/agg.length;const x=pad+i*bw;const bh=Math.abs(a.pnl)/mx*(h-2*pad);const y=(a.pnl>=0?h-pad-bh:h-pad);
+    bars+=`<rect x="${x+6}" y="${y}" width="${bw-12}" height="${bh}" fill="${a.pnl>=0?'#6da8ff':'#ff6170'}"/><text x="${x+bw/2}" y="${h-pad+14}" fill="#8fa0b3" font-size="11" text-anchor="middle">${a.ctr} ctr</text><text x="${x+bw/2}" y="${Math.max(y-4,10)}" fill="#eef3f8" font-size="10" text-anchor="middle">${a.n}</text>`;});
+  el.setAttribute("viewBox",`0 0 ${w} ${h}`);el.innerHTML=bars;
+  $("bandStats").innerHTML=agg.filter(a=>a.n).map(a=>`<span style="margin-right:14px"><b>${a.ctr} ctr</b>: ${a.n} trades, ${fmtMoney(a.pnl)}</span>`).join("");}
+function setSym(s){SYM=s;$("symBtns").querySelectorAll("button").forEach(b=>b.classList.toggle("active",b.dataset.sym===s));
+  $("startDate").value=DATA.meta[s].minDate;$("endDate").value=DATA.meta[s].maxDate;
+  $("startDate").min=DATA.meta[s].minDate;$("startDate").max=DATA.meta[s].maxDate;
+  $("endDate").min=DATA.meta[s].minDate;$("endDate").max=DATA.meta[s].maxDate;
+  buildYears();clearPreset();update();}
+function buildYears(){const yrs=["all",...[...new Set(trades().map(t=>t.d.slice(0,4)))].sort()];
+  $("yearBtns").innerHTML=yrs.map(y=>`<button data-year="${y}" class="${y==='all'?'active':''}">${y==='all'?'All':y}</button>`).join("");
+  $("yearBtns").querySelectorAll("button").forEach(b=>b.onclick=()=>{const y=b.dataset.year;
+    $("yearBtns").querySelectorAll("button").forEach(x=>x.classList.remove("active"));b.classList.add("active");
+    if(y==="all"){$("startDate").value=DATA.meta[SYM].minDate;$("endDate").value=DATA.meta[SYM].maxDate;}
+    else{$("startDate").value=Math.max(y+"-01-01",DATA.meta[SYM].minDate);$("endDate").value=Math.min(y+"-12-31",DATA.meta[SYM].maxDate);}
+    clearPreset();update();});}
+function clearPreset(){$("presets").querySelectorAll("button").forEach(x=>x.classList.remove("active"));}
+function buildControls(){
+  $("symBtns").innerHTML=["MCL","CL"].map(s=>`<button data-sym="${s}" class="${s===SYM?'active':''}">${s}</button>`).join("");
+  $("symBtns").querySelectorAll("button").forEach(b=>b.onclick=()=>setSym(b.dataset.sym));
+  $("tierBtns").innerHTML=[["all","All"],["GATED","Gated 4"],["UNGATED","Ungated 1"]].map(t=>`<button data-tier="${t[0]}" class="${t[0]===TIER?'active':''}">${t[1]}</button>`).join("");
+  $("tierBtns").querySelectorAll("button").forEach(b=>b.onclick=()=>{TIER=b.dataset.tier;
+    $("tierBtns").querySelectorAll("button").forEach(x=>x.classList.remove("active"));b.classList.add("active");update();});
+  const pres=[["1m","Last Month"],["3m","Last 3 Months"],["6m","Last 6 Months"],["1y","Last Year"],["all","All"]];
+  $("presets").innerHTML=pres.map(p=>`<button data-preset="${p[0]}">${p[1]}</button>`).join("");
+  $("presets").querySelectorAll("button").forEach(b=>b.onclick=()=>{const p=b.dataset.preset;
+    $("presets").querySelectorAll("button").forEach(x=>x.classList.remove("active"));b.classList.add("active");setPreset(p);});}
+function setPreset(p){const max=new Date(DATA.meta[SYM].maxDate+"T12:00:00-04:00");let s=max,e=max;
+  if(p==="all"){s=new Date(DATA.meta[SYM].minDate+"T12:00:00-04:00");e=max;}
+  else if(p==="1m"){s=addDays(max,-30);}
+  else if(p==="3m"){s=addDays(max,-92);}
+  else if(p==="6m"){s=addDays(max,-180);}
+  else if(p==="1y"){s=addDays(max,-365);}
+  const clamp=d=>{const mn=new Date(DATA.meta[SYM].minDate+"T12:00:00-04:00");if(d<mn)d=mn;if(d>max)d=max;return d;};
+  s=clamp(s);e=clamp(e);
+  $("startDate").value=ymd(s);$("endDate").value=ymd(e);
+  $("yearBtns").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
+  update();}
+$("startDate").onchange=$("endDate").onchange=()=>{clearPreset();$("yearBtns").querySelectorAll("button").forEach(x=>x.classList.remove("active"));update();};
+$("resetLadder").onclick=()=>{BANDS_ON=false;update();};
+$("applyBands").onclick=()=>{BANDS_ON=true;update();};
+$("startDate").value=DATA.meta[SYM].minDate;$("endDate").value=DATA.meta[SYM].maxDate;
+buildControls();buildYears();renderCostModes();update();
+</script></body></html>
